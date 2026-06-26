@@ -10,9 +10,10 @@
     "start": "bun apps/server/src/index.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "mobile": "bun --filter @immigration/mobile start",
-    "server": "bun --filter @immigration/server dev",
-    "typecheck": "bun --filter '*' run typecheck"
+    "mobile": "bun run --cwd apps/mobile start",
+    "mobile:local": "bun run --cwd apps/mobile start:local",
+    "server": "bun run --cwd apps/server dev",
+    "typecheck": "bun --workspaces run typecheck"
   },
   "devDependencies": {
     "prettier": "^3.8.3",

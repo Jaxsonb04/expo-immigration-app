@@ -8,6 +8,7 @@
     "scheme": "heroui-native-app",
     "userInterfaceStyle": "automatic",
     "ios": {
+      "bundleIdentifier": "com.jaxsonbie.expoimmigrationapp",
       "supportsTablet": true
     },
     "android": {

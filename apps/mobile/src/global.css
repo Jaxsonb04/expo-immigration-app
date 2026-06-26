@@ -2,58 +2,71 @@
 @import "uniwind";
 
 @import "heroui-native/styles";
-@import "heroui-native-pro/styles";
 
-/* End-user path: heroui-native lives in the project's node_modules, one
-   level up from this src/global.css file. */
 @source '../node_modules/heroui-native/lib';
-@source '../node_modules/heroui-native-pro/lib';
+@source '../../../node_modules/heroui-native/lib';
 
 @theme {
-  --field-radius: 0.5rem;
-  --field-border-width: 0.642122456084777px;
-  --font-bold: Fredoka-Bold;
-  --font-medium: Fredoka-Medium;
-  --font-normal: Fredoka-Regular;
-  --font-semibold: Fredoka-SemiBold;
+  --field-radius: 0.75rem;
+  --field-border-width: 1px;
+  --font-bold: DMSans_700Bold;
+  --font-medium: DMSans_500Medium;
+  --font-normal: DMSans_400Regular;
+  --font-semibold: DMSans_600SemiBold;
 }
 
 @layer theme {
   @variant light {
-    /* Theme Colors */
-    --background: oklch(97.02% 0.0027 181.37);
-    --muted: oklch(55.17% 0.0053 181.37);
-    --surface-secondary: oklch(95.24% 0.004 181.37);
-    --surface-tertiary: oklch(93.73% 0.004 181.37);
-    --default: oklch(94% 0.0027 181.37);
-    --accent: oklch(71.73% 0.1096 181.37);
-    --accent-foreground: var(--eclipse);
-    --success: oklch(64.52% 0.1776 141.57);
-    --warning: oklch(68.73% 0.1419 74.72);
-    --danger: oklch(62.39% 0.1883 17.66);
-    --border: oklch(90% 0.0027 181.37);
-    --separator: oklch(92% 0.0027 181.37);
+    --background: hsl(47 24% 93%);
+    --foreground: hsl(40 5% 12%);
+    --muted: hsl(48 3% 36%);
+    --surface: hsl(0 0% 100%);
+    --surface-secondary: hsl(45 19% 97%);
+    --surface-tertiary: hsl(45 19% 94%);
+    --default: hsl(45 19% 94%);
+    --default-foreground: hsl(40 5% 12%);
+    --accent: hsl(208 75% 37%);
+    --accent-foreground: hsl(0 0% 100%);
+    --success: hsl(92 73% 25%);
+    --success-foreground: hsl(0 0% 100%);
+    --warning: hsl(33 84% 28%);
+    --warning-foreground: hsl(0 0% 100%);
+    --danger: hsl(0 56% 41%);
+    --danger-foreground: hsl(0 0% 100%);
+    --field-background: hsl(0 0% 100%);
+    --field-foreground: hsl(40 5% 12%);
+    --field-placeholder: hsl(43 7% 58%);
+    --field-border: hsl(45 19% 88%);
+    --border: hsl(45 19% 88%);
+    --separator: hsl(45 19% 88%);
   }
 
   @variant dark {
-    /* Theme Colors */
-    --background: oklch(12% 0.0027 181.37);
-    --muted: oklch(70.5% 0.0053 181.37);
-    --surface: oklch(21.03% 0.0053 181.37);
-    --surface-secondary: oklch(25.7% 0.004 181.37);
-    --surface-secondary-foreground: oklch(25.7% 0 181.37);
-    --surface-tertiary: oklch(27.21% 0.004 181.37);
-    --surface-tertiary-foreground: oklch(27.21% 0 181.37);
-    --overlay: oklch(21.03% 0.0053 181.37);
-    --default: oklch(27.4% 0.0027 181.37);
-    --accent: oklch(71.73% 0.1096 181.37);
-    --accent-foreground: var(--eclipse);
-    --success: oklch(64.52% 0.1776 141.57);
-    --warning: oklch(68.73% 0.1419 74.72);
-    --danger: oklch(62.39% 0.1883 17.66);
-    --field-background: oklch(21.03% 0.0053 181.37);
-    --segment: oklch(39.64% 0.0027 181.37);
-    --border: oklch(28% 0.0027 181.37);
-    --separator: oklch(25% 0.0027 181.37);
+    --background: hsl(40 8% 9%);
+    --foreground: hsl(45 18% 94%);
+    --muted: hsl(45 8% 68%);
+    --surface: hsl(30 6% 13%);
+    --surface-secondary: hsl(30 6% 17%);
+    --surface-secondary-foreground: hsl(45 18% 94%);
+    --surface-tertiary: hsl(30 5% 20%);
+    --surface-tertiary-foreground: hsl(45 18% 94%);
+    --overlay: hsl(30 6% 13%);
+    --default: hsl(30 5% 20%);
+    --default-foreground: hsl(45 18% 94%);
+    --accent: hsl(208 70% 48%);
+    --accent-foreground: hsl(0 0% 100%);
+    --success: hsl(92 49% 39%);
+    --success-foreground: hsl(0 0% 100%);
+    --warning: hsl(35 84% 55%);
+    --warning-foreground: hsl(40 5% 12%);
+    --danger: hsl(0 52% 48%);
+    --danger-foreground: hsl(0 0% 100%);
+    --field-background: hsl(30 6% 13%);
+    --field-foreground: hsl(45 18% 94%);
+    --field-placeholder: hsl(45 8% 68%);
+    --field-border: hsl(30 5% 24%);
+    --segment: hsl(30 5% 24%);
+    --border: hsl(30 5% 24%);
+    --separator: hsl(30 5% 24%);
   }
 }

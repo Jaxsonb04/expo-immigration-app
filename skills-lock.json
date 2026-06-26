@@ -7,11 +7,65 @@
       "skillPath": "plugins/expo/skills/building-native-ui/SKILL.md",
       "computedHash": "b4c017a718e9ff4d2ba06515006beda3358bd5b1f4ff31f49c90b7e51118811b"
     },
+    "code-reviewer": {
+      "source": "google-gemini/gemini-cli",
+      "sourceType": "github",
+      "skillPath": ".gemini/skills/code-reviewer/SKILL.md",
+      "computedHash": "270f0dd1d4c15a798bad5253a309cdc2056fe5322f99ba06ca22ce50581adc02"
+    },
+    "create-auth-skill": {
+      "source": "better-auth/skills",
+      "sourceType": "github",
+      "skillPath": "better-auth/create-auth/SKILL.md",
+      "computedHash": "31c027d02dbf1faa37f58191f574b9443143042fb2b684fe32df53ab0270487c"
+    },
+    "documentation-lookup": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "github",
+      "skillPath": "skills/documentation-lookup/SKILL.md",
+      "computedHash": "314fb416b723fbae96c9b35e53400ed0f72aedb43e79493a9cf8aba3b04ffff0"
+    },
     "expo-api-routes": {
       "source": "expo/skills",
       "sourceType": "github",
       "skillPath": "plugins/expo/skills/expo-api-routes/SKILL.md",
       "computedHash": "719b5a8e07c1055760e21c22d8c42c1d79f084d946450f2b72d6db5598f73002"
+    },
+    "expo-deployment": {
+      "source": "expo/skills",
+      "sourceType": "github",
+      "skillPath": "plugins/expo/skills/expo-deployment/SKILL.md",
+      "computedHash": "f70cd561a2d726f329f45eb0ad262f298c57676a80d7ecf288dc3919a6a7a50d"
+    },
+    "expo-react-native-typescript": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "skillPath": "expo-react-native-typescript/SKILL.md",
+      "computedHash": "ef1a36e2a4e803d4e754eabea9b851221ee37b5c416256dbc9d2d1b333447f4b"
+    },
+    "heroui-native": {
+      "source": "heroui-inc/heroui",
+      "sourceType": "github",
+      "skillPath": "skills/heroui-native/SKILL.md",
+      "computedHash": "d2fc03a13d03678d40799726a144ba72ba1cb08126176ddbf0a0461c901aef29"
+    },
+    "maestro-mobile-testing": {
+      "source": "tovimx/maestro-mobile-testing-skill",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "bdbd865389287a513591c184ca7958256b42d694216ae55c8e94372843eda46b"
+    },
+    "typescript-review": {
+      "source": "metabase/metabase",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/typescript-review/SKILL.md",
+      "computedHash": "a45d896511338df20fba90f9c222dfc7f58a7ee48818ad6ca298cc5a5a3ff6d2"
+    },
+    "use-railway": {
+      "source": "railwayapp/railway-skills",
+      "sourceType": "github",
+      "skillPath": "skills/use-railway/SKILL.md",
+      "computedHash": "7045ad8dc382af94e3ce345b69fcab7a7466914d6d052f157a8a440ec21ec099"
     }
   }
 }
