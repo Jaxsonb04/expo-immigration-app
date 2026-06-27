@@ -1,12 +1,15 @@
 import {
   applyI765DraftPatch,
   applyReminderAction,
+  createForumReport,
   createManualCaseFromReceipt,
   getI765CompletionPercent,
   normalizeReceiptNumber,
   type CaseSummary,
   type CreateManualCaseFromReceiptInput,
   type ApplyReminderActionInput,
+  type ForumReportReason,
+  type ForumReportSummary,
   type I765DraftPatchResult,
   type LoopSnapshot,
   type ReminderSummary,
@@ -39,11 +42,36 @@ export interface SaveReminderInteractionResult {
   error?: "missing_reminder";
 }
 
+export interface SaveForumReportInput {
+  threadId?: string;
+  postId?: string;
+  reason: ForumReportReason;
+  createdAt: string;
+}
+
+export interface SaveForumReportResult {
+  accepted: boolean;
+  report?: ForumReportSummary;
+  error?: "invalid_report_target" | "missing_forum";
+}
+
+export interface BlockForumAuthorInput {
+  authorPseudonymId: string;
+}
+
+export interface BlockForumAuthorResult {
+  accepted: boolean;
+  blockedAuthorPseudonymIds?: string[];
+  error?: "missing_author" | "missing_forum";
+}
+
 export interface LoopRepository {
   getSnapshot: () => LoopSnapshot;
   saveI765DraftPatch: (input: SaveI765DraftPatchInput) => I765DraftPatchResult;
   saveManualCaseReceipt: (input: SaveManualCaseReceiptInput) => SaveManualCaseReceiptResult;
   saveReminderInteraction: (input: SaveReminderInteractionInput) => SaveReminderInteractionResult;
+  saveForumReport: (input: SaveForumReportInput) => SaveForumReportResult;
+  blockForumAuthor: (input: BlockForumAuthorInput) => BlockForumAuthorResult;
 }
 
 function getBoundedCurrentStep(currentStep: number, totalSteps: number, fallbackStep: number): number {
@@ -56,6 +84,84 @@ function getBoundedCurrentStep(currentStep: number, totalSteps: number, fallback
 
 export const localLoopRepository: LoopRepository = {
   getSnapshot: () => localLoopSnapshot,
+  blockForumAuthor: ({ authorPseudonymId }) => {
+    const forum = localLoopSnapshot.forum;
+    const trimmedAuthorId = authorPseudonymId.trim();
+
+    if (!forum) {
+      return {
+        accepted: false,
+        error: "missing_forum",
+      };
+    }
+
+    if (!trimmedAuthorId) {
+      return {
+        accepted: false,
+        error: "missing_author",
+      };
+    }
+
+    const blockedAuthorPseudonymIds = Array.from(
+      new Set([...forum.blockedAuthorPseudonymIds, trimmedAuthorId]),
+    );
+    localLoopSnapshot.forum = {
+      ...forum,
+      blockedAuthorPseudonymIds,
+    };
+
+    return {
+      accepted: true,
+      blockedAuthorPseudonymIds,
+    };
+  },
+  saveForumReport: ({ threadId, postId, reason, createdAt }) => {
+    const forum = localLoopSnapshot.forum;
+
+    if (!forum) {
+      return {
+        accepted: false,
+        error: "missing_forum",
+      };
+    }
+
+    const hasKnownThreadTarget = threadId
+      ? forum.threads.some((thread) => thread.id === threadId)
+      : true;
+    const hasKnownPostTarget = postId ? forum.posts.some((post) => post.id === postId) : true;
+
+    if (!hasKnownThreadTarget || !hasKnownPostTarget) {
+      return {
+        accepted: false,
+        error: "invalid_report_target",
+      };
+    }
+
+    const report = createForumReport({
+      id: `report-local-${forum.reports.length + 1}`,
+      threadId,
+      postId,
+      reason,
+      createdAt,
+    });
+
+    if (!report) {
+      return {
+        accepted: false,
+        error: "invalid_report_target",
+      };
+    }
+
+    localLoopSnapshot.forum = {
+      ...forum,
+      reports: [...forum.reports, report],
+    };
+
+    return {
+      accepted: true,
+      report,
+    };
+  },
   saveReminderInteraction: ({ reminderId, ...interaction }) => {
     const reminders = localLoopSnapshot.reminders ?? [];
     const reminderIndex = reminders.findIndex((reminder) => reminder.id === reminderId);

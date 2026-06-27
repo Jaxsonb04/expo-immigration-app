@@ -168,4 +168,47 @@ describe("local loop repository", () => {
     });
     expect(localLoopRepository.getSnapshot().reminders).toEqual(beforeReminders);
   });
+
+  test("saves forum reports without mutating filings, tracker cases, deadlines, documents, or profile", () => {
+    const before = localLoopRepository.getSnapshot();
+    const beforeActiveApplication = before.activeApplication;
+    const beforeCases = before.cases;
+    const beforeDeadlines = before.deadlines;
+    const beforeDocuments = before.documents;
+    const beforeProfile = before.profile;
+
+    const result = localLoopRepository.saveForumReport({
+      postId: "post-biometrics-1",
+      reason: "unsafe_legal_advice",
+      createdAt: "2026-06-27T23:05:00.000Z",
+    });
+
+    const after = localLoopRepository.getSnapshot();
+    const savedReport = after.forum?.reports.find((report) => report.postId === "post-biometrics-1");
+
+    expect(result.accepted).toBe(true);
+    expect(result.report?.reasonLabel).toBe("Unsafe legal advice");
+    expect(savedReport?.status).toBe("open");
+    expect(after.activeApplication).toEqual(beforeActiveApplication);
+    expect(after.cases).toEqual(beforeCases);
+    expect(after.deadlines).toEqual(beforeDeadlines);
+    expect(after.documents).toEqual(beforeDocuments);
+    expect(after.profile).toEqual(beforeProfile);
+  });
+
+  test("blocks forum authors locally without touching profile identity", () => {
+    const beforeProfile = localLoopRepository.getSnapshot().profile;
+
+    const result = localLoopRepository.blockForumAuthor({
+      authorPseudonymId: "author-safe",
+    });
+
+    const after = localLoopRepository.getSnapshot();
+
+    expect(result).toEqual({
+      accepted: true,
+      blockedAuthorPseudonymIds: expect.arrayContaining(["author-safe"]),
+    });
+    expect(after.profile).toEqual(beforeProfile);
+  });
 });

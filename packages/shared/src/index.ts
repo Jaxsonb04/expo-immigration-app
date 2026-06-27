@@ -4,6 +4,7 @@ export * from "./cases";
 export * from "./deadlines";
 export * from "./documents";
 export * from "./forms/i765";
+export * from "./forum";
 export * from "./loop";
 export * from "./profile";
 export * from "./reminders";

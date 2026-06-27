@@ -14,6 +14,7 @@ Base: `main` at `c19f9f4`
 - Home hub, Profile/Vault metadata surface, I-765 wizard shell, manual Tracker, and Calendar surfaces are implemented with local data.
 - Manual tracker receipt entry now validates USCIS-style receipt numbers, saves a local government-side case summary, and keeps the no-live-USCIS-sync disclaimer visible.
 - Calendar now renders deadline-linked reminder plans with local acknowledge/snooze state. It does not claim push delivery; Railway cron + Expo push remain production contracts until auth and device tokens land.
+- Forum safety shell now renders pseudonymous local categories, visible threads/posts, peer-support-only safety copy, reporting, and local author blocking.
 - Calendar grid was fixed to render real month cells instead of fake overflow dates.
 - Mobile screen wrapper now handles iOS safe areas for the dev-client/native tab layout.
 - CocoaPods UTF-8 workaround is in the mobile iOS scripts.
@@ -25,9 +26,10 @@ Base: `main` at `c19f9f4`
 - No USCIS submission wording or submission action is implemented.
 - Tracker is manual-first; no live USCIS sync dependency.
 - Reminder delivery is local UI state only; no push token registration, Railway cron worker, or Expo push send is implemented.
+- Forum is local and pseudonymous only; no production auth identity, backend moderation queue, abuse-block sync, or legal-advice escalation workflow is implemented.
 - PDF generation/export is only copy/UI language right now.
 - Production auth, KMS/encryption, counsel approval, and filing workflows remain gated.
-- Forum and news are still deferred.
+- News is still deferred.
 
 ## How To Run
 
@@ -76,6 +78,7 @@ These commands passed before handoff:
 - `maestro test .maestro/filing-wizard.yaml`
 - `maestro test .maestro/tracker-manual-case.yaml`
 - `maestro test .maestro/calendar-reminder.yaml`
+- `maestro test .maestro/forum-report.yaml`
 
 Simulator notes:
 
@@ -83,22 +86,23 @@ Simulator notes:
 - The app starts on a placeholder auth screen; the Maestro flow signs in, opens Filings, completes the safe non-PII choices, reaches the export shell, and verifies autosave plus no-USCIS-submission copy.
 - The tracker Maestro flow signs in, opens Tracker, saves `YSC1234567890` as a manual case, verifies the local-only status text, then checks invalid receipt copy.
 - The calendar Maestro flow signs in, opens Calendar, verifies deadline/agenda rendering, then acknowledges and snoozes a deadline-linked reminder locally.
+- The forum Maestro flow signs in, opens the iOS native `More` tab, selects Forum, verifies peer-support safety copy, reports the visible post, and blocks the pseudonymous author locally.
 - Maestro was installed locally via `https://get.maestro.mobile.dev`; ensure `$HOME/.maestro/bin` is on `PATH` before running the flow.
 
 ## Next Best Slice
 
-Continue Phase 6 with the next feature loop. Filing wizard, manual tracker, and calendar reminders now have shared helpers, repository persistence, UI states, and simulator E2E coverage for the current local-data scope. The next useful slice is the forum safety shell:
+Continue Phase 6 with the next feature loop. Filing wizard, manual tracker, calendar reminders, and forum safety now have shared helpers, repository persistence, UI states, and simulator E2E coverage for the current local-data scope. The next useful slice is the news source/editorial shell:
 
-- Add categories/thread/post DTOs and a local forum feed without legal-advice positioning.
-- Include reporting and moderation states from day one.
-- Keep identity pseudonymous/local until production auth is ready.
-- Add Maestro coverage for opening the forum surface and reporting a post.
+- Add official-source DTOs and a local news feed that separates source, published date, and summary.
+- Keep Phase 9 production ingestion deferred; no scraping, rumor feeds, or auto-publish behavior in this slice.
+- Bias toward USCIS/government source links and editorial review states from day one.
+- Add Maestro coverage for opening the news surface and verifying official-source attribution.
 
 Recommended tests:
 
-- Shared forum model tests for report reasons, moderation state labels, and safe copy.
-- Repository tests proving reports/moderation flags do not mutate filings, tracker cases, documents, or PII.
-- Maestro flow for the forum/reporting path once the tab or entry point lands.
+- Shared news model tests for source labels, date ordering, and official-source-only copy.
+- Repository/model tests proving news does not mutate filings, tracker cases, documents, profile, or forum moderation data.
+- Maestro flow for the news/source-attribution path once the tab or entry point lands.
 
 ## Known UX Risks To Address
 
@@ -113,6 +117,7 @@ Resolved in this Stage 6 slice:
 - `.maestro/filing-wizard.yaml` verifies the filing wizard on the iPhone 17 simulator end to end for the current local-data scope.
 - Manual tracker receipt persistence is covered by shared helper tests, repository mutation tests, tracker model tests, and `.maestro/tracker-manual-case.yaml`.
 - Calendar local reminders are covered by shared reminder tests, calendar model tests, repository mutation tests, and `.maestro/calendar-reminder.yaml`.
+- Forum safety is covered by shared forum tests, forum model tests, repository mutation tests, and `.maestro/forum-report.yaml`.
 
 ## GitHub Handoff
 

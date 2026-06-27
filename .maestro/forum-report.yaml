@@ -1,0 +1,49 @@
+# Forum Safety Smoke Test
+#
+# Verifies the Phase 6 forum safety shell on an installed iOS dev client:
+# auth placeholder -> More -> Forum -> safety copy -> report a post -> block a pseudonymous author locally.
+
+appId: com.jaxsonbie.expoimmigrationapp
+---
+- launchApp:
+    clearState: true
+- swipe:
+    direction: DOWN
+    duration: 100
+- extendedWaitUntil:
+    visible:
+      id: "auth-loaded"
+    timeout: 15000
+
+- tapOn:
+    id: "auth-continue-button"
+- extendedWaitUntil:
+    visible: "Home"
+    timeout: 5000
+
+- tapOn: "More"
+- tapOn: "Forum"
+- tapOn:
+    text: "Forum"
+    optional: true
+- extendedWaitUntil:
+    visible: "Peer support, not legal advice."
+    timeout: 5000
+
+- assertVisible: "Safety first"
+- assertVisible: "Peer support only"
+- assertVisible: "I-765 renewals"
+- assertVisible: "What did you bring to biometrics?"
+
+- scrollUntilVisible:
+    element:
+      id: "forum-report-post-post-biometrics-1"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "forum-report-post-post-biometrics-1"
+- assertVisible: "Report sent for moderator review."
+
+- tapOn:
+    id: "forum-block-author-author-safe"
+- assertVisible: "Author blocked locally."

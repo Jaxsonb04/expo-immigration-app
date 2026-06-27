@@ -20,6 +20,10 @@ export default function TabsLayout(): JSX.Element {
         <NativeTabs.Trigger.Icon sf="calendar" md="event" />
         <NativeTabs.Trigger.Label>Calendar</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="forum">
+        <NativeTabs.Trigger.Icon sf="bubble.left.and.bubble.right.fill" md="forum" />
+        <NativeTabs.Trigger.Label>Forum</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
       <NativeTabs.Trigger name="profile">
         <NativeTabs.Trigger.Icon sf="person.crop.circle" md="person" />
         <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
