@@ -1,47 +1,82 @@
 import { useMemo, useState } from "react";
 import { Text, View } from "react-native";
 import { Button, Card, Description, FieldError, Input, Label, TextField } from "heroui-native";
-import { normalizeReceiptNumber, validateReceiptNumber } from "@immigration/shared";
 
 import { Screen } from "@/components/screen";
+import { localLoopRepository } from "@/features/loop/repository";
 import { useLoopSnapshot } from "@/features/loop/use-loop-snapshot";
 import { EmptyState } from "@/features/ui/empty-state";
 import { SectionHeader } from "@/features/ui/section-header";
 import { TimelineItem } from "@/features/ui/timeline-item";
 import { cardStyle, colors, fonts } from "@/features/ui/tokens";
 
-import { buildTrackerModel } from "./tracker-model";
+import { buildReceiptEntryModel, buildTrackerModel } from "./tracker-model";
 
 export function TrackerScreenContent() {
   const snapshot = useLoopSnapshot();
-  const [receipt, setReceipt] = useState("IOE 123 456 7890");
-  const caseSummary = snapshot.cases?.[0];
-  const normalized = normalizeReceiptNumber(receipt);
-  const receiptValid = validateReceiptNumber(receipt);
+  const [receipt, setReceipt] = useState("");
+  const [caseSummaries, setCaseSummaries] = useState(() => snapshot.cases ?? []);
+  const [saveMessage, setSaveMessage] = useState<string | undefined>();
+  const [saveError, setSaveError] = useState<string | undefined>();
+  const caseSummary = caseSummaries[0];
+  const receiptModel = useMemo(() => buildReceiptEntryModel(receipt), [receipt]);
   const model = useMemo(
     () => (caseSummary ? buildTrackerModel(caseSummary) : undefined),
     [caseSummary]
   );
 
+  function saveManualCase() {
+    const result = localLoopRepository.saveManualCaseReceipt({
+      id: `case-${receiptModel.normalizedReceiptNumber.toLowerCase()}`,
+      applicationId: snapshot.activeApplication?.id,
+      receiptNumber: receipt,
+      formCode: snapshot.activeApplication?.typeCode ?? "I-765",
+      savedAt: new Date().toISOString(),
+    });
+
+    if (!result.accepted) {
+      setSaveMessage(undefined);
+      setSaveError("Receipt was not saved. Check the number from your USCIS notice.");
+      return;
+    }
+
+    setCaseSummaries(localLoopRepository.getSnapshot().cases ?? []);
+    setReceipt("");
+    setSaveError(undefined);
+    setSaveMessage(`Saved ${result.normalizedReceiptNumber} as a manual tracker case.`);
+  }
+
   return (
     <Screen title="Tracker" subtitle="Manual-first case status.">
       <Card className="gap-4 p-4" style={cardStyle}>
         <SectionHeader title="Add receipt number" actionLabel="Manual" />
-        <TextField isInvalid={receipt.length > 0 && !receiptValid}>
+        <TextField isInvalid={Boolean(receiptModel.errorText || saveError)}>
           <Label>USCIS receipt number</Label>
           <Input
+            accessibilityLabel="USCIS receipt number"
             autoCapitalize="characters"
+            autoCorrect={false}
             value={receipt}
             onChangeText={setReceipt}
             placeholder="IOE1234567890"
+            testID="tracker-receipt-input"
           />
-          {receiptValid ? (
-            <Description>Preview receipt: {normalized}</Description>
-          ) : (
-            <FieldError>Use 3 letters followed by 10 numbers.</FieldError>
-          )}
+          {receiptModel.helperText ? <Description>{receiptModel.helperText}</Description> : null}
+          {receiptModel.errorText ? <FieldError>{receiptModel.errorText}</FieldError> : null}
+          {saveError ? <FieldError>{saveError}</FieldError> : null}
         </TextField>
-        <Button isDisabled={!receiptValid}>Save manual case</Button>
+        {saveMessage ? (
+          <Text selectable style={{ color: colors.success, fontFamily: fonts.medium, fontSize: 13 }}>
+            {saveMessage}
+          </Text>
+        ) : null}
+        <Button
+          isDisabled={!receiptModel.canSave}
+          onPress={saveManualCase}
+          testID="tracker-save-manual-case"
+        >
+          Save manual case
+        </Button>
       </Card>
 
       {caseSummary && model ? (

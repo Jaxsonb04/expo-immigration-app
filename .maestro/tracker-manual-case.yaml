@@ -1,0 +1,55 @@
+# Manual Case Tracker Smoke Test
+#
+# Verifies the Phase 6 tracker loop on an installed iOS dev client:
+# auth placeholder -> tracker tab -> save a valid manual receipt -> reject invalid receipt copy.
+
+appId: com.jaxsonbie.expoimmigrationapp
+---
+- launchApp:
+    clearState: true
+- swipe:
+    direction: DOWN
+    duration: 100
+- extendedWaitUntil:
+    visible:
+      id: "auth-loaded"
+    timeout: 15000
+
+- tapOn:
+    id: "auth-continue-button"
+- extendedWaitUntil:
+    visible: "Home"
+    timeout: 5000
+- extendedWaitUntil:
+    visible: "Your renewal loop at a glance."
+    timeout: 5000
+
+- tapOn: "Tracker"
+- tapOn:
+    text: "Tracker"
+    optional: true
+- extendedWaitUntil:
+    visible: "Manual-first case status."
+    timeout: 5000
+
+- tapOn:
+    id: "tracker-receipt-input"
+- inputText: "YSC1234567890"
+- assertVisible: "Preview receipt: YSC1234567890"
+- hideKeyboard
+- tapOn:
+    id: "tracker-save-manual-case"
+- tapOn:
+    id: "tracker-save-manual-case"
+    optional: true
+- extendedWaitUntil:
+    visible: "Saved YSC1234567890 as a manual tracker case."
+    timeout: 5000
+- assertVisible: "Receipt saved"
+- assertVisible: "You added this receipt manually. The app has not checked USCIS live status."
+
+- tapOn:
+    id: "tracker-receipt-input"
+- inputText: "IOE123"
+- hideKeyboard
+- assertVisible: "Use 3 letters followed by 10 numbers."

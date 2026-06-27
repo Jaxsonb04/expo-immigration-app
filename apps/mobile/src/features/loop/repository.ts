@@ -1,6 +1,10 @@
 import {
   applyI765DraftPatch,
+  createManualCaseFromReceipt,
   getI765CompletionPercent,
+  normalizeReceiptNumber,
+  type CaseSummary,
+  type CreateManualCaseFromReceiptInput,
   type I765DraftPatchResult,
   type LoopSnapshot,
 } from "@immigration/shared";
@@ -13,9 +17,19 @@ export interface SaveI765DraftPatchInput {
   savedAt: string;
 }
 
+export type SaveManualCaseReceiptInput = CreateManualCaseFromReceiptInput;
+
+export interface SaveManualCaseReceiptResult {
+  accepted: boolean;
+  normalizedReceiptNumber: string;
+  caseSummary?: CaseSummary;
+  error?: "invalid_receipt";
+}
+
 export interface LoopRepository {
   getSnapshot: () => LoopSnapshot;
   saveI765DraftPatch: (input: SaveI765DraftPatchInput) => I765DraftPatchResult;
+  saveManualCaseReceipt: (input: SaveManualCaseReceiptInput) => SaveManualCaseReceiptResult;
 }
 
 function getBoundedCurrentStep(currentStep: number, totalSteps: number, fallbackStep: number): number {
@@ -28,6 +42,38 @@ function getBoundedCurrentStep(currentStep: number, totalSteps: number, fallback
 
 export const localLoopRepository: LoopRepository = {
   getSnapshot: () => localLoopSnapshot,
+  saveManualCaseReceipt: (input) => {
+    const normalizedReceiptNumber = normalizeReceiptNumber(input.receiptNumber);
+    const caseSummary = createManualCaseFromReceipt(input);
+
+    if (!caseSummary) {
+      return {
+        accepted: false,
+        normalizedReceiptNumber,
+        error: "invalid_receipt",
+      };
+    }
+
+    const cases = localLoopSnapshot.cases ?? [];
+    const existingCaseIndex = cases.findIndex(
+      (candidate) =>
+        candidate.id === caseSummary.id || candidate.receiptNumber === caseSummary.receiptNumber,
+    );
+
+    if (existingCaseIndex >= 0) {
+      localLoopSnapshot.cases = cases.map((candidate, index) =>
+        index === existingCaseIndex ? caseSummary : candidate,
+      );
+    } else {
+      localLoopSnapshot.cases = [caseSummary, ...cases];
+    }
+
+    return {
+      accepted: true,
+      normalizedReceiptNumber,
+      caseSummary,
+    };
+  },
   saveI765DraftPatch: ({ patch, currentStep, savedAt }) => {
     const activeApplication = localLoopSnapshot.activeApplication;
 

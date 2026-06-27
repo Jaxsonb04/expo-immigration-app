@@ -79,4 +79,49 @@ describe("local loop repository", () => {
 
     expect(localLoopRepository.getSnapshot().activeApplication?.currentStep).toBe(before);
   });
+
+  test("saves a valid manual case receipt without mutating the filing draft or vault", () => {
+    const before = localLoopRepository.getSnapshot();
+    const beforeActiveApplication = before.activeApplication;
+    const beforeDocumentIds = before.documents.map((document) => document.id);
+
+    const result = localLoopRepository.saveManualCaseReceipt({
+      id: "case-maestro-local",
+      applicationId: "i765-draft-local",
+      receiptNumber: " ysc 123 456 7890 ",
+      formCode: "I-765",
+      savedAt: "2026-06-27T22:10:00.000Z",
+    });
+
+    const after = localLoopRepository.getSnapshot();
+    const savedCase = after.cases.find((caseSummary) => caseSummary.id === "case-maestro-local");
+
+    expect(result.accepted).toBe(true);
+    expect(result.caseSummary?.receiptNumber).toBe("YSC1234567890");
+    expect(savedCase?.source).toBe("manual");
+    expect(savedCase?.currentStatus).toBe("Receipt saved");
+    expect(savedCase?.events).toHaveLength(1);
+    expect(after.activeApplication).toEqual(beforeActiveApplication);
+    expect(after.documents.map((document) => document.id)).toEqual(beforeDocumentIds);
+  });
+
+  test("rejects invalid manual case receipts without adding a case", () => {
+    const beforeCaseIds = localLoopRepository.getSnapshot().cases.map((caseSummary) => caseSummary.id);
+
+    const result = localLoopRepository.saveManualCaseReceipt({
+      id: "case-invalid-local",
+      receiptNumber: "IOE123",
+      formCode: "I-765",
+      savedAt: "2026-06-27T22:15:00.000Z",
+    });
+
+    expect(result).toEqual({
+      accepted: false,
+      normalizedReceiptNumber: "IOE123",
+      error: "invalid_receipt",
+    });
+    expect(localLoopRepository.getSnapshot().cases.map((caseSummary) => caseSummary.id)).toEqual(
+      beforeCaseIds,
+    );
+  });
 });
