@@ -2,19 +2,40 @@ import { Pressable, Text, View } from "react-native";
 
 import { colors, fonts } from "./tokens";
 
+type SelectionCardControlRole = "button" | "radio" | "checkbox";
+
 interface SelectionCardProps {
   title: string;
   description?: string;
   selected?: boolean;
+  controlRole?: SelectionCardControlRole;
+  testID?: string;
   onPress?: () => void;
 }
 
-export function SelectionCard({ title, description, selected = false, onPress }: SelectionCardProps) {
+function getAccessibilityState(controlRole: SelectionCardControlRole, selected: boolean) {
+  if (controlRole === "radio" || controlRole === "checkbox") {
+    return { checked: selected };
+  }
+
+  return { selected };
+}
+
+export function SelectionCard({
+  title,
+  description,
+  selected = false,
+  controlRole = "button",
+  testID,
+  onPress,
+}: SelectionCardProps) {
   return (
     <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
+      accessibilityLabel={title}
+      accessibilityRole={controlRole}
+      accessibilityState={getAccessibilityState(controlRole, selected)}
       onPress={onPress}
+      testID={testID}
       style={{
         backgroundColor: selected ? colors.foreground : colors.surface,
         borderColor: selected ? colors.foreground : colors.border,

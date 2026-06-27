@@ -13,7 +13,7 @@
 | **0 — De-risking spikes** *(inserted by Phase-1 review)* | ✅ done (analyzable parts) | `docs/spikes/`: USCIS API **NO-GO**, version matrix **YELLOW**, I-765 mapping, threat-model **GO**. |
 | **4 — Dev env + EAS dev build** | 🟡 partial | Done + verified: Bun monorepo restructure, 5-tab nav skeleton, auth stack (`tsc`/lint/`expo export` all green). Remaining: EAS env/secrets config + a real EAS **dev build on a device** (your task). |
 | **5 — Backend on Railway** | 🟡 in progress | Railway project `expo_immigration_app` LIVE: **Postgres** + **api** service deployed (Dockerfile + minimal Hono health server) at `https://api-production-0041.up.railway.app`, `DATABASE_URL` wired. Remaining: GitHub auto-deploy connect (your OAuth) + the real API (auth/PII still gated on counsel + KMS). |
-| **6 — Build features (per-feature loop)** | 🟡 in progress | Local-data design loop implemented Home-first: design tokens, Home hub, metadata-only Profile/Vault, I-765 wizard shell, manual Tracker, Calendar. Local-loop acceptance: tests/typecheck/lint/export pass, no real PII persistence, no USCIS submission wording, forum/news deferred. Backend/PII/PDF production wiring remains gated. |
+| **6 — Build features (per-feature loop)** | 🟡 in progress | Local-data design loop implemented Home-first: design tokens, Home hub, metadata-only Profile/Vault, I-765 wizard shell, manual Tracker, Calendar. I-765 shared schema helpers + local non-PII autosave now cover reason, eligibility category, and review acknowledgement. Local-loop acceptance: tests/typecheck/lint/export pass plus `.maestro/filing-wizard.yaml` on the iPhone 17 simulator, no real PII persistence, no USCIS submission wording, forum/news deferred. Backend/PII/PDF production wiring remains gated. |
 | **7 — Harden (tests/a11y/security/PII)** | 🔲 | |
 | **8 — Ship (App Store + Play)** | 🔲 | |
 | **9 — Operate & grow** | 🔲 | |
@@ -31,4 +31,4 @@
 - ⏳ Apple Developer ($99) + Google Play ($25) accounts; run an EAS dev build on a physical device. *(clears the version-matrix YELLOW)*
 - ⏳ Provision external KMS (envelope encryption, per-user keys). *(gates storing real PII)*
 
-*Last updated: 2026-06-26 — Stage 6 local feature loop in progress.*
+*Last updated: 2026-06-27 — Stage 6 filing wizard shared schema + local non-PII autosave slice verified with Maestro simulator QA.*

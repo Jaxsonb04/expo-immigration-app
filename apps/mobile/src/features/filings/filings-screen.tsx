@@ -1,29 +1,73 @@
 import { useState } from "react";
 import { Text, View } from "react-native";
 import { Button, Card } from "heroui-native";
+import type { I765DraftAnswers, I765EligibilityCategory, I765Reason } from "@immigration/shared";
 
 import { Screen } from "@/components/screen";
+import { localLoopRepository } from "@/features/loop/repository";
 import { useLoopSnapshot } from "@/features/loop/use-loop-snapshot";
 import { SectionHeader } from "@/features/ui/section-header";
 import { SelectionCard } from "@/features/ui/selection-card";
 import { WizardScaffold } from "@/features/ui/wizard-scaffold";
 import { cardStyle, colors, fonts } from "@/features/ui/tokens";
 
-import { getWizardStep, wizardSteps } from "./wizard-model";
+import { getWizardCanContinue, getWizardStep, wizardSteps } from "./wizard-model";
+
+const reasonOptions: readonly {
+  value: I765Reason;
+  title: string;
+  description: string;
+}[] = [
+  { value: "renewal", title: "Renewal", description: "You are renewing an existing EAD." },
+  { value: "replacement", title: "Replacement", description: "Your EAD was lost, stolen, or needs correction." },
+  { value: "initial", title: "Initial", description: "You are applying for employment authorization for the first time." },
+];
+
+const eligibilityOptions: readonly {
+  value: I765EligibilityCategory;
+  title: string;
+  description: string;
+}[] = [
+  { value: "c8", title: "(c)(8) Pending asylum", description: "Requires pending I-589 evidence." },
+  { value: "c9", title: "(c)(9) Adjustment of status", description: "Requires pending I-485 evidence." },
+  { value: "c33", title: "(c)(33) DACA", description: "Requires I-821D and I-765WS context." },
+];
 
 export function FilingsScreenContent() {
   const snapshot = useLoopSnapshot();
   const [stepIndex, setStepIndex] = useState(0);
-  const [reason, setReason] = useState<string | undefined>();
-  const [category, setCategory] = useState<string | undefined>();
-  const [reviewAck, setReviewAck] = useState(false);
+  const [draftAnswers, setDraftAnswers] = useState<I765DraftAnswers>(
+    () => snapshot.activeApplication?.answers ?? {},
+  );
+  const [draftProgress, setDraftProgress] = useState(() => ({
+    currentStep: snapshot.activeApplication?.currentStep ?? 0,
+    completionPercent: snapshot.activeApplication?.completionPercent ?? 0,
+    updatedAt: snapshot.activeApplication?.updatedAt,
+  }));
   const step = getWizardStep(stepIndex);
 
-  const canContinue =
-    (step.id === "reason" && Boolean(reason)) ||
-    (step.id === "eligibility" && Boolean(category)) ||
-    (step.id === "review" && reviewAck) ||
-    !["reason", "eligibility", "review"].includes(step.id);
+  const canContinue = getWizardCanContinue(step.id, draftAnswers);
+
+  function saveDraftPatch(patch: Record<string, unknown>) {
+    const result = localLoopRepository.saveI765DraftPatch({
+      patch,
+      currentStep: stepIndex + 1,
+      savedAt: new Date().toISOString(),
+    });
+
+    if (result.acceptedKeys.length === 0) {
+      return;
+    }
+
+    const savedDraft = localLoopRepository.getSnapshot().activeApplication;
+
+    setDraftAnswers(result.answers);
+    setDraftProgress({
+      currentStep: savedDraft?.currentStep ?? stepIndex + 1,
+      completionPercent: savedDraft?.completionPercent ?? 0,
+      updatedAt: savedDraft?.updatedAt,
+    });
+  }
 
   return (
     <Screen title="Filings" subtitle="Drafts and the I-765 renewal wizard.">
@@ -33,8 +77,9 @@ export function FilingsScreenContent() {
           {snapshot.activeApplication?.title ?? "I-765 EAD renewal"}
         </Text>
         <Text selectable style={{ color: colors.muted, fontFamily: fonts.body, fontSize: 13 }}>
-          {snapshot.activeApplication?.currentStep ?? 0} of {snapshot.activeApplication?.totalSteps ?? 10}{" "}
-          steps complete in the preview data. Export means a PDF for you to file yourself.
+          {draftProgress.currentStep} of {snapshot.activeApplication?.totalSteps ?? wizardSteps.length} steps
+          touched · {draftProgress.completionPercent}% of executable local choices complete. Export means a
+          PDF for you to file yourself.
         </Text>
       </Card>
 
@@ -71,9 +116,11 @@ export function FilingsScreenContent() {
         description={step.description}
         stepIndex={stepIndex}
         stepCount={wizardSteps.length}
-        savedLabel="Preview state"
+        savedLabel={draftProgress.updatedAt ? "Autosaved locally" : "Local preview"}
         canContinue={canContinue}
         continueLabel={step.continueLabel}
+        backTestID="filing-wizard-back"
+        continueTestID="filing-wizard-continue"
         onBack={stepIndex > 0 ? () => setStepIndex((value) => value - 1) : undefined}
         onContinue={
           stepIndex < wizardSteps.length - 1 ? () => setStepIndex((value) => value + 1) : undefined
@@ -92,17 +139,15 @@ export function FilingsScreenContent() {
 
         {step.id === "reason" ? (
           <>
-            {[
-              ["renewal", "Renewal", "You are renewing an existing EAD."],
-              ["replacement", "Replacement", "Your EAD was lost, stolen, or needs correction."],
-              ["initial", "Initial", "You are applying for employment authorization for the first time."],
-            ].map(([value, title, description]) => (
+            {reasonOptions.map(({ value, title, description }) => (
               <SelectionCard
                 key={value}
                 title={title}
                 description={description}
-                selected={reason === value}
-                onPress={() => setReason(value)}
+                selected={draftAnswers.reason === value}
+                controlRole="radio"
+                testID={`filing-reason-${value}`}
+                onPress={() => saveDraftPatch({ reason: value })}
               />
             ))}
           </>
@@ -110,17 +155,15 @@ export function FilingsScreenContent() {
 
         {step.id === "eligibility" ? (
           <>
-            {[
-              ["c8", "(c)(8) Pending asylum", "Requires pending I-589 evidence."],
-              ["c9", "(c)(9) Adjustment of status", "Requires pending I-485 evidence."],
-              ["c33", "(c)(33) DACA", "Requires I-821D and I-765WS context."],
-            ].map(([value, title, description]) => (
+            {eligibilityOptions.map(({ value, title, description }) => (
               <SelectionCard
                 key={value}
                 title={title}
                 description={description}
-                selected={category === value}
-                onPress={() => setCategory(value)}
+                selected={draftAnswers.eligibilityCategory === value}
+                controlRole="radio"
+                testID={`filing-eligibility-${value}`}
+                onPress={() => saveDraftPatch({ eligibilityCategory: value })}
               />
             ))}
           </>
@@ -130,8 +173,10 @@ export function FilingsScreenContent() {
           <SelectionCard
             title="I reviewed and verified my answers"
             description="The exported PDF is yours to sign and file. This is not USCIS submission."
-            selected={reviewAck}
-            onPress={() => setReviewAck((value) => !value)}
+            selected={draftAnswers.reviewAcknowledged === true}
+            controlRole="checkbox"
+            testID="filing-review-acknowledgement"
+            onPress={() => saveDraftPatch({ reviewAcknowledged: draftAnswers.reviewAcknowledged !== true })}
           />
         ) : null}
 

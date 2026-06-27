@@ -52,6 +52,15 @@ LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 RUBYOPT=-rlogger
 
 That fixes the CocoaPods `ASCII-8BIT` / Unicode normalization failure seen in Terminal.
 
+2026-06-27 QA note: on the current iPhone 17 simulator, the old hardcoded
+`ios:run` script port (`8082`) launched to a React Native redbox:
+`No script URL provided`. The mobile scripts now use Expo's default Metro port,
+which matches the verified simulator launch path:
+
+```bash
+bun run --cwd apps/mobile ios:run
+```
+
 ## Last Known Verification
 
 These commands passed before handoff:
@@ -61,38 +70,40 @@ These commands passed before handoff:
 - `bun run typecheck`
 - `bun run --cwd apps/mobile lint`
 - `bunx expo export --platform ios` from `apps/mobile`
+- `maestro test .maestro/filing-wizard.yaml`
 
 Simulator notes:
 
 - The dev-client build ran on the iPhone 17 simulator through Xcode tooling.
-- The app starts on a placeholder auth screen; press `Continue` to enter the Stage 6 tabs.
-- macOS accessibility permission blocked automated Simulator tapping from this machine, so tab QA screenshots were captured before a later app restart.
+- The app starts on a placeholder auth screen; the Maestro flow signs in, opens Filings, completes the safe non-PII choices, reaches the export shell, and verifies autosave plus no-USCIS-submission copy.
+- Maestro was installed locally via `https://get.maestro.mobile.dev`; ensure `$HOME/.maestro/bin` is on `PATH` before running the flow.
 
 ## Next Best Slice
 
-Continue Phase 6 with the filing wizard. The smallest useful next slice is:
+Continue Phase 6 with the next feature loop. Filing wizard's local non-PII slice now has shared schema, autosave, accessibility semantics, and simulator E2E coverage. The next useful slice is the manual case tracker:
 
-- Add schema metadata in `packages/shared/src/forms/i765.ts` for the existing ten wizard steps.
-- Make only the current non-PII fields executable first: `reason`, `eligibilityCategory`, and `reviewAcknowledged`.
-- Add pure helpers such as `getI765Step`, `getI765CanContinue`, `applyI765DraftPatch`, and `getI765CompletionPercent`.
-- Derive `apps/mobile/src/features/filings/wizard-model.ts` from shared schema metadata instead of a separate static model.
-- Extend the local loop repository with in-memory draft autosave for schema-declared `pii: false` fields only.
-- Update `FilingsScreenContent` to initialize from draft answers, autosave on choice changes, and keep final action language as `Export PDF`.
+- Keep government-side/manual case status separate from filing draft status.
+- Add schema-safe receipt validation and local persistence for manual tracker edits.
+- Preserve the "manual-first, no live USCIS sync" language until the USCIS API path is contractually cleared.
+- Add Maestro coverage for saving a valid manual receipt and rejecting invalid receipt text.
 
 Recommended tests:
 
-- Shared schema tests for step count, legal-gate metadata, no-submit wording, valid patch updates, and rejection of unknown/PII keys.
-- Wizard model tests for disabled Continue until valid on reason/category/review.
-- Repository tests that autosave updates `answers`, `updatedAt`, `currentStep`, and `completionPercent` without touching documents/files/cases.
-- Later mobile component tests with React Native Testing Library for tapping choices and verifying navigation state.
+- Shared selector/model tests for receipt validation and manual status labels.
+- Repository tests proving tracker edits do not mutate filing drafts, documents, or PII.
+- Maestro flow for the tracker tab once stable test IDs are added.
 
 ## Known UX Risks To Address
 
-- `SelectionCard` currently uses `accessibilityRole="button"` for radio-like choices; reason/category should behave like radio options and review acknowledgement like a checkbox.
-- `WizardScaffold` progress is visual-only; add accessible label/value.
 - Steps with legal judgment warnings should have explicit acknowledgement behavior where needed.
 - Final `Export PDF` button must not imply actual submission or silently do nothing.
 - “Preview state” / “save-and-resume” copy should become real autosave before it is treated as product behavior.
+
+Resolved in this Stage 6 slice:
+
+- `SelectionCard` can now expose radio/checkbox semantics with checked state; the I-765 reason/category choices use radio roles, and review acknowledgement uses a checkbox role.
+- `WizardScaffold` progress now exposes a `progressbar` label and numeric value for assistive tech.
+- `.maestro/filing-wizard.yaml` verifies the filing wizard on the iPhone 17 simulator end to end for the current local-data scope.
 
 ## GitHub Handoff
 

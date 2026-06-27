@@ -15,6 +15,8 @@ interface WizardScaffoldProps {
   onBack?: () => void;
   onContinue?: () => void;
   continueLabel?: string;
+  backTestID?: string;
+  continueTestID?: string;
   children: ReactNode;
 }
 
@@ -29,14 +31,22 @@ export function WizardScaffold({
   onBack,
   onContinue,
   continueLabel = "Continue",
+  backTestID,
+  continueTestID,
   children,
 }: WizardScaffoldProps) {
   const progress = Math.max(0, Math.min(1, (stepIndex + 1) / stepCount));
+  const currentStep = Math.min(stepCount, Math.max(1, stepIndex + 1));
 
   return (
     <Card className="gap-5 p-4" style={cardStyle}>
       <View className="gap-2">
-        <View style={{ backgroundColor: "#EEEAE0", borderRadius: 999, height: 6 }}>
+        <View
+          accessibilityLabel={`Wizard progress: step ${currentStep} of ${stepCount}`}
+          accessibilityRole="progressbar"
+          accessibilityValue={{ min: 0, max: stepCount, now: currentStep }}
+          style={{ backgroundColor: "#EEEAE0", borderRadius: 999, height: 6 }}
+        >
           <View
             style={{
               backgroundColor: colors.accent,
@@ -71,10 +81,21 @@ export function WizardScaffold({
       </View>
       <View className="gap-3">{children}</View>
       <View className="flex-row gap-3">
-        <Button variant="outline" onPress={onBack} isDisabled={!onBack} className="flex-1">
+        <Button
+          variant="outline"
+          onPress={onBack}
+          isDisabled={!onBack}
+          className="flex-1"
+          testID={backTestID}
+        >
           Back
         </Button>
-        <Button onPress={onContinue} isDisabled={!canContinue} className="flex-1">
+        <Button
+          onPress={onContinue}
+          isDisabled={!canContinue}
+          className="flex-1"
+          testID={continueTestID}
+        >
           {continueLabel}
         </Button>
       </View>

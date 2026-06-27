@@ -14,7 +14,9 @@ export default function SignInScreen() {
           Email/password auth (Better Auth + secure storage) is wired in Phase 2. This is a
           placeholder so the navigation flow works end to end.
         </Typography.Paragraph>
-        <Button onPress={signIn}>Continue</Button>
+        <Button onPress={signIn} testID="auth-continue-button">
+          Continue
+        </Button>
       </Card>
       <Link href="/sign-up">
         <Typography.Paragraph className="opacity-80">Need an account? Sign up</Typography.Paragraph>

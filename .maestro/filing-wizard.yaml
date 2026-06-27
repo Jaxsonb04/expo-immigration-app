@@ -1,0 +1,116 @@
+# I-765 Filing Wizard Smoke Test
+#
+# Verifies the Phase 6 local-data filing loop on an installed iOS dev client:
+# auth placeholder -> filings tab -> safe non-PII autosave choices -> export shell.
+
+appId: com.jaxsonbie.expoimmigrationapp
+---
+- launchApp:
+    clearState: true
+- swipe:
+    direction: DOWN
+    duration: 100
+- extendedWaitUntil:
+    visible:
+      id: "auth-loaded"
+    timeout: 15000
+
+- tapOn:
+    id: "auth-continue-button"
+- extendedWaitUntil:
+    visible: "Home"
+    timeout: 5000
+
+- tapOn: "Filings"
+- extendedWaitUntil:
+    visible: "Why are you applying?"
+    timeout: 5000
+
+- scrollUntilVisible:
+    element:
+      id: "filing-reason-renewal"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "filing-reason-renewal"
+- scrollUntilVisible:
+    element:
+      id: "filing-wizard-continue"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "filing-wizard-continue"
+
+- extendedWaitUntil:
+    visible: "Confirm your name"
+    timeout: 5000
+- tapOn:
+    id: "filing-wizard-continue"
+- extendedWaitUntil:
+    visible: "Confirm your mailing address"
+    timeout: 5000
+- tapOn:
+    id: "filing-wizard-continue"
+- extendedWaitUntil:
+    visible: "Add biographic details"
+    timeout: 5000
+- tapOn:
+    id: "filing-wizard-continue"
+- extendedWaitUntil:
+    visible: "Describe your arrival and status"
+    timeout: 5000
+- tapOn:
+    id: "filing-wizard-continue"
+
+- extendedWaitUntil:
+    visible: "Choose your eligibility category"
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: "filing-eligibility-c33"
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: "filing-eligibility-c33"
+- scrollUntilVisible:
+    element:
+      id: "filing-wizard-continue"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "filing-wizard-continue"
+
+- extendedWaitUntil:
+    visible: "Gather supporting documents"
+    timeout: 5000
+- tapOn:
+    id: "filing-wizard-continue"
+- extendedWaitUntil:
+    visible: "Applicant statement"
+    timeout: 5000
+- tapOn:
+    id: "filing-wizard-continue"
+
+- extendedWaitUntil:
+    visible: "Review and verify"
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: "filing-review-acknowledgement"
+    direction: UP
+    centerElement: true
+- tapOn:
+    id: "filing-review-acknowledgement"
+- scrollUntilVisible:
+    element:
+      id: "filing-wizard-continue"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "filing-wizard-continue"
+
+- extendedWaitUntil:
+    visible: "Export signature-ready PDF"
+    timeout: 5000
+- assertVisible: "Export creates a PDF for you to sign and file yourself. The app does not submit to USCIS."
+- assertVisible: "Autosaved locally"
