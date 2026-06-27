@@ -124,4 +124,48 @@ describe("local loop repository", () => {
       beforeCaseIds,
     );
   });
+
+  test("saves local reminder interactions without mutating filing drafts, deadlines, documents, or cases", () => {
+    const before = localLoopRepository.getSnapshot();
+    const beforeActiveApplication = before.activeApplication;
+    const beforeDeadlines = before.deadlines;
+    const beforeDocumentIds = before.documents.map((document) => document.id);
+    const beforeCaseIds = before.cases.map((caseSummary) => caseSummary.id);
+
+    const result = localLoopRepository.saveReminderInteraction({
+      reminderId: "reminder-file-by-7-day",
+      action: "acknowledge",
+      actedAt: "2026-06-27T22:45:00.000Z",
+    });
+
+    const after = localLoopRepository.getSnapshot();
+    const savedReminder = after.reminders?.find(
+      (reminder) => reminder.id === "reminder-file-by-7-day",
+    );
+
+    expect(result.accepted).toBe(true);
+    expect(result.reminder?.lastAction).toBe("acknowledged");
+    expect(savedReminder?.lastActionAt).toBe("2026-06-27T22:45:00.000Z");
+    expect(after.activeApplication).toEqual(beforeActiveApplication);
+    expect(after.deadlines).toEqual(beforeDeadlines);
+    expect(after.documents.map((document) => document.id)).toEqual(beforeDocumentIds);
+    expect(after.cases.map((caseSummary) => caseSummary.id)).toEqual(beforeCaseIds);
+  });
+
+  test("rejects unknown reminder interactions without changing reminders", () => {
+    const beforeReminders = localLoopRepository.getSnapshot().reminders;
+
+    const result = localLoopRepository.saveReminderInteraction({
+      reminderId: "missing-reminder",
+      action: "snooze",
+      actedAt: "2026-06-27T22:50:00.000Z",
+      snoozeDays: 7,
+    });
+
+    expect(result).toEqual({
+      accepted: false,
+      error: "missing_reminder",
+    });
+    expect(localLoopRepository.getSnapshot().reminders).toEqual(beforeReminders);
+  });
 });

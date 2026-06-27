@@ -3,6 +3,7 @@ import type { CaseSummary } from "./cases";
 import type { DeadlineSummary } from "./deadlines";
 import type { DocumentMetadata } from "./documents";
 import type { ProfileSummary } from "./profile";
+import type { ReminderSummary } from "./reminders";
 
 export interface LoopSnapshot {
   profile?: ProfileSummary;
@@ -11,6 +12,7 @@ export interface LoopSnapshot {
   documents?: DocumentMetadata[];
   cases?: CaseSummary[];
   deadlines: DeadlineSummary[];
+  reminders?: ReminderSummary[];
 }
 
 export interface HomeStatus {

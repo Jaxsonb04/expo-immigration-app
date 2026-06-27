@@ -6,4 +6,5 @@ export * from "./documents";
 export * from "./forms/i765";
 export * from "./loop";
 export * from "./profile";
+export * from "./reminders";
 export * from "./selectors";

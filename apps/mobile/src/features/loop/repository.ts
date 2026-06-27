@@ -1,12 +1,15 @@
 import {
   applyI765DraftPatch,
+  applyReminderAction,
   createManualCaseFromReceipt,
   getI765CompletionPercent,
   normalizeReceiptNumber,
   type CaseSummary,
   type CreateManualCaseFromReceiptInput,
+  type ApplyReminderActionInput,
   type I765DraftPatchResult,
   type LoopSnapshot,
+  type ReminderSummary,
 } from "@immigration/shared";
 
 import { localLoopSnapshot } from "./local-data";
@@ -26,10 +29,21 @@ export interface SaveManualCaseReceiptResult {
   error?: "invalid_receipt";
 }
 
+export interface SaveReminderInteractionInput extends ApplyReminderActionInput {
+  reminderId: string;
+}
+
+export interface SaveReminderInteractionResult {
+  accepted: boolean;
+  reminder?: ReminderSummary;
+  error?: "missing_reminder";
+}
+
 export interface LoopRepository {
   getSnapshot: () => LoopSnapshot;
   saveI765DraftPatch: (input: SaveI765DraftPatchInput) => I765DraftPatchResult;
   saveManualCaseReceipt: (input: SaveManualCaseReceiptInput) => SaveManualCaseReceiptResult;
+  saveReminderInteraction: (input: SaveReminderInteractionInput) => SaveReminderInteractionResult;
 }
 
 function getBoundedCurrentStep(currentStep: number, totalSteps: number, fallbackStep: number): number {
@@ -42,6 +56,27 @@ function getBoundedCurrentStep(currentStep: number, totalSteps: number, fallback
 
 export const localLoopRepository: LoopRepository = {
   getSnapshot: () => localLoopSnapshot,
+  saveReminderInteraction: ({ reminderId, ...interaction }) => {
+    const reminders = localLoopSnapshot.reminders ?? [];
+    const reminderIndex = reminders.findIndex((reminder) => reminder.id === reminderId);
+
+    if (reminderIndex < 0) {
+      return {
+        accepted: false,
+        error: "missing_reminder",
+      };
+    }
+
+    const updatedReminder = applyReminderAction(reminders[reminderIndex], interaction);
+    localLoopSnapshot.reminders = reminders.map((reminder, index) =>
+      index === reminderIndex ? updatedReminder : reminder,
+    );
+
+    return {
+      accepted: true,
+      reminder: updatedReminder,
+    };
+  },
   saveManualCaseReceipt: (input) => {
     const normalizedReceiptNumber = normalizeReceiptNumber(input.receiptNumber);
     const caseSummary = createManualCaseFromReceipt(input);

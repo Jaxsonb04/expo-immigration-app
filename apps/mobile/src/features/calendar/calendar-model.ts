@@ -1,4 +1,9 @@
-import { getUpcomingDeadlines, type DeadlineSummary } from "@immigration/shared";
+import {
+  getReminderState,
+  getUpcomingDeadlines,
+  type DeadlineSummary,
+  type ReminderSummary,
+} from "@immigration/shared";
 
 import { formatWeekdayMonthDay } from "@/features/ui/date-format";
 
@@ -12,6 +17,20 @@ export interface CalendarMonthCell {
   key: string;
   day: number | null;
 }
+
+export interface CalendarReminderPlanItem {
+  id: string;
+  deadlineId: string;
+  reminderId: string;
+  title: string;
+  statusLabel: string;
+  detail: string;
+  primaryActionLabel: string;
+  secondaryActionLabel: string;
+}
+
+const REMINDER_CONTRACT_COPY =
+  "In-app reminders are the source of truth until production auth and device tokens enable push.";
 
 export function buildCalendarMonthCells(year: number, monthIndex: number): CalendarMonthCell[] {
   const firstDayOfMonth = new Date(Date.UTC(year, monthIndex, 1));
@@ -64,4 +83,43 @@ export function getCalendarMarkersForMonth(
   }
 
   return markers;
+}
+
+export function buildReminderPlanItems(
+  deadlines: DeadlineSummary[],
+  reminders: ReminderSummary[] = [],
+  now = new Date()
+): CalendarReminderPlanItem[] {
+  return getUpcomingDeadlines(deadlines).flatMap((deadline) => {
+    const reminder = reminders.find((candidate) => candidate.deadlineId === deadline.id);
+
+    if (!reminder) {
+      return [];
+    }
+
+    const state = getReminderState(reminder, now);
+    const leadLabel = reminder.leadLabel ?? "Reminder";
+    let detail = `${leadLabel} · ${formatWeekdayMonthDay(reminder.remindAt)}. ${REMINDER_CONTRACT_COPY}`;
+
+    if (reminder.lastAction === "acknowledged") {
+      detail = `Checked locally. ${REMINDER_CONTRACT_COPY}`;
+    }
+
+    if (reminder.lastAction === "snoozed") {
+      detail = `Snoozed to ${formatWeekdayMonthDay(reminder.remindAt)}. ${REMINDER_CONTRACT_COPY}`;
+    }
+
+    return [
+      {
+        id: reminder.id,
+        deadlineId: deadline.id,
+        reminderId: reminder.id,
+        title: deadline.title,
+        statusLabel: state.label,
+        detail,
+        primaryActionLabel: "Acknowledge",
+        secondaryActionLabel: "Snooze 7 days",
+      },
+    ];
+  });
 }

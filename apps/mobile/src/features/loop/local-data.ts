@@ -108,4 +108,30 @@ export const localLoopSnapshot: LoopSnapshot = {
       caseId: "case-local",
     },
   ],
+  reminders: [
+    {
+      id: "reminder-file-by-7-day",
+      deadlineId: "deadline-file-by",
+      remindAt: "2026-07-08T12:00:00.000Z",
+      leadLabel: "7 days before",
+      channel: "push",
+      status: "scheduled",
+    },
+    {
+      id: "reminder-check-status-7-day",
+      deadlineId: "deadline-check-status",
+      remindAt: "2026-07-15T12:00:00.000Z",
+      leadLabel: "7 days before",
+      channel: "push",
+      status: "scheduled",
+    },
+    {
+      id: "reminder-ead-expiry-30-day",
+      deadlineId: "deadline-ead-expiry",
+      remindAt: "2026-09-15T12:00:00.000Z",
+      leadLabel: "30 days before",
+      channel: "push",
+      status: "scheduled",
+    },
+  ],
 };

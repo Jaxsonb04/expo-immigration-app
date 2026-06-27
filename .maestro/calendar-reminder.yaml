@@ -1,0 +1,53 @@
+# Calendar Reminder Smoke Test
+#
+# Verifies the Phase 6 calendar loop on an installed iOS dev client:
+# auth placeholder -> calendar tab -> view deadline-linked reminders -> acknowledge and snooze locally.
+
+appId: com.jaxsonbie.expoimmigrationapp
+---
+- launchApp:
+    clearState: true
+- swipe:
+    direction: DOWN
+    duration: 100
+- extendedWaitUntil:
+    visible:
+      id: "auth-loaded"
+    timeout: 15000
+
+- tapOn:
+    id: "auth-continue-button"
+- extendedWaitUntil:
+    visible: "Home"
+    timeout: 5000
+
+- tapOn: "Calendar"
+- tapOn:
+    text: "Calendar"
+    optional: true
+- extendedWaitUntil:
+    visible: "Deadlines first, calendar second."
+    timeout: 5000
+- assertVisible: "July 2026"
+- assertVisible: "Upcoming agenda"
+
+- scrollUntilVisible:
+    element:
+      text: "Reminder plan"
+    direction: DOWN
+    centerElement: true
+- assertVisible: "Reminder planned"
+- assertVisible: "Acknowledge"
+
+- scrollUntilVisible:
+    element:
+      id: "calendar-reminder-ack-reminder-file-by-7-day"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "calendar-reminder-ack-reminder-file-by-7-day"
+- assertVisible: "Reminder checked locally"
+
+- tapOn:
+    id: "calendar-reminder-snooze-reminder-file-by-7-day"
+- assertVisible: "Reminder snoozed locally"

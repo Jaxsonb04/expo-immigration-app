@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Text, View } from "react-native";
-import { Card } from "heroui-native";
+import { Button, Card } from "heroui-native";
 import { getDeadlineUrgency } from "@immigration/shared";
 
 import { Screen } from "@/components/screen";
+import { localLoopRepository } from "@/features/loop/repository";
 import { useLoopSnapshot } from "@/features/loop/use-loop-snapshot";
 import { DateChip } from "@/features/ui/date-chip";
 import { EmptyState } from "@/features/ui/empty-state";
@@ -11,6 +13,7 @@ import { cardStyle, colors, fonts } from "@/features/ui/tokens";
 
 import {
   buildCalendarMonthCells,
+  buildReminderPlanItems,
   getCalendarMarkersForMonth,
   groupDeadlinesByDay,
 } from "./calendar-model";
@@ -22,12 +25,27 @@ const displayedMonthCells = buildCalendarMonthCells(displayedYear, displayedMont
 
 export function CalendarScreenContent() {
   const snapshot = useLoopSnapshot();
+  const [reminders, setReminders] = useState(() => snapshot.reminders ?? []);
   const groups = groupDeadlinesByDay(snapshot.deadlines);
+  const reminderItems = buildReminderPlanItems(snapshot.deadlines, reminders);
   const markerDays = getCalendarMarkersForMonth(
     snapshot.deadlines,
     displayedYear,
     displayedMonthIndex
   );
+
+  function saveReminderInteraction(reminderId: string, action: "acknowledge" | "snooze") {
+    const result = localLoopRepository.saveReminderInteraction({
+      reminderId,
+      action,
+      actedAt: new Date().toISOString(),
+      snoozeDays: action === "snooze" ? 7 : undefined,
+    });
+
+    if (result.accepted) {
+      setReminders(localLoopRepository.getSnapshot().reminders ?? []);
+    }
+  }
 
   return (
     <Screen title="Calendar" subtitle="Deadlines first, calendar second.">
@@ -110,6 +128,46 @@ export function CalendarScreenContent() {
           <EmptyState
             title="No upcoming deadlines"
             description="Document expiries, filing windows, and case reminders will appear here."
+          />
+        )}
+      </View>
+
+      <View className="gap-3">
+        <SectionHeader title="Reminder plan" actionLabel="Local" />
+        {reminderItems.length > 0 ? (
+          reminderItems.map((item) => (
+            <Card key={item.id} className="gap-3 p-4" style={cardStyle}>
+              <View className="gap-1">
+                <Text selectable style={{ color: colors.foreground, fontFamily: fonts.semibold, fontSize: 15 }}>
+                  {item.title}
+                </Text>
+                <Text selectable style={{ color: colors.accent, fontFamily: fonts.medium, fontSize: 13 }}>
+                  {item.statusLabel}
+                </Text>
+                <Text selectable style={{ color: colors.muted, fontFamily: fonts.body, fontSize: 13, lineHeight: 20 }}>
+                  {item.detail}
+                </Text>
+              </View>
+              <View className="flex-row gap-2">
+                <Button
+                  onPress={() => saveReminderInteraction(item.reminderId, "acknowledge")}
+                  testID={`calendar-reminder-ack-${item.reminderId}`}
+                >
+                  {item.primaryActionLabel}
+                </Button>
+                <Button
+                  onPress={() => saveReminderInteraction(item.reminderId, "snooze")}
+                  testID={`calendar-reminder-snooze-${item.reminderId}`}
+                >
+                  {item.secondaryActionLabel}
+                </Button>
+              </View>
+            </Card>
+          ))
+        ) : (
+          <EmptyState
+            title="No reminders planned"
+            description="Upcoming deadlines can schedule local reminder checkpoints here."
           />
         )}
       </View>
