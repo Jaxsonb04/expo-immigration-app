@@ -16,6 +16,7 @@ Base: `main` at `c19f9f4`
 - Calendar now renders deadline-linked reminder plans with local acknowledge/snooze state. It does not claim push delivery; Railway cron + Expo push remain production contracts until auth and device tokens land.
 - Forum safety shell now renders pseudonymous local categories, visible threads/posts, peer-support-only safety copy, reporting, and local author blocking.
 - News source/editorial shell now renders official USCIS/Federal Register source cards, editorially reviewed local news items, source URLs, published dates, summaries, tags, and local read state.
+- Server API now exposes a protected `/v1/loop/contract` boundary that fails closed without `PHASE6_PROTECTED_API_TOKEN`, rejects missing/invalid bearer tokens, and returns only a non-PII local-loop contract when authenticated.
 - Calendar grid was fixed to render real month cells instead of fake overflow dates.
 - Mobile screen wrapper now handles iOS safe areas for the dev-client/native tab layout.
 - CocoaPods UTF-8 workaround is in the mobile iOS scripts.
@@ -29,6 +30,7 @@ Base: `main` at `c19f9f4`
 - Reminder delivery is local UI state only; no push token registration, Railway cron worker, or Expo push send is implemented.
 - Forum is local and pseudonymous only; no production auth identity, backend moderation queue, abuse-block sync, or legal-advice escalation workflow is implemented.
 - News is local and editorially gated only; no Railway cron ingestion, scraping, summarization worker, or auto-publish behavior is implemented.
+- `/v1/loop/contract` is a boundary contract only; it does not return user data or move local feature state server-side.
 - PDF generation/export is only copy/UI language right now.
 - Production auth, KMS/encryption, counsel approval, and filing workflows remain gated.
 
@@ -40,6 +42,7 @@ From the repo root:
 bun install
 bun run typecheck
 bun run --cwd packages/shared test
+bun run --cwd apps/server test
 bun run --cwd apps/mobile test
 bun run --cwd apps/mobile lint
 ```
@@ -72,6 +75,7 @@ bun run --cwd apps/mobile ios:run
 These commands passed before handoff:
 
 - `bun run --cwd packages/shared test`
+- `bun run --cwd apps/server test`
 - `bun run --cwd apps/mobile test`
 - `bun run typecheck`
 - `bun run --cwd apps/mobile lint`
@@ -96,14 +100,14 @@ Simulator notes:
 
 Continue Phase 6 hardening from the local feature loop into production-gated work. Filing wizard, manual tracker, calendar reminders, forum safety, and news source attribution now have shared helpers, repository persistence, UI states, and simulator E2E coverage for the current local-data scope. The next useful slice is production integration planning for one of the gated contracts:
 
-- Wire real auth + protected API read/write boundaries before any PII path.
+- Replace the temporary `PHASE6_PROTECTED_API_TOKEN` boundary with Better Auth middleware and user-scoped read/write contracts before any PII path.
 - Promote calendar reminders from local UI state toward the Railway cron + Expo push contract after device tokens/auth land.
 - Promote news from local source cards toward Phase 9 ingestion only after an editorial review queue exists.
 - Keep PDF generation, PII storage, file upload, and auto-publish features behind counsel/KMS/security gates.
 
 Recommended tests:
 
-- API contract tests before moving any local repository behavior server-side.
+- Keep API contract tests ahead of moving any local repository behavior server-side.
 - Security-reviewer pass for auth, PII, upload, PDF, push-token, and editorial-publish code.
 - Maestro regression flows for all five local feature surfaces after each production integration.
 
