@@ -1,0 +1,36 @@
+# Profile Account Smoke Test
+#
+# Verifies the Phase 6 account/profile shell on an installed iOS dev client:
+# auth preview fallback -> More -> Profile -> profile tab/account metadata state.
+
+appId: com.jaxsonbie.expoimmigrationapp
+---
+- launchApp:
+    clearState: true
+- swipe:
+    direction: DOWN
+    duration: 100
+- extendedWaitUntil:
+    visible:
+      id: "auth-loaded"
+    timeout: 15000
+
+- tapOn:
+    id: "auth-continue-button"
+- extendedWaitUntil:
+    visible: "Home"
+    timeout: 5000
+
+- openLink: "heroui-native-app:///(tabs)/profile"
+- tapOn:
+    text: "Profile"
+    optional: true
+- extendedWaitUntil:
+    visible: "Reusable info and a metadata-only vault."
+    timeout: 5000
+
+- assertVisible: "Local preview"
+- assertVisible: "Not synced"
+- assertVisible: "Reusable profile"
+- assertVisible: "Document vault"
+- assertVisible: "Metadata only"

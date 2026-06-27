@@ -21,8 +21,7 @@ appId: com.jaxsonbie.expoimmigrationapp
     visible: "Home"
     timeout: 5000
 
-- tapOn: "More"
-- tapOn: "Forum"
+- openLink: "heroui-native-app:///(tabs)/forum"
 - tapOn:
     text: "Forum"
     optional: true

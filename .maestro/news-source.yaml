@@ -21,8 +21,7 @@ appId: com.jaxsonbie.expoimmigrationapp
     visible: "Home"
     timeout: 5000
 
-- tapOn: "More"
-- tapOn: "News"
+- openLink: "heroui-native-app:///(tabs)/news"
 - tapOn:
     text: "News"
     optional: true

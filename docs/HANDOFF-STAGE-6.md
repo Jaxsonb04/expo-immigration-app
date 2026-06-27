@@ -18,6 +18,7 @@ Base: `main` at `c19f9f4`
 - Forum safety shell now renders pseudonymous local categories, visible threads/posts, peer-support-only safety copy, reporting, and local author blocking.
 - News source/editorial shell now renders official USCIS/Federal Register source cards, editorially reviewed local news items, source URLs, published dates, summaries, tags, and local read state.
 - Server API now exposes a protected `/v1/loop/contract` boundary that fails closed without `PHASE6_PROTECTED_API_TOKEN`, rejects missing/invalid bearer tokens, and returns only a non-PII local-loop contract when authenticated. Railway production has the token configured.
+- Account/profile auth foundation now mounts Better Auth at `/api/auth/*`, reports Google OAuth readiness at `/v1/auth/status`, stores Expo sessions via secure-store on mobile, and exposes a session-protected `/v1/profile` endpoint backed by Railway Postgres `applicant_profile` metadata.
 - Calendar grid was fixed to render real month cells instead of fake overflow dates.
 - Mobile screen wrapper now handles iOS safe areas for the dev-client/native tab layout.
 - CocoaPods UTF-8 workaround is in the mobile iOS scripts.
@@ -34,6 +35,8 @@ Base: `main` at `c19f9f4`
 - News is local and editorially gated only; no Railway cron ingestion, scraping, summarization worker, or auto-publish behavior is implemented.
 - `/v1/loop/contract` is a boundary contract only; it does not return user data or move local feature state server-side.
 - `PHASE6_PROTECTED_API_TOKEN` is temporary pre-Better Auth infrastructure; do not embed it in the mobile app or commit it to the repo.
+- Google OAuth code is wired, but live Google sign-in still requires real Railway variables: `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`. Use redirect URI `https://api-production-0041.up.railway.app/api/auth/callback/google`.
+- Profile persistence is metadata-only (`display_name`, `preferred_language`) until KMS/encryption gates clear; do not add legal name, DOB, A-number, address, or document-file storage to this table.
 - PDF generation/export is only copy/UI language right now.
 - Production auth, KMS/encryption, counsel approval, and filing workflows remain gated.
 
@@ -84,6 +87,7 @@ These commands passed before handoff:
 - `bun run --cwd apps/mobile lint`
 - `bunx expo export --platform ios` from `apps/mobile`
 - Railway live contract check: `/health` returned 200, `/v1/loop/contract` returned 401 for missing/invalid auth, and a valid bearer token returned the non-PII `phase6-local-loop-v1` contract with five feature entries.
+- Railway Postgres now has Better Auth tables (`user`, `session`, `account`, `verification`) and metadata-only `applicant_profile`.
 - `maestro test .maestro/filing-wizard.yaml`
 - `maestro test .maestro/tracker-manual-case.yaml`
 - `maestro test .maestro/calendar-reminder.yaml`
@@ -105,6 +109,7 @@ Simulator notes:
 Continue Phase 6 hardening from the local feature loop into production-gated work. Filing wizard, manual tracker, calendar reminders, forum safety, and news source attribution now have shared helpers, repository persistence, UI states, and simulator E2E coverage for the current local-data scope. The next useful slice is production integration planning for one of the gated contracts:
 
 - Replace the configured temporary `PHASE6_PROTECTED_API_TOKEN` boundary with Better Auth middleware and user-scoped read/write contracts before any PII path.
+- Add the real Google OAuth credentials to Railway, redeploy, then run a live Google sign-in smoke test from the iOS dev client and verify `/v1/profile` creates the caller's metadata-only row.
 - Promote calendar reminders from local UI state toward the Railway cron + Expo push contract after device tokens/auth land.
 - Promote news from local source cards toward Phase 9 ingestion only after an editorial review queue exists.
 - Keep PDF generation, PII storage, file upload, and auto-publish features behind counsel/KMS/security gates.
@@ -129,6 +134,7 @@ Resolved in this Stage 6 slice:
 - Manual tracker receipt persistence is covered by shared helper tests, repository mutation tests, tracker model tests, and `.maestro/tracker-manual-case.yaml`.
 - Calendar local reminders are covered by shared reminder tests, calendar model tests, repository mutation tests, and `.maestro/calendar-reminder.yaml`.
 - Calendar dispatch planning is covered by shared reminder tests for due-reminder selection, Expo-safe batching, local acknowledgement exclusion, and invalid-date skips.
+- Account/profile auth is covered by server tests for Google readiness, authenticated profile reads/writes, PII-field rejection, and mobile profile model tests for Railway-backed vs local-preview state.
 - Forum safety is covered by shared forum tests, forum model tests, repository mutation tests, and `.maestro/forum-report.yaml`.
 - News source attribution is covered by shared news tests, news model tests, repository mutation tests, and `.maestro/news-source.yaml`.
 

@@ -37,19 +37,19 @@ flowchart TD
 
 ## Components
 
-| Component | Tech | Responsibility |
-|---|---|---|
-| Mobile app | Expo SDK 56, RN 0.85, React 19, Expo Router, HeroUI Native Pro, Uniwind | All UI; holds only a short-lived session token + push token |
-| API | Hono (TS) on Railway | All business logic, validation (Zod), authorization (every query scoped by `user_id`) |
-| Auth | Better Auth (self-hosted) | Sessions/accounts; **we own the PII** (no third party holding immigration data) |
-| Database | Postgres + Drizzle (`pg`) | Source of truth; see [DATA-MODEL.md](DATA-MODEL.md) |
-| Object storage | S3 / Cloudflare R2 (encrypted) | Document files; Postgres stores only metadata + key |
-| Cron worker | Railway cron (daily) | Sweep `reminders` → Expo Push; later: news ingestion + USCIS sync |
-| Push | Expo Push Service | Delivers due-date reminders |
+| Component      | Tech                                                                    | Responsibility                                                                        |
+| -------------- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Mobile app     | Expo SDK 56, RN 0.85, React 19, Expo Router, HeroUI Native Pro, Uniwind | All UI; holds only a short-lived session token + push token                           |
+| API            | Hono (TS) on Railway                                                    | All business logic, validation (Zod), authorization (every query scoped by `user_id`) |
+| Auth           | Better Auth (self-hosted)                                               | Sessions/accounts; **we own the PII** (no third party holding immigration data)       |
+| Database       | Postgres + Drizzle (`pg`)                                               | Source of truth; see [DATA-MODEL.md](DATA-MODEL.md)                                   |
+| Object storage | S3 / Cloudflare R2 (encrypted)                                          | Document files; Postgres stores only metadata + key                                   |
+| Cron worker    | Railway cron (daily)                                                    | Sweep `reminders` → Expo Push; later: news ingestion + USCIS sync                     |
+| Push           | Expo Push Service                                                       | Delivers due-date reminders                                                           |
 
 ## Key data flows
 
-**Auth:** app → `POST /auth/*` (Better Auth) → session token stored in `expo-secure-store`; sent as Bearer on every request; API authorizes per `user_id`.
+**Auth:** app → `POST /api/auth/*` (Better Auth) → session cookie stored by `@better-auth/expo` in `expo-secure-store`; authenticated API calls forward that cookie to `/v1/*`; API authorizes per `user_id`.
 
 **Document upload:** app → `POST /documents` (metadata) → API returns a **short-lived signed upload URL** → app uploads the file **directly** to encrypted object storage (never through the API). Download is the same in reverse. Keeps large files off the API and keeps the file bytes out of our logs.
 
@@ -66,20 +66,21 @@ flowchart TD
 
 ## Environments
 
-| Env | Mobile | Backend |
-|---|---|---|
+| Env         | Mobile                         | Backend                            |
+| ----------- | ------------------------------ | ---------------------------------- |
 | Development | Expo dev build + local/dev API | Railway dev service + dev Postgres |
-| Preview | EAS internal distribution | Railway preview |
-| Production | App Store / Play | Railway production |
+| Preview     | EAS internal distribution      | Railway preview                    |
+| Production  | App Store / Play               | Railway production                 |
 
 EAS environment variables: three environments (development/preview/production), secret-type for build-time only. Railway env: `DATABASE_URL=${{Postgres.DATABASE_URL}}`, auth secrets, storage keys, Expo access token.
 
 ## Repo structure (decide at Phase 4)
 
 Two options for where the Hono backend lives:
+
 - **A — Monorepo** (`apps/mobile`, `apps/server`, `packages/shared` for Zod schemas/types shared client↔server). Best for type-safety end-to-end; restructures the current root.
 - **B — Separate repos.** Simpler isolation; types duplicated or shared via a published package.
 
 Recommendation: **A** (shared Zod types prevent client/server drift), decided when we set up the backend.
 
-*Status: DRAFT.*
+_Status: DRAFT._
