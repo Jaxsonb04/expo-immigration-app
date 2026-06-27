@@ -16,7 +16,7 @@ Base: `main` at `c19f9f4`
 - Calendar now renders deadline-linked reminder plans with local acknowledge/snooze state. It does not claim push delivery; Railway cron + Expo push remain production contracts until auth and device tokens land.
 - Forum safety shell now renders pseudonymous local categories, visible threads/posts, peer-support-only safety copy, reporting, and local author blocking.
 - News source/editorial shell now renders official USCIS/Federal Register source cards, editorially reviewed local news items, source URLs, published dates, summaries, tags, and local read state.
-- Server API now exposes a protected `/v1/loop/contract` boundary that fails closed without `PHASE6_PROTECTED_API_TOKEN`, rejects missing/invalid bearer tokens, and returns only a non-PII local-loop contract when authenticated.
+- Server API now exposes a protected `/v1/loop/contract` boundary that fails closed without `PHASE6_PROTECTED_API_TOKEN`, rejects missing/invalid bearer tokens, and returns only a non-PII local-loop contract when authenticated. Railway production has the token configured.
 - Calendar grid was fixed to render real month cells instead of fake overflow dates.
 - Mobile screen wrapper now handles iOS safe areas for the dev-client/native tab layout.
 - CocoaPods UTF-8 workaround is in the mobile iOS scripts.
@@ -31,6 +31,7 @@ Base: `main` at `c19f9f4`
 - Forum is local and pseudonymous only; no production auth identity, backend moderation queue, abuse-block sync, or legal-advice escalation workflow is implemented.
 - News is local and editorially gated only; no Railway cron ingestion, scraping, summarization worker, or auto-publish behavior is implemented.
 - `/v1/loop/contract` is a boundary contract only; it does not return user data or move local feature state server-side.
+- `PHASE6_PROTECTED_API_TOKEN` is temporary pre-Better Auth infrastructure; do not embed it in the mobile app or commit it to the repo.
 - PDF generation/export is only copy/UI language right now.
 - Production auth, KMS/encryption, counsel approval, and filing workflows remain gated.
 
@@ -80,6 +81,7 @@ These commands passed before handoff:
 - `bun run typecheck`
 - `bun run --cwd apps/mobile lint`
 - `bunx expo export --platform ios` from `apps/mobile`
+- Railway live contract check: `/health` returned 200, `/v1/loop/contract` returned 401 for missing/invalid auth, and a valid bearer token returned the non-PII `phase6-local-loop-v1` contract with five feature entries.
 - `maestro test .maestro/filing-wizard.yaml`
 - `maestro test .maestro/tracker-manual-case.yaml`
 - `maestro test .maestro/calendar-reminder.yaml`
@@ -100,7 +102,7 @@ Simulator notes:
 
 Continue Phase 6 hardening from the local feature loop into production-gated work. Filing wizard, manual tracker, calendar reminders, forum safety, and news source attribution now have shared helpers, repository persistence, UI states, and simulator E2E coverage for the current local-data scope. The next useful slice is production integration planning for one of the gated contracts:
 
-- Replace the temporary `PHASE6_PROTECTED_API_TOKEN` boundary with Better Auth middleware and user-scoped read/write contracts before any PII path.
+- Replace the configured temporary `PHASE6_PROTECTED_API_TOKEN` boundary with Better Auth middleware and user-scoped read/write contracts before any PII path.
 - Promote calendar reminders from local UI state toward the Railway cron + Expo push contract after device tokens/auth land.
 - Promote news from local source cards toward Phase 9 ingestion only after an editorial review queue exists.
 - Keep PDF generation, PII storage, file upload, and auto-publish features behind counsel/KMS/security gates.
