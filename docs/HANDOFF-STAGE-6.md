@@ -9,12 +9,13 @@ Base: `main` at `c19f9f4`
 - Stage 6 local feature loop foundation for the Expo mobile app.
 - `DESIGN.md` visual direction applied in mobile tokens/global CSS: warm paper background, white cards, near-black text, blue accent, Fraunces headings, DM Sans body.
 - Thin route files under `apps/mobile/src/app/(tabs)` now delegate to feature modules under `apps/mobile/src/features`.
-- Shared client-safe DTOs were expanded under `packages/shared/src` for applications, cases, deadlines, documents, profile, loop snapshots, selectors, and I-765 drafts.
-- Local loop repository/data added for mock-only state. It includes an active I-765 draft, manual case status, deadlines, document metadata, and profile summary.
+- Shared client-safe DTOs were expanded under `packages/shared/src` for applications, cases, deadlines, documents, profile, loop snapshots, selectors, I-765 drafts, forum safety, and news source attribution.
+- Local loop repository/data added for mock-only state. It includes an active I-765 draft, manual case status, deadlines, document metadata, profile summary, forum safety data, and news source/editorial data.
 - Home hub, Profile/Vault metadata surface, I-765 wizard shell, manual Tracker, and Calendar surfaces are implemented with local data.
 - Manual tracker receipt entry now validates USCIS-style receipt numbers, saves a local government-side case summary, and keeps the no-live-USCIS-sync disclaimer visible.
 - Calendar now renders deadline-linked reminder plans with local acknowledge/snooze state. It does not claim push delivery; Railway cron + Expo push remain production contracts until auth and device tokens land.
 - Forum safety shell now renders pseudonymous local categories, visible threads/posts, peer-support-only safety copy, reporting, and local author blocking.
+- News source/editorial shell now renders official USCIS/Federal Register source cards, editorially reviewed local news items, source URLs, published dates, summaries, tags, and local read state.
 - Calendar grid was fixed to render real month cells instead of fake overflow dates.
 - Mobile screen wrapper now handles iOS safe areas for the dev-client/native tab layout.
 - CocoaPods UTF-8 workaround is in the mobile iOS scripts.
@@ -27,9 +28,9 @@ Base: `main` at `c19f9f4`
 - Tracker is manual-first; no live USCIS sync dependency.
 - Reminder delivery is local UI state only; no push token registration, Railway cron worker, or Expo push send is implemented.
 - Forum is local and pseudonymous only; no production auth identity, backend moderation queue, abuse-block sync, or legal-advice escalation workflow is implemented.
+- News is local and editorially gated only; no Railway cron ingestion, scraping, summarization worker, or auto-publish behavior is implemented.
 - PDF generation/export is only copy/UI language right now.
 - Production auth, KMS/encryption, counsel approval, and filing workflows remain gated.
-- News is still deferred.
 
 ## How To Run
 
@@ -79,6 +80,7 @@ These commands passed before handoff:
 - `maestro test .maestro/tracker-manual-case.yaml`
 - `maestro test .maestro/calendar-reminder.yaml`
 - `maestro test .maestro/forum-report.yaml`
+- `maestro test .maestro/news-source.yaml`
 
 Simulator notes:
 
@@ -87,22 +89,23 @@ Simulator notes:
 - The tracker Maestro flow signs in, opens Tracker, saves `YSC1234567890` as a manual case, verifies the local-only status text, then checks invalid receipt copy.
 - The calendar Maestro flow signs in, opens Calendar, verifies deadline/agenda rendering, then acknowledges and snoozes a deadline-linked reminder locally.
 - The forum Maestro flow signs in, opens the iOS native `More` tab, selects Forum, verifies peer-support safety copy, reports the visible post, and blocks the pseudonymous author locally.
+- The news Maestro flow signs in, opens the iOS native `More` tab, selects News, verifies official source attribution, and marks an item read locally.
 - Maestro was installed locally via `https://get.maestro.mobile.dev`; ensure `$HOME/.maestro/bin` is on `PATH` before running the flow.
 
 ## Next Best Slice
 
-Continue Phase 6 with the next feature loop. Filing wizard, manual tracker, calendar reminders, and forum safety now have shared helpers, repository persistence, UI states, and simulator E2E coverage for the current local-data scope. The next useful slice is the news source/editorial shell:
+Continue Phase 6 hardening from the local feature loop into production-gated work. Filing wizard, manual tracker, calendar reminders, forum safety, and news source attribution now have shared helpers, repository persistence, UI states, and simulator E2E coverage for the current local-data scope. The next useful slice is production integration planning for one of the gated contracts:
 
-- Add official-source DTOs and a local news feed that separates source, published date, and summary.
-- Keep Phase 9 production ingestion deferred; no scraping, rumor feeds, or auto-publish behavior in this slice.
-- Bias toward USCIS/government source links and editorial review states from day one.
-- Add Maestro coverage for opening the news surface and verifying official-source attribution.
+- Wire real auth + protected API read/write boundaries before any PII path.
+- Promote calendar reminders from local UI state toward the Railway cron + Expo push contract after device tokens/auth land.
+- Promote news from local source cards toward Phase 9 ingestion only after an editorial review queue exists.
+- Keep PDF generation, PII storage, file upload, and auto-publish features behind counsel/KMS/security gates.
 
 Recommended tests:
 
-- Shared news model tests for source labels, date ordering, and official-source-only copy.
-- Repository/model tests proving news does not mutate filings, tracker cases, documents, profile, or forum moderation data.
-- Maestro flow for the news/source-attribution path once the tab or entry point lands.
+- API contract tests before moving any local repository behavior server-side.
+- Security-reviewer pass for auth, PII, upload, PDF, push-token, and editorial-publish code.
+- Maestro regression flows for all five local feature surfaces after each production integration.
 
 ## Known UX Risks To Address
 
@@ -118,6 +121,7 @@ Resolved in this Stage 6 slice:
 - Manual tracker receipt persistence is covered by shared helper tests, repository mutation tests, tracker model tests, and `.maestro/tracker-manual-case.yaml`.
 - Calendar local reminders are covered by shared reminder tests, calendar model tests, repository mutation tests, and `.maestro/calendar-reminder.yaml`.
 - Forum safety is covered by shared forum tests, forum model tests, repository mutation tests, and `.maestro/forum-report.yaml`.
+- News source attribution is covered by shared news tests, news model tests, repository mutation tests, and `.maestro/news-source.yaml`.
 
 ## GitHub Handoff
 

@@ -1,0 +1,50 @@
+# News Source Smoke Test
+#
+# Verifies the Phase 6 news source/editorial shell on an installed iOS dev client:
+# auth placeholder -> More -> News -> official source attribution -> local read state.
+
+appId: com.jaxsonbie.expoimmigrationapp
+---
+- launchApp:
+    clearState: true
+- swipe:
+    direction: DOWN
+    duration: 100
+- extendedWaitUntil:
+    visible:
+      id: "auth-loaded"
+    timeout: 15000
+
+- tapOn:
+    id: "auth-continue-button"
+- extendedWaitUntil:
+    visible: "Home"
+    timeout: 5000
+
+- tapOn: "More"
+- tapOn: "News"
+- tapOn:
+    text: "News"
+    optional: true
+- extendedWaitUntil:
+    visible: "Official source updates only."
+    timeout: 5000
+
+- assertVisible: "Official sources only"
+- extendedWaitUntil:
+    visible:
+      id: "news-item-source-news-uscis-all-news"
+    timeout: 5000
+- assertVisible:
+    id: "news-item-news-uscis-all-news"
+- assertVisible: "Official USCIS releases, alerts, and policy updates for immigration customers."
+
+- scrollUntilVisible:
+    element:
+      id: "news-mark-read-news-uscis-all-news"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "news-mark-read-news-uscis-all-news"
+- assertVisible:
+    id: "news-item-read-news-uscis-all-news-read"

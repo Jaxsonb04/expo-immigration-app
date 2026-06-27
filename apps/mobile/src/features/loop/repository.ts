@@ -4,6 +4,7 @@ import {
   createForumReport,
   createManualCaseFromReceipt,
   getI765CompletionPercent,
+  getPublishedOfficialNewsItems,
   normalizeReceiptNumber,
   type CaseSummary,
   type CreateManualCaseFromReceiptInput,
@@ -12,6 +13,7 @@ import {
   type ForumReportSummary,
   type I765DraftPatchResult,
   type LoopSnapshot,
+  type NewsReadReceiptSummary,
   type ReminderSummary,
 } from "@immigration/shared";
 
@@ -65,6 +67,17 @@ export interface BlockForumAuthorResult {
   error?: "missing_author" | "missing_forum";
 }
 
+export interface SaveNewsItemReadInput {
+  itemId: string;
+  openedAt: string;
+}
+
+export interface SaveNewsItemReadResult {
+  accepted: boolean;
+  readReceipt?: NewsReadReceiptSummary;
+  error?: "missing_news" | "missing_news_item";
+}
+
 export interface LoopRepository {
   getSnapshot: () => LoopSnapshot;
   saveI765DraftPatch: (input: SaveI765DraftPatchInput) => I765DraftPatchResult;
@@ -72,6 +85,7 @@ export interface LoopRepository {
   saveReminderInteraction: (input: SaveReminderInteractionInput) => SaveReminderInteractionResult;
   saveForumReport: (input: SaveForumReportInput) => SaveForumReportResult;
   blockForumAuthor: (input: BlockForumAuthorInput) => BlockForumAuthorResult;
+  saveNewsItemRead: (input: SaveNewsItemReadInput) => SaveNewsItemReadResult;
 }
 
 function getBoundedCurrentStep(currentStep: number, totalSteps: number, fallbackStep: number): number {
@@ -84,6 +98,39 @@ function getBoundedCurrentStep(currentStep: number, totalSteps: number, fallback
 
 export const localLoopRepository: LoopRepository = {
   getSnapshot: () => localLoopSnapshot,
+  saveNewsItemRead: ({ itemId, openedAt }) => {
+    const news = localLoopSnapshot.news;
+
+    if (!news) {
+      return {
+        accepted: false,
+        error: "missing_news",
+      };
+    }
+
+    const canReadItem = getPublishedOfficialNewsItems(news).some((item) => item.id === itemId);
+
+    if (!canReadItem) {
+      return {
+        accepted: false,
+        error: "missing_news_item",
+      };
+    }
+
+    const readReceipt = { itemId, openedAt };
+    localLoopSnapshot.news = {
+      ...news,
+      readReceipts: [
+        ...news.readReceipts.filter((receipt) => receipt.itemId !== itemId),
+        readReceipt,
+      ],
+    };
+
+    return {
+      accepted: true,
+      readReceipt,
+    };
+  },
   blockForumAuthor: ({ authorPseudonymId }) => {
     const forum = localLoopSnapshot.forum;
     const trimmedAuthorId = authorPseudonymId.trim();

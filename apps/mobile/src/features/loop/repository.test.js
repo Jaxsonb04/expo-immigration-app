@@ -211,4 +211,52 @@ describe("local loop repository", () => {
     });
     expect(after.profile).toEqual(beforeProfile);
   });
+
+  test("marks news items read without mutating filings, tracker cases, deadlines, documents, profile, or forum", () => {
+    const before = localLoopRepository.getSnapshot();
+    const beforeActiveApplication = before.activeApplication;
+    const beforeCases = before.cases;
+    const beforeDeadlines = before.deadlines;
+    const beforeDocuments = before.documents;
+    const beforeProfile = before.profile;
+    const beforeForum = before.forum;
+
+    const result = localLoopRepository.saveNewsItemRead({
+      itemId: "news-uscis-all-news",
+      openedAt: "2026-06-27T23:20:00.000Z",
+    });
+
+    const after = localLoopRepository.getSnapshot();
+    const savedReceipt = after.news?.readReceipts.find(
+      (receipt) => receipt.itemId === "news-uscis-all-news",
+    );
+
+    expect(result.accepted).toBe(true);
+    expect(result.readReceipt).toEqual({
+      itemId: "news-uscis-all-news",
+      openedAt: "2026-06-27T23:20:00.000Z",
+    });
+    expect(savedReceipt?.openedAt).toBe("2026-06-27T23:20:00.000Z");
+    expect(after.activeApplication).toEqual(beforeActiveApplication);
+    expect(after.cases).toEqual(beforeCases);
+    expect(after.deadlines).toEqual(beforeDeadlines);
+    expect(after.documents).toEqual(beforeDocuments);
+    expect(after.profile).toEqual(beforeProfile);
+    expect(after.forum).toEqual(beforeForum);
+  });
+
+  test("rejects unknown news items without changing news read state", () => {
+    const beforeNews = localLoopRepository.getSnapshot().news;
+
+    const result = localLoopRepository.saveNewsItemRead({
+      itemId: "missing-news-item",
+      openedAt: "2026-06-27T23:25:00.000Z",
+    });
+
+    expect(result).toEqual({
+      accepted: false,
+      error: "missing_news_item",
+    });
+    expect(localLoopRepository.getSnapshot().news).toEqual(beforeNews);
+  });
 });
