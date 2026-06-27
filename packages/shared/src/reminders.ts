@@ -4,6 +4,16 @@ export type ReminderChannel = "push" | "email" | "in_app";
 export type ReminderStatus = "scheduled" | "sent" | "failed" | "cancelled";
 export type ReminderLocalAction = "acknowledged" | "snoozed";
 export type ReminderDeliveryMode = "contract_only" | "sent";
+export type ReminderDispatchSkipReason =
+  | "not_push"
+  | "not_due"
+  | "already_terminal"
+  | "already_ticketed"
+  | "locally_acknowledged"
+  | "invalid_remind_at";
+
+export const EXPO_PUSH_MAX_MESSAGES_PER_REQUEST = 100;
+export const EXPO_PUSH_RECEIPT_CHECK_DELAY_MINUTES = 15;
 
 export interface ReminderSummary {
   id: string;
@@ -31,6 +41,23 @@ export interface ApplyReminderActionInput {
   action: "acknowledge" | "snooze";
   actedAt: string;
   snoozeDays?: number;
+}
+
+export interface ReminderDispatchBatch {
+  index: number;
+  reminderIds: string[];
+}
+
+export interface ReminderDispatchSkip {
+  reminderId: string;
+  reason: ReminderDispatchSkipReason;
+}
+
+export interface ReminderDispatchPlan {
+  maxMessagesPerBatch: typeof EXPO_PUSH_MAX_MESSAGES_PER_REQUEST;
+  receiptCheckDelayMinutes: typeof EXPO_PUSH_RECEIPT_CHECK_DELAY_MINUTES;
+  batches: ReminderDispatchBatch[];
+  skipped: ReminderDispatchSkip[];
 }
 
 const DEFAULT_SNOOZE_DAYS = 7;
@@ -114,5 +141,73 @@ export function applyReminderAction(
     lastAction: "snoozed",
     lastActionAt: input.actedAt,
     snoozedFromRemindAt: reminder.remindAt,
+  };
+}
+
+function getReminderDispatchSkipReason(
+  reminder: ReminderSummary,
+  now: Date,
+): ReminderDispatchSkipReason | undefined {
+  if (reminder.channel !== "push") {
+    return "not_push";
+  }
+
+  if (reminder.status === "sent" || reminder.status === "cancelled") {
+    return "already_terminal";
+  }
+
+  if (reminder.pushTicketId) {
+    return "already_ticketed";
+  }
+
+  if (reminder.lastAction === "acknowledged") {
+    return "locally_acknowledged";
+  }
+
+  const remindAtMs = new Date(reminder.remindAt).getTime();
+
+  if (!Number.isFinite(remindAtMs)) {
+    return "invalid_remind_at";
+  }
+
+  if (remindAtMs > now.getTime()) {
+    return "not_due";
+  }
+
+  return undefined;
+}
+
+export function buildReminderDispatchPlan(
+  reminders: readonly ReminderSummary[],
+  now = new Date(),
+): ReminderDispatchPlan {
+  const dueReminderIds: string[] = [];
+  const skipped: ReminderDispatchSkip[] = [];
+
+  for (const reminder of reminders) {
+    const reason = getReminderDispatchSkipReason(reminder, now);
+
+    if (reason) {
+      skipped.push({ reminderId: reminder.id, reason });
+      continue;
+    }
+
+    dueReminderIds.push(reminder.id);
+  }
+
+  const batches: ReminderDispatchBatch[] = [];
+
+  for (let index = 0; index < dueReminderIds.length; index += EXPO_PUSH_MAX_MESSAGES_PER_REQUEST) {
+    batches.push({
+      index: batches.length,
+      reminderIds: dueReminderIds.slice(index, index + EXPO_PUSH_MAX_MESSAGES_PER_REQUEST),
+    });
+  }
+
+  return {
+    maxMessagesPerBatch: EXPO_PUSH_MAX_MESSAGES_PER_REQUEST,
+    receiptCheckDelayMinutes: EXPO_PUSH_RECEIPT_CHECK_DELAY_MINUTES,
+    batches,
+    skipped,
   };
 }
