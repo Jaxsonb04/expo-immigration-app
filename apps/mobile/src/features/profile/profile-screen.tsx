@@ -11,7 +11,7 @@ import { colors, fonts, glass } from "@/features/ui/tokens";
 import { useAuth } from "@/lib/auth-context";
 import { buildAccountProfileModel } from "./profile-model";
 
-export function ProfileScreenContent() {
+export function ProfileScreenContent({ onClose }: { onClose?: () => void }) {
   const { isAuthenticated, isPreview, profile, signOut, user } = useAuth();
   const snapshot = useLoopSnapshot();
   const documents = snapshot.documents ?? [];
@@ -22,7 +22,7 @@ export function ProfileScreenContent() {
   });
 
   return (
-    <Screen title="Profile" subtitle="Reusable info and a metadata-only vault.">
+    <Screen title="Profile" subtitle="Reusable info and a metadata-only vault." onClose={onClose}>
       <GlassCard elevated padding={18}>
         <View className="gap-3">
           <View className="flex-row items-start justify-between gap-3">

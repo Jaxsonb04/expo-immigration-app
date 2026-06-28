@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import { Linking, Text, View } from "react-native";
 import { Button } from "heroui-native";
 
-import { Screen } from "@/components/screen";
 import { localLoopRepository } from "@/features/loop/repository";
 import { useLoopSnapshot } from "@/features/loop/use-loop-snapshot";
 import { EmptyState } from "@/features/ui/empty-state";
@@ -12,7 +11,11 @@ import { colors, fonts, glass } from "@/features/ui/tokens";
 
 import { buildNewsModel } from "./news-model";
 
-export function NewsScreenContent() {
+/**
+ * News content (no Screen wrapper) — rendered inside the Community tab's
+ * News segment.
+ */
+export function NewsBody() {
   const snapshot = useLoopSnapshot();
   const [news, setNews] = useState(() => snapshot.news);
   const [readMessage, setReadMessage] = useState<string | undefined>();
@@ -39,7 +42,7 @@ export function NewsScreenContent() {
   }
 
   return (
-    <Screen title="News" subtitle="Official source updates only.">
+    <>
       <GlassCard padding={16}>
         <View className="gap-2">
           <SectionHeader title={model.safetyNotice.title} actionLabel="Editorial review" />
@@ -202,6 +205,6 @@ export function NewsScreenContent() {
           />
         )}
       </View>
-    </Screen>
+    </>
   );
 }

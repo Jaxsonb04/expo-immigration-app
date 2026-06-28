@@ -9,11 +9,14 @@ import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { HeroUINativeProvider } from "heroui-native";
-import { View } from "react-native";
+import { LogBox, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import "../global.css";
+
+// Known-benign noise from heroui-native's Reanimated bridge; silence the toast.
+LogBox.ignoreLogs(["Sending `onAnimatedValueUpdate`"]);
 
 function RootNavigator(): JSX.Element {
   const { isAuthenticated, isLoading } = useAuth();
@@ -30,6 +33,7 @@ function RootNavigator(): JSX.Element {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Protected guard={isAuthenticated}>
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="profile" options={{ presentation: "modal" }} />
         </Stack.Protected>
         <Stack.Protected guard={!isAuthenticated}>
           <Stack.Screen name="(auth)" />

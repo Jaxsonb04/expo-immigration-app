@@ -28,7 +28,7 @@ export default function SignUpScreen() {
   }
 
   return (
-    <Screen title="Create your account" subtitle="Save your info once, reuse it on every renewal.">
+    <Screen title="Create your account" subtitle="Save your info once, reuse it on every renewal." showProfile={false}>
       <GlassCard elevated intensity={40} padding={18}>
         <View style={{ gap: 16 }}>
           <TextField isInvalid={Boolean(fieldErrors.name)}>

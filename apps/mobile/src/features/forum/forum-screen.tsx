@@ -4,7 +4,6 @@ import { Button, Label, Radio } from "heroui-native";
 import { RadioButtonGroup } from "heroui-native-pro";
 import { getReportReasonLabel, type ForumReportReason } from "@immigration/shared";
 
-import { Screen } from "@/components/screen";
 import { localLoopRepository } from "@/features/loop/repository";
 import { useLoopSnapshot } from "@/features/loop/use-loop-snapshot";
 import { EmptyState } from "@/features/ui/empty-state";
@@ -27,7 +26,11 @@ interface ReportTarget {
   threadTitle: string;
 }
 
-export function ForumScreenContent() {
+/**
+ * Forum content (no Screen wrapper) — rendered inside the Community tab's
+ * Discussion segment.
+ */
+export function ForumBody() {
   const snapshot = useLoopSnapshot();
   const [forum, setForum] = useState(() => snapshot.forum);
   const [statusMessage, setStatusMessage] = useState<string | undefined>();
@@ -80,56 +83,55 @@ export function ForumScreenContent() {
 
   if (reportTarget) {
     return (
-      <Screen title="Report" subtitle="Help moderators keep this space safe.">
-        <GlassCard elevated intensity={40} padding={18}>
-          <View className="gap-3">
-            <Text
-              selectable
-              style={{ color: colors.foreground, fontFamily: fonts.semibold, fontSize: 16 }}
+      <GlassCard elevated intensity={40} padding={18}>
+        <View className="gap-3">
+          <SectionHeader title="Report this thread" />
+          <Text
+            selectable
+            style={{ color: colors.foreground, fontFamily: fonts.semibold, fontSize: 15 }}
+          >
+            “{reportTarget.threadTitle}”
+          </Text>
+          <Text
+            selectable
+            style={{ color: colors.muted, fontFamily: fonts.body, fontSize: 13, lineHeight: 20 }}
+          >
+            Choose a reason. Reports go to moderation review — never to USCIS.
+          </Text>
+          <RadioButtonGroup
+            variant="secondary"
+            value={reportReason}
+            onValueChange={(value) => setReportReason(value as ForumReportReason)}
+          >
+            {REPORT_REASONS.map((reason) => (
+              <RadioButtonGroup.Item key={reason} value={reason} testID={`forum-reason-${reason}`}>
+                <Radio />
+                <RadioButtonGroup.ItemContent>
+                  <Label>{getReportReasonLabel(reason)}</Label>
+                </RadioButtonGroup.ItemContent>
+              </RadioButtonGroup.Item>
+            ))}
+          </RadioButtonGroup>
+          <View className="flex-row gap-2">
+            <Button
+              className="flex-1"
+              variant="outline"
+              onPress={() => setReportTarget(null)}
+              testID="forum-report-cancel"
             >
-              “{reportTarget.threadTitle}”
-            </Text>
-            <Text
-              selectable
-              style={{ color: colors.muted, fontFamily: fonts.body, fontSize: 13, lineHeight: 20 }}
-            >
-              Choose a reason. Reports go to moderation review — never to USCIS.
-            </Text>
-            <RadioButtonGroup
-              variant="secondary"
-              value={reportReason}
-              onValueChange={(value) => setReportReason(value as ForumReportReason)}
-            >
-              {REPORT_REASONS.map((reason) => (
-                <RadioButtonGroup.Item key={reason} value={reason} testID={`forum-reason-${reason}`}>
-                  <Radio />
-                  <RadioButtonGroup.ItemContent>
-                    <Label>{getReportReasonLabel(reason)}</Label>
-                  </RadioButtonGroup.ItemContent>
-                </RadioButtonGroup.Item>
-              ))}
-            </RadioButtonGroup>
-            <View className="flex-row gap-2">
-              <Button
-                className="flex-1"
-                variant="outline"
-                onPress={() => setReportTarget(null)}
-                testID="forum-report-cancel"
-              >
-                Cancel
-              </Button>
-              <Button className="flex-1" onPress={submitReport} testID="forum-report-submit">
-                Submit report
-              </Button>
-            </View>
+              Cancel
+            </Button>
+            <Button className="flex-1" onPress={submitReport} testID="forum-report-submit">
+              Submit report
+            </Button>
           </View>
-        </GlassCard>
-      </Screen>
+        </View>
+      </GlassCard>
     );
   }
 
   return (
-    <Screen title="Forum" subtitle="Peer support, not legal advice.">
+    <>
       <GlassCard padding={16}>
         <View className="gap-2">
           <SectionHeader title="Safety first" actionLabel="Moderated" />
@@ -266,6 +268,6 @@ export function ForumScreenContent() {
           />
         )}
       </View>
-    </Screen>
+    </>
   );
 }

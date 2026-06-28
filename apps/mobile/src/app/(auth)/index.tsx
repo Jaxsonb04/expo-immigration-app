@@ -27,7 +27,7 @@ export default function SignInScreen() {
   }
 
   return (
-    <Screen title="Welcome back" subtitle="Sign in to sync your reusable profile.">
+    <Screen title="Welcome back" subtitle="Sign in to sync your reusable profile." showProfile={false}>
       <GlassCard elevated intensity={40} padding={18}>
         <View style={{ gap: 16 }}>
           <TextField isInvalid={Boolean(fieldErrors.email)}>
