@@ -1,6 +1,13 @@
 import type { ApplicationSummary } from "../applications";
 
-export type I765FormEdition = "03/13/26";
+/**
+ * Current accepted I-765 edition. Verified 2026-06-28 against the live USCIS
+ * PDF (footer reads "08/21/25"; OMB 1615-0040; expires 08/31/2027). Treat the
+ * edition as a CONFIG value: USCIS rotates editions and renumbers items, so
+ * re-verify on uscis.gov/i-765 and re-bundle the PDF asset per release.
+ */
+export type I765FormEdition = "08/21/25";
+export const I765_FORM_EDITION: I765FormEdition = "08/21/25";
 export type I765Reason = "initial" | "replacement" | "renewal";
 export type I765EligibilityCategory = "c8" | "c9" | "c33";
 export type I765WizardStepId =
@@ -247,7 +254,7 @@ export function createEmptyI765Draft({
     totalSteps: i765WizardSteps.length,
     createdAt,
     updatedAt: createdAt,
-    formEdition: "03/13/26",
+    formEdition: "08/21/25",
     completionPercent: 0,
     answers: {},
   };

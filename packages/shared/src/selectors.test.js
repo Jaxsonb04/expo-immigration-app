@@ -110,7 +110,7 @@ describe("Stage 6 loop selectors", () => {
     });
 
     expect(draft.typeCode).toBe("I-765");
-    expect(draft.formEdition).toBe("03/13/26");
+    expect(draft.formEdition).toBe("08/21/25");
     expect(draft.status).toBe("draft");
     expect(draft.answers.reason).toBeUndefined();
     expect(draft.answers.eligibilityCategory).toBeUndefined();

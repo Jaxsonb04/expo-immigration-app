@@ -1,0 +1,48 @@
+# I-765 preview smoke test (taps + deep-link only — NO inputText).
+# inputText crashes the XCUITest driver on iOS 26.5; this flow stays green by
+# seeding a tap-only choice then deep-linking to the on-device PDF preview.
+# The fuller field-by-field walkthrough lives in filing-wizard.yaml.
+appId: com.jaxsonbie.expoimmigrationapp
+---
+- launchApp:
+    clearState: true
+- swipe:
+    direction: DOWN
+    duration: 100
+- extendedWaitUntil:
+    visible:
+      id: "auth-loaded"
+    timeout: 15000
+- tapOn:
+    id: "auth-continue-button"
+- extendedWaitUntil:
+    visible: "Home"
+    timeout: 5000
+- tapOn: "Filings"
+- tapOn:
+    text: "Filings"
+    optional: true
+- extendedWaitUntil:
+    visible: "Why are you applying?"
+    timeout: 5000
+- scrollUntilVisible:
+    element:
+      id: "filing-reason-renewal"
+    direction: DOWN
+    centerElement: true
+- tapOn:
+    id: "filing-reason-renewal"
+- openLink:
+    link: heroui-native-app://filing-preview
+- extendedWaitUntil:
+    visible: "Preview I-765"
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: "preview-webview"
+    timeout: 30000
+- assertVisible:
+    id: "preview-print"
+- assertVisible:
+    id: "preview-share"
+- takeScreenshot: filing-preview-smoke

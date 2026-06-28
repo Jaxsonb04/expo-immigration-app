@@ -16,7 +16,9 @@ import { AuthProvider, useAuth } from "@/lib/auth-context";
 import "../global.css";
 
 // Known-benign noise from heroui-native's Reanimated bridge; silence the toast.
-LogBox.ignoreLogs(["Sending `onAnimatedValueUpdate`"]);
+// Known-benign noise: heroui-native's Reanimated bridge + pdf-lib stripping the
+// XFA layer (expected) when filling the official I-765. Silence the dev toasts.
+LogBox.ignoreLogs(["Sending `onAnimatedValueUpdate`", "Removing XFA form data"]);
 
 function RootNavigator(): JSX.Element {
   const { isAuthenticated, isLoading } = useAuth();
@@ -34,6 +36,7 @@ function RootNavigator(): JSX.Element {
         <Stack.Protected guard={isAuthenticated}>
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="profile" options={{ presentation: "modal" }} />
+          <Stack.Screen name="filing-preview" options={{ presentation: "modal" }} />
         </Stack.Protected>
         <Stack.Protected guard={!isAuthenticated}>
           <Stack.Screen name="(auth)" />

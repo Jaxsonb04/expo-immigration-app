@@ -18,6 +18,9 @@ config.resolver.extraNodeModules = {
   "@immigration/shared": path.resolve(workspaceRoot, "packages/shared"),
 };
 
+// Bundle the official I-765 PDF as a static asset for on-device filling.
+config.resolver.assetExts.push("pdf");
+
 module.exports = withUniwindConfig(config, {
   cssEntryFile: "./src/global.css",
 });

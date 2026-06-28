@@ -1,7 +1,12 @@
-# I-765 Filing Wizard Smoke Test
+# NOTE: uses inputText, which currently CRASHES the XCUITest driver on iOS 26.5.
+# Run filing-preview-smoke.yaml for a green check on that combo; this flow is the
+# full-coverage spec (passes once the Maestro/iOS inputText issue resolves).
 #
-# Verifies the Phase 6 local-data filing loop on an installed iOS dev client:
-# auth placeholder -> filings tab -> safe non-PII autosave choices -> export shell.
+# I-765 Filing Wizard — full-coverage smoke test
+#
+# Walks the redesigned 12-step wizard end to end on an installed iOS dev client:
+# auth placeholder -> filings tab -> required gates -> on-device PDF fill ->
+# inline preview with print/share. No real USCIS submission.
 
 appId: com.jaxsonbie.expoimmigrationapp
 ---
@@ -14,7 +19,6 @@ appId: com.jaxsonbie.expoimmigrationapp
     visible:
       id: "auth-loaded"
     timeout: 15000
-
 - tapOn:
     id: "auth-continue-button"
 - extendedWaitUntil:
@@ -29,6 +33,7 @@ appId: com.jaxsonbie.expoimmigrationapp
     visible: "Why are you applying?"
     timeout: 5000
 
+# Step 1 — reason
 - scrollUntilVisible:
     element:
       id: "filing-reason-renewal"
@@ -36,6 +41,20 @@ appId: com.jaxsonbie.expoimmigrationapp
     centerElement: true
 - tapOn:
     id: "filing-reason-renewal"
+- tapOn:
+    id: "filing-wizard-continue"
+
+# Step 2 — legal name (the one required keyboard step; Enter blurs to dismiss)
+- extendedWaitUntil:
+    visible: "Your full legal name"
+    timeout: 5000
+- tapOn:
+    id: "filing-family-name"
+- inputText: "Garcia"
+- tapOn:
+    id: "filing-given-name"
+- inputText: "Maria"
+- pressKey: Enter
 - scrollUntilVisible:
     element:
       id: "filing-wizard-continue"
@@ -44,37 +63,54 @@ appId: com.jaxsonbie.expoimmigrationapp
 - tapOn:
     id: "filing-wizard-continue"
 
+# Step 3 — mailing address (optional fields; skip)
 - extendedWaitUntil:
-    visible: "Confirm your name"
-    timeout: 5000
-- tapOn:
-    id: "filing-wizard-continue"
-- extendedWaitUntil:
-    visible: "Confirm your mailing address"
-    timeout: 5000
-- tapOn:
-    id: "filing-wizard-continue"
-- extendedWaitUntil:
-    visible: "Add biographic details"
-    timeout: 5000
-- tapOn:
-    id: "filing-wizard-continue"
-- extendedWaitUntil:
-    visible: "Describe your arrival and status"
+    visible: "Your U.S. mailing address"
     timeout: 5000
 - tapOn:
     id: "filing-wizard-continue"
 
+# Step 4 — physical address (same as mailing)
 - extendedWaitUntil:
-    visible: "Choose your eligibility category"
+    visible: "Where do you physically live?"
+    timeout: 5000
+- tapOn:
+    id: "filing-same-address-yes"
+- tapOn:
+    id: "filing-wizard-continue"
+
+# Step 5 — other info (skip)
+- extendedWaitUntil:
+    visible: "A few details about you"
+    timeout: 5000
+- tapOn:
+    id: "filing-wizard-continue"
+
+# Step 6 — citizenship & birth (skip)
+- extendedWaitUntil:
+    visible: "Citizenship & birth"
+    timeout: 5000
+- tapOn:
+    id: "filing-wizard-continue"
+
+# Step 7 — arrival & status (skip)
+- extendedWaitUntil:
+    visible: "Your arrival and status"
+    timeout: 5000
+- tapOn:
+    id: "filing-wizard-continue"
+
+# Step 8 — eligibility category
+- extendedWaitUntil:
+    visible: "Your eligibility category"
     timeout: 5000
 - scrollUntilVisible:
     element:
-      id: "filing-eligibility-c33"
-    direction: UP
+      id: "filing-eligibility-c3b"
+    direction: DOWN
     centerElement: true
 - tapOn:
-    id: "filing-eligibility-c33"
+    id: "filing-eligibility-c3b"
 - scrollUntilVisible:
     element:
       id: "filing-wizard-continue"
@@ -83,27 +119,31 @@ appId: com.jaxsonbie.expoimmigrationapp
 - tapOn:
     id: "filing-wizard-continue"
 
+# Step 9 — documents checklist
 - extendedWaitUntil:
-    visible: "Gather supporting documents"
-    timeout: 5000
-- tapOn:
-    id: "filing-wizard-continue"
-- extendedWaitUntil:
-    visible: "Applicant statement"
+    visible: "Documents to gather"
     timeout: 5000
 - tapOn:
     id: "filing-wizard-continue"
 
+# Step 10 — contact & statement
+- extendedWaitUntil:
+    visible: "Contact & statement"
+    timeout: 5000
+- tapOn:
+    id: "filing-wizard-continue"
+
+# Step 11 — review & verify
 - extendedWaitUntil:
     visible: "Review and verify"
     timeout: 5000
 - scrollUntilVisible:
     element:
-      id: "filing-review-acknowledgement"
-    direction: UP
+      id: "filing-review-ack"
+    direction: DOWN
     centerElement: true
 - tapOn:
-    id: "filing-review-acknowledgement"
+    id: "filing-review-ack"
 - scrollUntilVisible:
     element:
       id: "filing-wizard-continue"
@@ -112,8 +152,23 @@ appId: com.jaxsonbie.expoimmigrationapp
 - tapOn:
     id: "filing-wizard-continue"
 
+# Step 12 — export -> create PDF
 - extendedWaitUntil:
-    visible: "Export signature-ready PDF"
+    visible: "Create your I-765 PDF"
     timeout: 5000
-- assertVisible: "Export creates a PDF for you to sign and file yourself. The app does not submit to USCIS."
-- assertVisible: "Autosaved locally"
+- tapOn:
+    id: "filing-wizard-continue"
+
+# Preview screen — PDF filled on device, inline preview + print/share
+- extendedWaitUntil:
+    visible: "Preview I-765"
+    timeout: 20000
+- extendedWaitUntil:
+    visible:
+      id: "preview-webview"
+    timeout: 30000
+- assertVisible:
+    id: "preview-print"
+- assertVisible:
+    id: "preview-share"
+- takeScreenshot: /tmp/i765/shots/preview-final

@@ -18,7 +18,7 @@ export function getWizardStep(index: number): WizardStep {
 
 export function getWizardCanContinue(
   stepId: I765WizardStepId | string,
-  answers: I765DraftAnswers,
+  answers: I765DraftAnswers
 ): boolean {
   return getI765CanContinue(stepId, answers);
 }

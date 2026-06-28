@@ -17,6 +17,8 @@
 | D11 | Localization | Install **i18n + string externalization now**; ship **en + es** at launch | 2026-06-22 | Audience is often non-native English; retrofitting is far costlier. Legal-copy translation is an accuracy (attorney) task, not a localization checkbox |
 | D12 | Sequencing | **Phase 0 de-risking before build**; user-validation sprint recommended before full commit | 2026-06-22 | Gate not met (Phase 1 review); resolve existential unknowns first |
 | D13 | Forum + news | Schema stays; **build deferred to v1.1** | 2026-06-22 | Validate the filing→track→retain loop first |
+| D14 | I-765 form edition | **08/21/25** (current accepted edition; supersedes the spike's unverified 03/13/26) | 2026-06-28 | Verified 2026-06-28 against the live USCIS PDF (footer 08/21/25, OMB 1615-0040, exp 08/31/2027). Edition is a config value (`I765_FORM_EDITION`), re-verified per release |
+| D15 | I-765 PDF generation | **On-device** — pdf-lib fills the bundled *decrypted* official AcroForm, flattened (XFA dropped); inline WebView preview + Print + Save/Share | 2026-06-28 | Keeps all PII on-device (reinforces D7/D8); pure-JS pdf-lib runs in Hermes; a flattened print is exactly what paper filers mail |
 
 ## Open decisions (need you / counsel)
 
@@ -29,7 +31,7 @@
 
 - **USCIS API: NO-GO for v1** (D9 confirmed). Org-vetted/representational, weeks-to-months onboarding. Tracker is manual-first behind a `CaseStatusProvider` seam; pursue org onboarding as v1.x/v2, never a v1 blocker.
 - **PII encryption (D7 detailed):** app-layer AES-256-GCM over the full re-identifying set; **external KMS + per-user keys** (not pgcrypto-in-DATABASE_URL); HMAC blind-index for `receipt_number`; metadata-only vault; **crypto-shredding** for erasure; short-TTL IP; never collect SSN; lazy PII collection; pseudonymous forum.
-- **I-765 edition 03/13/26** is mandatory (since Jun 1 2026) — print the edition on every exported page; re-verify per release. 10-step draft schema + mechanical/legal-judgment split in `docs/spikes/i765-form-mapping.md` (attorney-review-pending).
+- **I-765 current accepted edition is 08/21/25** (verified 2026-06-28 against the live PDF; the earlier 03/13/26 note was an unverified guess, now superseded — see D14). Print the edition on every exported page; re-verify per release. Field map + mechanical/legal-judgment split in `docs/spikes/i765-form-mapping.md`; the extracted AcroForm field→item reference is in `docs/spikes/i765-fields-tu.json`.
 - **Version matrix: YELLOW** — core SDK 56 stack GREEN; risks = `heroui-native-pro` beta.5 + `react-native-skia` transitive-only. Clear to GREEN with a physical-device EAS dev build.
 
 *See `docs/PHASE-1-REVIEW.md` for the reasoning behind D2/D7/D8/D9/D12 and `docs/spikes/` for Phase-0 findings.*
