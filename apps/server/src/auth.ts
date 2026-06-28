@@ -18,6 +18,9 @@ export interface CreateAuthOptions {
 
 type ImmigrationAuth = Auth<BetterAuthOptions>;
 
+// Better Auth's providerId for the built-in email/password credential account.
+const CREDENTIAL_PROVIDER_ID = "credential";
+
 export class BetterAuthSessionService implements AuthService {
   private readonly auth: ImmigrationAuth;
 
@@ -36,8 +39,34 @@ export class BetterAuthSessionService implements AuthService {
       id: session.user.id,
       email: session.user.email,
       name: session.user.name,
-      provider: "google",
+      provider: await this.resolveProvider(request),
     };
+  }
+
+  // The session payload does not record which provider the user authenticated
+  // with, so we look up their linked accounts for a display-only badge. This is
+  // best-effort metadata — a failure here must never block an authenticated
+  // request, so we fall back to "unknown".
+  private async resolveProvider(request: Request): Promise<SessionUser["provider"]> {
+    try {
+      const accounts = await this.auth.api.listUserAccounts({ headers: request.headers });
+
+      if (!Array.isArray(accounts)) {
+        return "unknown";
+      }
+
+      if (accounts.some((account) => account.providerId === "google")) {
+        return "google";
+      }
+
+      if (accounts.some((account) => account.providerId === CREDENTIAL_PROVIDER_ID)) {
+        return "email";
+      }
+    } catch {
+      return "unknown";
+    }
+
+    return "unknown";
   }
 }
 
@@ -51,7 +80,7 @@ export function createImmigrationAuth(options: CreateAuthOptions): ImmigrationAu
   return betterAuth(authOptions);
 }
 
-function buildAuthOptions(options: CreateAuthOptions): BetterAuthOptions | undefined {
+export function buildAuthOptions(options: CreateAuthOptions): BetterAuthOptions | undefined {
   const baseURL = options.baseUrl?.trim();
   const secret = options.secret?.trim();
   const googleClientId = options.googleClientId?.trim();
@@ -64,7 +93,16 @@ function buildAuthOptions(options: CreateAuthOptions): BetterAuthOptions | undef
   return {
     appName: "Immigration App",
     baseURL,
+    secret,
     database: options.pool,
+    // "Create your own account" path. No transactional email provider exists
+    // yet, so email verification stays off until that gate lands; keep the
+    // minimum length in sync with packages/shared/src/auth.ts.
+    emailAndPassword: {
+      enabled: true,
+      requireEmailVerification: false,
+      minPasswordLength: 8,
+    },
     plugins: [expo()],
     socialProviders:
       googleClientId && googleClientSecret

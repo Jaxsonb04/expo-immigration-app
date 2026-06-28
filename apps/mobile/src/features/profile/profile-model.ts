@@ -1,4 +1,4 @@
-export type AccountProvider = "google" | "unknown";
+export type AccountProvider = "google" | "email" | "unknown";
 export type AccountProfileStorageMode = "database";
 export type AccountProfilePiiMode = "metadata_only";
 
@@ -36,7 +36,7 @@ export function buildAccountProfileModel(input: AccountProfileInput): AccountPro
   if (!input.isAuthenticated || !input.user || !input.profile) {
     return {
       accountTitle: "Local preview",
-      accountDetail: "Sign in with Google to sync your reusable profile.",
+      accountDetail: "Sign in or create an account to sync your reusable profile.",
       authBadge: "Not synced",
       profileReadiness: "0% ready for pre-fill",
       privacyMode: "No server profile is loaded.",
@@ -57,6 +57,10 @@ export function buildAccountProfileModel(input: AccountProfileInput): AccountPro
 function formatProvider(provider: AccountProvider): string {
   if (provider === "google") {
     return "Google";
+  }
+
+  if (provider === "email") {
+    return "Email";
   }
 
   return "Account";

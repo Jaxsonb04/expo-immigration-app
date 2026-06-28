@@ -19,7 +19,7 @@ describe("server API boundary", () => {
     });
   });
 
-  test("reports whether Google OAuth credentials are configured", async () => {
+  test("reports whether Google OAuth and email/password are configured", async () => {
     const app = createApp({
       protectedApiToken: "phase6-test-token",
       googleAuthConfigured: true,
@@ -33,6 +33,27 @@ describe("server API boundary", () => {
       data: {
         provider: "google",
         googleConfigured: true,
+        emailPasswordEnabled: true,
+      },
+    });
+  });
+
+  test("reports email/password as unavailable when auth is not configured", async () => {
+    const app = createApp({
+      protectedApiToken: "phase6-test-token",
+      googleAuthConfigured: false,
+      emailPasswordEnabled: false,
+    });
+
+    const response = await app.request("/v1/auth/status");
+
+    expect(response.status).toBe(200);
+    expect(await readJson(response)).toEqual({
+      success: true,
+      data: {
+        provider: "google",
+        googleConfigured: false,
+        emailPasswordEnabled: false,
       },
     });
   });
@@ -136,15 +157,15 @@ describe("server API boundary", () => {
     });
   });
 
-  test("creates and returns a database-backed profile for a Google-authenticated user", async () => {
+  test("creates and returns a database-backed profile for an email-authenticated user", async () => {
     const app = createApp({
       protectedApiToken: "phase6-test-token",
       authService: {
         getSessionUser: async () => ({
-          id: "user_google_1",
+          id: "user_email_1",
           email: "renewer@example.com",
           name: "EAD Renewer",
-          provider: "google",
+          provider: "email",
         }),
       },
       profileStore: createFakeProfileStore(),
@@ -157,10 +178,10 @@ describe("server API boundary", () => {
       success: true,
       data: {
         user: {
-          id: "user_google_1",
+          id: "user_email_1",
           email: "renewer@example.com",
           name: "EAD Renewer",
-          provider: "google",
+          provider: "email",
         },
         profile: {
           displayName: "EAD Renewer",
@@ -232,6 +253,33 @@ describe("server API boundary", () => {
           storageMode: "database",
         },
       },
+    });
+  });
+
+  test("rejects an empty display name so a blank PATCH cannot wipe the profile", async () => {
+    const app = createApp({
+      protectedApiToken: "phase6-test-token",
+      authService: {
+        getSessionUser: async () => ({
+          id: "user_email_4",
+          email: "blank@example.com",
+          name: "Blank Name",
+          provider: "email",
+        }),
+      },
+      profileStore: createFakeProfileStore(),
+    });
+
+    const response = await app.request("/v1/profile", {
+      body: JSON.stringify({ displayName: "   " }),
+      headers: { "Content-Type": "application/json" },
+      method: "PATCH",
+    });
+
+    expect(response.status).toBe(400);
+    expect(await readJson(response)).toEqual({
+      success: false,
+      error: "invalid_display_name",
     });
   });
 

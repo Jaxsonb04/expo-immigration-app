@@ -31,6 +31,28 @@ describe("profile model", () => {
     });
   });
 
+  test("labels an email/password Railway account", () => {
+    const model = buildAccountProfileModel({
+      isAuthenticated: true,
+      user: {
+        email: "self-filer@example.com",
+        name: "Self Filer",
+        provider: "email",
+      },
+      profile: {
+        displayName: "Self Filer",
+        preferredLanguage: "en",
+        hasReusableProfile: true,
+        completionPercent: 20,
+        piiMode: "metadata_only",
+        storageMode: "database",
+      },
+    });
+
+    expect(model.accountDetail).toBe("self-filer@example.com · Email");
+    expect(model.authBadge).toBe("Railway account");
+  });
+
   test("keeps a local exploration state when no authenticated account is present", () => {
     expect(
       buildAccountProfileModel({
@@ -40,7 +62,7 @@ describe("profile model", () => {
       })
     ).toEqual({
       accountTitle: "Local preview",
-      accountDetail: "Sign in with Google to sync your reusable profile.",
+      accountDetail: "Sign in or create an account to sync your reusable profile.",
       authBadge: "Not synced",
       profileReadiness: "0% ready for pre-fill",
       privacyMode: "No server profile is loaded.",

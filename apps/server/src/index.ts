@@ -40,6 +40,7 @@ export interface CreateAppOptions {
   authHandler?: (request: Request) => Promise<Response>;
   authService?: AuthService;
   googleAuthConfigured?: boolean;
+  emailPasswordEnabled?: boolean;
   profileStore?: ProfileStore;
 }
 
@@ -89,6 +90,7 @@ export function createApp({
   authHandler,
   authService,
   googleAuthConfigured = false,
+  emailPasswordEnabled = true,
   profileStore,
 }: CreateAppOptions = {}) {
   const app = new Hono();
@@ -100,6 +102,7 @@ export function createApp({
       ok({
         provider: "google",
         googleConfigured: googleAuthConfigured,
+        emailPasswordEnabled,
       })
     )
   );
@@ -196,11 +199,18 @@ async function readProfileUpdateInput(
   const data: ProfileUpdateInput = {};
 
   if ("displayName" in record) {
-    if (typeof record.displayName !== "string" || record.displayName.trim().length > 80) {
+    if (typeof record.displayName !== "string") {
       return { success: false, error: "invalid_display_name" };
     }
 
-    data.displayName = record.displayName.trim();
+    const displayName = record.displayName.trim();
+
+    // Reject empty so a blank PATCH cannot wipe an established profile name.
+    if (displayName.length === 0 || displayName.length > 80) {
+      return { success: false, error: "invalid_display_name" };
+    }
+
+    data.displayName = displayName;
   }
 
   if ("preferredLanguage" in record) {
@@ -235,6 +245,10 @@ const app = createApp({
   authHandler: auth?.handler,
   authService: auth ? new BetterAuthSessionService(auth) : undefined,
   googleAuthConfigured: Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET),
+  // Email/password is enabled whenever Better Auth is configured (it is enabled
+  // unconditionally in buildAuthOptions). Without a configured auth instance the
+  // app cannot accept credentials, so report it as unavailable.
+  emailPasswordEnabled: Boolean(auth),
   profileStore: productionPool ? new PostgresProfileStore(productionPool) : undefined,
 });
 

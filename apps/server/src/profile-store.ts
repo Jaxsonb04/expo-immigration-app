@@ -8,7 +8,7 @@ export interface SessionUser {
   id: string;
   email: string;
   name: string;
-  provider: "google" | "unknown";
+  provider: "google" | "email" | "unknown";
 }
 
 export interface StoredProfile {

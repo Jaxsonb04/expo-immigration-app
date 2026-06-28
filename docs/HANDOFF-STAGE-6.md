@@ -4,6 +4,17 @@ Date: 2026-06-27
 Branch: `codex/stage-6-handoff`
 Base: `main` at `c19f9f4`
 
+## Update 2026-06-28 — Email/password auth shipped (Phase 6 auth feature)
+
+- **"Create your own account" (email/password) is live.** Better Auth `emailAndPassword` is enabled in `apps/server/src/auth.ts` (verification off until a transactional email provider lands; min length 8, kept in sync with `packages/shared/src/auth.ts`). `buildAuthOptions` is now exported + unit-tested.
+- **Provider-aware sessions.** `BetterAuthSessionService.getSessionUser` derives the provider (`google` | `email` | `unknown`) from `auth.api.listUserAccounts`; `SessionUser.provider` widened accordingly. Verified live: a credential account reports `provider: "email"`.
+- **`/v1/auth/status`** now also returns `emailPasswordEnabled` (typed by the new shared `AuthStatus`). PATCH `/v1/profile` now rejects an empty `displayName` so a blank write can't wipe an established profile.
+- **Mobile:** real sign-in (`(auth)/index.tsx`) and sign-up (`(auth)/sign-up.tsx`) forms (HeroUI Native `TextField`/`Input`) with shared validation, submit/disabled/error + a11y-alert states; `auth-context.tsx` gained `signInWithEmail`/`signUpWithEmail`, `response.ok` guards, Google-error catch, and privacy-preserving (non-enumerating) error copy. The `auth-continue-button` "Preview locally" Maestro affordance is preserved. New shared module `packages/shared/src/auth.ts` (validators + `AuthStatus`/`AuthProvider`).
+- **Deployed to Railway production** (`api`) via `railway up` from the Mac. Smoke test passed live: `POST /api/auth/sign-up/email` → 200 + `__Secure-better-auth.session_token`; `GET /v1/profile` → metadata-only profile, user-scoped, `provider: "email"`. A real device sign-up on the iPhone 16 Pro simulator created an account and landed on Home.
+- **Verification:** 83 tests (shared/server/mobile) + workspace typecheck + mobile lint all green. Three reviewer passes (security/react/typescript) run and their real findings fixed.
+- **Test accounts created in prod Postgres** during verification: `smoke+<ts>@example.com` (curl) and `simtest<ts>@example.com` (device). Safe to delete.
+- **Still gated:** Google sign-in needs real `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` (redirect `https://api-production-0041.up.railway.app/api/auth/callback/google`). KMS/PII, file upload, USCIS submission, PDF, push, moderation remain gated as before.
+
 ## What Landed
 
 - Stage 6 local feature loop foundation for the Expo mobile app.
