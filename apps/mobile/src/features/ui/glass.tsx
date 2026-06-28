@@ -14,6 +14,7 @@ interface GlassCardProps {
   padding?: number;
   /** Slightly more opaque tint for hero/foreground surfaces. */
   elevated?: boolean;
+  testID?: string;
 }
 
 /**
@@ -27,9 +28,10 @@ export function GlassCard({
   intensity = 32,
   padding = 18,
   elevated = false,
+  testID,
 }: GlassCardProps) {
   return (
-    <View style={[styles.shadow, style]}>
+    <View style={[styles.shadow, style]} testID={testID}>
       <View style={styles.clip}>
         <BlurView intensity={intensity} tint="light" style={StyleSheet.absoluteFill} />
         <View
