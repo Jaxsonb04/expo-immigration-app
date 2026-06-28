@@ -12,6 +12,7 @@ import type { I765DraftAnswers, I765EligibilityCategory, I765Reason } from "@imm
 import { Screen } from "@/components/screen";
 import { localLoopRepository } from "@/features/loop/repository";
 import { useLoopSnapshot } from "@/features/loop/use-loop-snapshot";
+import { AddressAutocomplete } from "@/features/ui/address-autocomplete";
 import { GlassCard } from "@/features/ui/glass";
 import { SectionHeader } from "@/features/ui/section-header";
 import { SelectionCard } from "@/features/ui/selection-card";
@@ -254,16 +255,11 @@ export function FilingsScreenContent() {
         ) : null}
 
         {step.id === "address" ? (
-          <TextField>
-            <Label>Mailing address</Label>
-            <Input
-              autoCapitalize="words"
-              onChangeText={(value) => updateIdentity({ mailingAddress: value })}
-              placeholder="Street, city, state, ZIP"
-              testID="filing-mailing-address"
-              value={identity.mailingAddress}
-            />
-          </TextField>
+          <AddressAutocomplete
+            value={identity.mailingAddress}
+            onChangeText={(value) => updateIdentity({ mailingAddress: value })}
+            testID="filing-mailing-address"
+          />
         ) : null}
 
         {step.id === "biographic" ? (

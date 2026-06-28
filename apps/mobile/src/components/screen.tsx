@@ -71,6 +71,7 @@ export function Screen({ title, subtitle, children, showProfile = true, onClose 
           gap: 18,
         }}
         contentInsetAdjustmentBehavior="never"
+        keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         <View
