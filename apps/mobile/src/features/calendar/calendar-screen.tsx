@@ -82,20 +82,39 @@ export function CalendarScreenContent() {
                 {(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}
               </Calendar.GridHeader>
               <Calendar.GridBody>
-                {(date) => (
-                  <Calendar.Cell date={date}>
-                    {(renderProps) => (
-                      <Calendar.CellBody cellRenderProps={renderProps}>
-                        <Calendar.CellLabel cellRenderProps={renderProps}>
-                          {renderProps.formattedDate}
-                        </Calendar.CellLabel>
-                        {deadlineKeys.has(date.toString()) ? (
-                          <Calendar.CellIndicator cellRenderProps={renderProps} />
-                        ) : null}
-                      </Calendar.CellBody>
-                    )}
-                  </Calendar.Cell>
-                )}
+                {(date) => {
+                  const hasDeadline = deadlineKeys.has(date.toString());
+                  return (
+                    <Calendar.Cell date={date}>
+                      {(renderProps) => (
+                        <Calendar.CellBody cellRenderProps={renderProps}>
+                          <Calendar.CellLabel cellRenderProps={renderProps}>
+                            {renderProps.formattedDate}
+                          </Calendar.CellLabel>
+                          <View
+                            pointerEvents="none"
+                            style={{
+                              position: "absolute",
+                              bottom: 5,
+                              left: 0,
+                              right: 0,
+                              alignItems: "center",
+                            }}
+                          >
+                            <View
+                              style={{
+                                backgroundColor: hasDeadline ? colors.warningDot : "transparent",
+                                borderRadius: 999,
+                                height: 6,
+                                width: 6,
+                              }}
+                            />
+                          </View>
+                        </Calendar.CellBody>
+                      )}
+                    </Calendar.Cell>
+                  );
+                }}
               </Calendar.GridBody>
             </Calendar.Grid>
           </Calendar>
