@@ -5,9 +5,11 @@ mock.module("react-native", () => ({
   View: "View",
 }));
 
+// Stub the glass primitive so the test never pulls expo-blur / native modules.
+mock.module("./glass", () => ({ GlassCard: "GlassCard" }));
+
 mock.module("heroui-native", () => ({
   Button: "Button",
-  Card: "Card",
 }));
 
 const { WizardScaffold } = await import("./wizard-scaffold.tsx");

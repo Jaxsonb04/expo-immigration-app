@@ -1,6 +1,6 @@
 import { Pressable, Text, View } from "react-native";
 
-import { colors, fonts } from "./tokens";
+import { colors, fonts, glass } from "./tokens";
 
 type SelectionCardControlRole = "button" | "radio" | "checkbox";
 
@@ -37,11 +37,11 @@ export function SelectionCard({
       onPress={onPress}
       testID={testID}
       style={{
-        backgroundColor: selected ? colors.foreground : colors.surface,
-        borderColor: selected ? colors.foreground : colors.border,
+        backgroundColor: selected ? colors.accentSoft : glass.tint,
+        borderColor: selected ? colors.accent : glass.border,
         borderCurve: "continuous",
         borderRadius: 16,
-        borderWidth: 1,
+        borderWidth: selected ? 1.5 : 1,
         padding: 16,
       }}
     >
@@ -50,7 +50,7 @@ export function SelectionCard({
           <Text
             selectable
             style={{
-              color: selected ? "#FFFFFF" : colors.foreground,
+              color: colors.foreground,
               fontFamily: fonts.semibold,
               fontSize: 15,
             }}
@@ -61,7 +61,7 @@ export function SelectionCard({
             <Text
               selectable
               style={{
-                color: selected ? "#F1EFE8" : colors.muted,
+                color: colors.muted,
                 fontFamily: fonts.body,
                 fontSize: 13,
                 lineHeight: 19,
@@ -71,12 +71,22 @@ export function SelectionCard({
             </Text>
           ) : null}
         </View>
-        <Text
-          selectable
-          style={{ color: selected ? "#FFFFFF" : colors.hint, fontFamily: fonts.semibold }}
+        <View
+          style={{
+            alignItems: "center",
+            backgroundColor: selected ? colors.accent : "transparent",
+            borderColor: selected ? colors.accent : colors.hint,
+            borderRadius: controlRole === "checkbox" ? 7 : 999,
+            borderWidth: 1.5,
+            height: 22,
+            justifyContent: "center",
+            width: 22,
+          }}
         >
-          {selected ? "✓" : "○"}
-        </Text>
+          {selected ? (
+            <Text style={{ color: "#FFFFFF", fontFamily: fonts.bold, fontSize: 13 }}>✓</Text>
+          ) : null}
+        </View>
       </View>
     </Pressable>
   );
