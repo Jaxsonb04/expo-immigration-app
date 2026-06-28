@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
-import { ScrollView, View } from "react-native";
-import { Typography } from "heroui-native";
+import { ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+import { ScreenBackground } from "@/features/ui/glass";
+import { colors, fonts } from "@/features/ui/tokens";
 
 interface ScreenProps {
   title: string;
@@ -10,30 +12,49 @@ interface ScreenProps {
 }
 
 /**
- * Shared screen scaffold: a safe-area-aware scroll view with a title block.
- * Per-feature native stack headers replace the inline title as features land.
+ * Shared screen scaffold: an atmospheric liquid-glass backdrop behind a
+ * transparent scroll view, with an iOS-style large title. Glass surfaces
+ * (GlassCard) and the native blur tab bar layer on top.
  */
 export function Screen({ title, subtitle, children }: ScreenProps) {
   const insets = useSafeAreaInsets();
 
   return (
-    <ScrollView
-      className="flex-1 bg-background"
-      contentContainerStyle={{
-        paddingHorizontal: 20,
-        paddingTop: insets.top + 16,
-        paddingBottom: insets.bottom + 96,
-        gap: 20,
-      }}
-      contentInsetAdjustmentBehavior="never"
-    >
-      <View style={{ gap: 4 }}>
-        <Typography.Heading>{title}</Typography.Heading>
-        {subtitle ? (
-          <Typography.Paragraph className="opacity-60">{subtitle}</Typography.Paragraph>
-        ) : null}
-      </View>
-      {children}
-    </ScrollView>
+    <View style={{ flex: 1 }}>
+      <ScreenBackground />
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingHorizontal: 20,
+          paddingTop: insets.top + 14,
+          paddingBottom: insets.bottom + 112,
+          gap: 18,
+        }}
+        contentInsetAdjustmentBehavior="never"
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={{ gap: 4, marginBottom: 2 }}>
+          <Text
+            style={{
+              color: colors.foreground,
+              fontFamily: fonts.display,
+              fontSize: 34,
+              lineHeight: 40,
+              letterSpacing: -0.5,
+            }}
+          >
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text
+              style={{ color: colors.muted, fontFamily: fonts.body, fontSize: 15, lineHeight: 21 }}
+            >
+              {subtitle}
+            </Text>
+          ) : null}
+        </View>
+        {children}
+      </ScrollView>
+    </View>
   );
 }

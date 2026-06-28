@@ -1,7 +1,7 @@
 import { Text, View } from "react-native";
 import { Button } from "heroui-native";
 
-import { colors, fonts } from "./tokens";
+import { colors, fonts, glass } from "./tokens";
 
 interface EmptyStateProps {
   title: string;
@@ -14,8 +14,8 @@ export function EmptyState({ title, description, actionLabel }: EmptyStateProps)
     <View className="items-center gap-3 py-8">
       <View
         style={{
-          backgroundColor: "#FBFAF6",
-          borderColor: colors.border,
+          backgroundColor: glass.tint,
+          borderColor: glass.border,
           borderCurve: "continuous",
           borderRadius: 22,
           borderWidth: 1,

@@ -1,61 +1,62 @@
 # Design System — Immigration App
 
 > Canonical design source of truth. Read this before any visual or UI decision.
-> Created 2026-06-22 via `/design-consultation`, grounded in the user's curated reference board (`docs/design/references.md`). Component-level patterns live in `docs/design/design-system.md`.
+> **2026-06-28 — pivoted to "Modern iOS / Liquid Glass"** (user-approved, verified on the iPhone 17 / iOS 26.5 simulator). Supersedes the prior warm-paper / calm-civic direction. Component-level patterns: `docs/design/`. Token source of truth in code: `apps/mobile/src/features/ui/tokens.ts` + `apps/mobile/src/global.css`.
 
 ## Product Context
 - **What this is:** all-in-one US/USCIS immigration app. v1 = guided **I-765/EAD renewal** spine (auth → reusable profile → document vault → filing wizard → case tracker → calendar/reminders). Forum + news are v1.1.
 - **Who it's for:** immigrants renewing work authorization/status. Often non-native English, anxious, infrequent use.
-- **Space/industry:** immigration / civic tech, high-stakes personal data. Peers: Lawfully, CitizenPath, Boundless, SimpleCitizen.
+- **Space:** immigration / civic tech, high-stakes personal data.
 - **Project type:** native mobile app (Expo SDK 56 + HeroUI Native Pro + Uniwind), iOS + Android.
 
 ## Memorable thing
-An immigration app that feels **calm and human, not like a government form.** Every choice serves that.
+A modern, **tactile iOS app that feels premium and trustworthy** — translucent liquid glass over a calm atmosphere. Glass for depth and delight, never flashy; legibility and calm always win over spectacle.
 
 ## Aesthetic Direction
-- **Direction:** calm-civic / warm-minimal.
-- **Decoration level:** minimal. The warm "paper" background is the one atmospheric move; typography and cards do the rest.
-- **Mood:** calm, trustworthy, human. Competent without feeling clinical. Lower the user's blood pressure while they handle stressful paperwork.
-- **Feel references:** Granola (warm, serif, sectioned), Liven (calm), Monzo (friendly reassurance), NordVPN (clean status hero). Full board: `docs/design/references.md`.
+- **Direction:** Modern iOS / **Liquid Glass**.
+- **Surfaces:** translucent, frosted **glass cards** (real backdrop blur) that float over an atmospheric gradient backdrop. Native iOS 26 chrome (tab bar, sheets, headers) renders as system Liquid Glass for free via `NativeTabs`.
+- **Depth:** layered translucency + soft, cool drop shadows + 1px glass hairline borders for edge definition on busy backgrounds.
+- **Mood:** calm, competent, modern. Lowers blood pressure during stressful paperwork while feeling like a 2026 iPhone app.
 
 ## Typography
-- **Display / headings: Fraunces** (warm humanist serif). The strongest "human, not a gov form" signal; matches the Granola reference.
-- **Body / UI: DM Sans** (clean humanist sans, highly legible at small sizes for anxious / non-native-English readers).
-- **Labels:** DM Sans (same as body).
-- **Data / numbers:** DM Sans with `tabular-nums` (deadlines, days-left, receipt numbers). DM Mono optional for receipt numbers.
-- **Loading (Expo):** `@expo-google-fonts/fraunces` + `@expo-google-fonts/dm-sans` via `expo-font` `useFonts`; register the family names in the HeroUI Native theme + Uniwind `@theme`. Keep weights lean: Fraunces 500/600 (display only), DM Sans 400/500/600.
-- **Scale (px / weight):** display 28/600 (Fraunces) · h1 24/600 (Fraunces) · h2 20/600 · card title 17/600 · body 15/400 · caption 13/400 · micro 11. Line-height 1.4–1.6. Everything below h1 is DM Sans.
+- **Display / large titles: Fraunces** (warm humanist serif) — identity + warmth, prevents a generic-template feel. iOS-style large titles at 34/40, headlines 27.
+- **Body / UI / labels / numbers: DM Sans** (humanist sans, legible for anxious / non-native readers). `tabular-nums` on all numeric values (days-left, dates, receipts).
+- **Loading (Expo):** `@expo-google-fonts/fraunces` + `@expo-google-fonts/dm-sans` via `useFonts`. Weights: Fraunces 500/600 (display only); DM Sans 400/500/600/700.
+- **Scale (px / weight):** large title 34/600 (Fraunces) · headline 27/600 (Fraunces) · card title 16–17/600 · body 15/400 · caption 13/400 · micro 12. Everything below headline is DM Sans.
 
-## Color
-- **Approach:** restrained-balanced. Color is mostly neutral; the accent and status colors are meaningful, never decorative.
-- **Primary:** near-black `#1F1E1C` — primary buttons + primary text.
-- **Accent:** blue `#185FA5` — links, focus rings, selected states, brand highlights.
-- **Neutrals (warm):** background `#F1EFE8` (paper) · surface `#FFFFFF` (cards) · border `#E6E3DA` · muted text `#5F5E5A` · hint `#9A968C`.
-- **Semantic:** success `#3B6D11` (on-track / approved; dot `#639922`) · warning `#854F0B` (due soon; dot `#EF9F27`) · error `#A32D2D` (overdue) · info = accent blue.
-- **Dark mode:** warm near-black base (~`#1A1916`), elevated dark surfaces (~`#242220`), reduce status saturation ~10–15%, keep the accent. WCAG AA in both modes.
+## Color (cool, glass-ready)
+- **Backdrop:** cool light base `#EEF2F8` with an **atmospheric wash** — blue pooling top-left, a soft violet accent upper-right, teal pooling bottom-right (low opacity, calm). This is what the glass refracts.
+- **Glass surface:** translucent white (`rgba(255,255,255,0.55–0.72)`) over a backdrop blur; hairline border `rgba(255,255,255,0.55)`.
+- **Primary text:** cool near-black `#161A22`. **Muted:** `#5A6373`. **Hint:** `#8B94A4`.
+- **Accent:** modern iOS blue `#1366D6` — primary buttons, links, selected/active states.
+- **Semantic (vibrant, iOS-leaning):** success `#1E874B` (dot `#34C759`) · warning `#A65A0B` (dot `#FF9F0A`) · danger `#D23344`. Status color is meaningful, never decorative.
+- **Dark mode:** cool near-black base (`hsl 222 30% 8%`), white-alpha glass surfaces, brighter accent (`hsl 212 96% 62%`); WCAG AA in both modes. Light is primary for v1.
 
-## Spacing
-- **Base unit:** 8px (with 4px half-steps).
-- **Density:** comfortable-to-spacious. **Never cramped** (explicit user rule).
-- **Scale:** 2xs(2) xs(4) sm(8) md(12) lg(16) xl(24) 2xl(32) 3xl(48). Screen padding 20. Section gap 24. Prefer flex `gap` over margins.
+## Glass System (code primitives)
+- **`ScreenBackground`** (`features/ui/glass.tsx`): the atmospheric backdrop (base + layered `expo-linear-gradient` washes). Rendered behind every `Screen`.
+- **`GlassCard`** (`features/ui/glass.tsx`): `expo-blur` `BlurView` (tint `light`, intensity ~32–40) under a translucent tint, inside an `overflow:hidden` clip with a hairline border; soft shadow on an **outer** wrapper so the clip doesn't swallow it. Props: `intensity`, `padding`, `elevated`. Use for every prominent surface; prefer it over heroui `Card`.
+- **Native chrome:** `NativeTabs` tab bar = system Liquid Glass on iOS 26 / native blur on iOS ≤18. Sheets and headers via native stacks.
+- Glass intensity is **globally tunable** from the token + `GlassCard` layer — calibrating it never requires per-screen edits.
 
-## Layout
-- **Approach:** grid-disciplined, single-column mobile, card-based.
-- **Grid:** single column; full-width cards within 20px gutters. Cap forms ~600px on tablets/large screens.
-- **Border radius:** inputs 12 · buttons 14 · cards 16–20 · pills/chips/FAB full. Use `borderCurve: "continuous"`.
-- **Navigation:** bottom native tabs (Home · Filings · Tracker · Calendar · Profile). One focal point per screen.
+## Spacing & Layout
+- **Grid:** 8px base (4px half-steps). Screen padding 20. Section gap 18–24. Prefer flex `gap`.
+- **Density:** comfortable-to-spacious. Never cramped.
+- **Radius:** cards/glass 22 · inputs/fields 14 · pills/chips full. Always `borderCurve: "continuous"`.
+- **Layout:** single column, full-width glass cards within 20px gutters, iOS large title at top, native bottom tab bar. One focal point per screen.
 
 ## Motion
-- **Approach:** intentional, gentle.
-- **Easing:** enter ease-out `cubic-bezier(0.16, 1, 0.3, 1)`, exit ease-in, move ease-in-out.
-- **Duration:** micro 100ms · short 150ms · medium 250ms · long 400ms. Animate transform/opacity only. Respect reduced-motion.
+- Intentional, gentle. Enter ease-out `cubic-bezier(0.16,1,0.3,1)`, exit ease-in. Durations: micro 100 · short 150 · medium 250 · long 400ms. Animate transform/opacity only. Respect reduced-motion.
 
-## Components & patterns
-Token source-of-truth is this file. Component-level patterns (buttons, the selection toolkit — single-select cards/list, multi-select checkboxes, choice grid, radio+descriptions, typed forms + native pickers; the **wizard "divide wisely" chunking**; empty states; the destructive-confirm pattern; dashboard/data-viz restraint; the calendar) are documented in `docs/design/design-system.md`. The per-surface reference board is `docs/design/references.md`.
+## Accessibility (load-bearing on glass)
+- **Text on glass must use high-contrast foreground tokens** (dark text on light glass). Never rely on translucency that drops contrast below AA.
+- Glass surfaces over busy backgrounds get a **semi-transparent hairline border** for definition.
+- Secondary/subtitle text over gradients uses partial transparency so it blends without becoming a hard opaque block.
+- Form fields keep a more opaque fill (`field-background` ~0.85 alpha) so input text stays legible on glass.
+- Error/status text uses `accessibilityRole="alert"` + `accessibilityLiveRegion="polite"`.
 
 ## Decisions Log
 | Date | Decision | Rationale |
 |------|----------|-----------|
-| 2026-06-22 | Initial design system | Created by `/design-consultation` from the user's curated Mobbin reference board |
-| 2026-06-22 | Warm paper base + Fraunces serif display + DM Sans body | "Calm, human, not a government form"; upgrades from the system font; matches the Granola reference |
-| 2026-06-22 | Near-black primary, color reserved for status | Modern; lets green/amber/red carry real meaning |
+| 2026-06-22 | Initial system: warm paper + Fraunces + DM Sans | "calm, human, not a gov form" (from Mobbin board) |
+| 2026-06-28 | **Pivot to Modern iOS / Liquid Glass** | User direction: "modern iphone app … liquid glass." Translucent glass surfaces over a cool atmosphere, native iOS 26 glass chrome; kept Fraunces+DM Sans for identity. Verified on iPhone 17 / iOS 26.5. |
+| 2026-06-28 | Keep current glass intensity (tasteful, not maximal) | User-confirmed on sign-in + Home; legibility/calm prioritized over spectacle. Globally tunable via tokens. |

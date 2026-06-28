@@ -1,18 +1,43 @@
 import type { TextStyle, ViewStyle } from "react-native";
 
+/**
+ * Modern iOS / Liquid Glass design tokens.
+ * Cool, calm, trustworthy palette tuned so translucent glass surfaces read
+ * clearly over an atmospheric gradient backdrop. See DESIGN.md.
+ */
 export const colors = {
-  background: "#F1EFE8",
-  surface: "#FFFFFF",
-  foreground: "#1F1E1C",
-  muted: "#5F5E5A",
-  hint: "#9A968C",
-  border: "#E6E3DA",
-  accent: "#185FA5",
-  success: "#3B6D11",
-  successDot: "#639922",
-  warning: "#854F0B",
-  warningDot: "#EF9F27",
-  danger: "#A32D2D",
+  // Backdrop base (the gradient atmosphere is layered on top in ScreenBackground).
+  background: "#EEF2F8",
+  // Translucent glass fill used as the tint over a BlurView.
+  surface: "rgba(255,255,255,0.72)",
+  surfaceSolid: "#FFFFFF",
+  foreground: "#161A22",
+  muted: "#5A6373",
+  hint: "#8B94A4",
+  border: "rgba(120,140,170,0.22)",
+  accent: "#1366D6",
+  accentSoft: "rgba(19,102,214,0.12)",
+  success: "#1E874B",
+  successDot: "#34C759",
+  warning: "#A65A0B",
+  warningDot: "#FF9F0A",
+  danger: "#D23344",
+};
+
+/** Glass-specific tokens for blur tint, hairline borders, and atmosphere washes. */
+export const glass = {
+  /** Translucent white laid over the BlurView so the frost reads on light content. */
+  tint: "rgba(255,255,255,0.55)",
+  tintStrong: "rgba(255,255,255,0.72)",
+  /** Hairline that gives a glass edge definition on busy backgrounds. */
+  border: "rgba(255,255,255,0.55)",
+  borderSoft: "rgba(120,140,170,0.28)",
+  /** Atmospheric gradient washes behind the glass — varied color so the frost refracts. */
+  washTop: "rgba(40,108,242,0.26)",
+  washMid: "rgba(96,164,246,0.12)",
+  washBottom: "rgba(34,200,205,0.16)",
+  washAccent: "rgba(124,92,240,0.12)",
+  shadow: "#0B1B3A",
 };
 
 export const fonts = {
@@ -24,13 +49,22 @@ export const fonts = {
   bold: "DMSans_700Bold",
 };
 
+export const radius = {
+  card: 22,
+  field: 14,
+  chip: 999,
+};
+
+/**
+ * Translucent glass surface for any remaining heroui Card usages; prefer the
+ * GlassCard primitive (real backdrop blur) for prominent surfaces.
+ */
 export const cardStyle: ViewStyle = {
   backgroundColor: colors.surface,
-  borderColor: colors.border,
+  borderColor: glass.border,
   borderCurve: "continuous",
-  borderRadius: 18,
+  borderRadius: radius.card,
   borderWidth: 1,
-  boxShadow: "0 1px 2px rgba(31, 30, 28, 0.05)",
 };
 
 export const titleText: TextStyle = {

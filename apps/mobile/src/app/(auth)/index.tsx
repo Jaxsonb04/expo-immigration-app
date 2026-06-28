@@ -1,10 +1,11 @@
 import { Link } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
-import { Button, Card, FieldError, Input, Label, TextField, Typography } from "heroui-native";
+import { Button, FieldError, Input, Label, TextField, Typography } from "heroui-native";
 
 import { Screen } from "@/components/screen";
-import { cardStyle, colors, fonts } from "@/features/ui/tokens";
+import { GlassCard } from "@/features/ui/glass";
+import { colors, fonts } from "@/features/ui/tokens";
 import { useAuth } from "@/lib/auth-context";
 
 export default function SignInScreen() {
@@ -27,60 +28,62 @@ export default function SignInScreen() {
 
   return (
     <Screen title="Welcome back" subtitle="Sign in to sync your reusable profile.">
-      <Card className="gap-4 p-4" style={cardStyle}>
-        <TextField isInvalid={Boolean(fieldErrors.email)}>
-          <Label>Email</Label>
-          <Input
-            accessibilityLabel="Email"
-            autoCapitalize="none"
-            autoComplete="email"
-            autoCorrect={false}
-            keyboardType="email-address"
-            onChangeText={(value) => {
-              setEmail(value);
-              clearAuthError();
-            }}
-            placeholder="you@example.com"
-            testID="auth-email-input"
-            value={email}
-          />
-          {fieldErrors.email ? <FieldError>{fieldErrors.email}</FieldError> : null}
-        </TextField>
+      <GlassCard elevated intensity={40} padding={18}>
+        <View style={{ gap: 16 }}>
+          <TextField isInvalid={Boolean(fieldErrors.email)}>
+            <Label>Email</Label>
+            <Input
+              accessibilityLabel="Email"
+              autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
+              keyboardType="email-address"
+              onChangeText={(value) => {
+                setEmail(value);
+                clearAuthError();
+              }}
+              placeholder="you@example.com"
+              testID="auth-email-input"
+              value={email}
+            />
+            {fieldErrors.email ? <FieldError>{fieldErrors.email}</FieldError> : null}
+          </TextField>
 
-        <TextField isInvalid={Boolean(fieldErrors.password)}>
-          <Label>Password</Label>
-          <Input
-            accessibilityLabel="Password"
-            autoCapitalize="none"
-            autoComplete="current-password"
-            onChangeText={(value) => {
-              setPassword(value);
-              clearAuthError();
-            }}
-            placeholder="Your password"
-            secureTextEntry
-            testID="auth-password-input"
-            value={password}
-          />
-          {fieldErrors.password ? <FieldError>{fieldErrors.password}</FieldError> : null}
-        </TextField>
+          <TextField isInvalid={Boolean(fieldErrors.password)}>
+            <Label>Password</Label>
+            <Input
+              accessibilityLabel="Password"
+              autoCapitalize="none"
+              autoComplete="current-password"
+              onChangeText={(value) => {
+                setPassword(value);
+                clearAuthError();
+              }}
+              placeholder="Your password"
+              secureTextEntry
+              testID="auth-password-input"
+              value={password}
+            />
+            {fieldErrors.password ? <FieldError>{fieldErrors.password}</FieldError> : null}
+          </TextField>
 
-        {authError ? (
-          <Text
-            accessibilityLiveRegion="polite"
-            accessibilityRole="alert"
-            selectable
-            style={{ color: colors.danger, fontFamily: fonts.medium, fontSize: 13 }}
-            testID="auth-error"
-          >
-            {authError}
-          </Text>
-        ) : null}
+          {authError ? (
+            <Text
+              accessibilityLiveRegion="polite"
+              accessibilityRole="alert"
+              selectable
+              style={{ color: colors.danger, fontFamily: fonts.medium, fontSize: 13 }}
+              testID="auth-error"
+            >
+              {authError}
+            </Text>
+          ) : null}
 
-        <Button isDisabled={isSubmitting} onPress={handleEmailSignIn} testID="auth-email-sign-in">
-          {isSubmitting ? "Signing in…" : "Sign in"}
-        </Button>
-      </Card>
+          <Button isDisabled={isSubmitting} onPress={handleEmailSignIn} testID="auth-email-sign-in">
+            {isSubmitting ? "Signing in…" : "Sign in"}
+          </Button>
+        </View>
+      </GlassCard>
 
       <View className="gap-3">
         <Text

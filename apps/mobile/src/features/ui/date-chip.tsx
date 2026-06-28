@@ -1,7 +1,7 @@
 import { Text, View } from "react-native";
 
 import { formatMonthDay } from "./date-format";
-import { colors, fonts } from "./tokens";
+import { colors, fonts, glass } from "./tokens";
 
 interface DateChipProps {
   value: string;
@@ -20,12 +20,12 @@ export function DateChip({ value, tone = "accent" }: DateChipProps) {
     <View
       className="items-center justify-center"
       style={{
-        backgroundColor: "#F8F6F0",
-        borderColor: colors.border,
+        backgroundColor: glass.tint,
+        borderColor: glass.border,
         borderCurve: "continuous",
         borderRadius: 14,
         borderWidth: 1,
-        minHeight: 48,
+        minHeight: 50,
         width: 58,
       }}
     >
@@ -33,7 +33,7 @@ export function DateChip({ value, tone = "accent" }: DateChipProps) {
         selectable
         style={{
           color: toneColors[tone],
-          fontFamily: fonts.semibold,
+          fontFamily: fonts.bold,
           fontSize: 12,
           fontVariant: ["tabular-nums"],
         }}
