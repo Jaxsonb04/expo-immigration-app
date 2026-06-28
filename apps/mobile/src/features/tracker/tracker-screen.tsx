@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Text, View } from "react-native";
+import { Linking, Text, View } from "react-native";
 import { Button, Description, FieldError, Input, Label, TextField } from "heroui-native";
 
 import { Screen } from "@/components/screen";
@@ -122,6 +122,13 @@ export function TrackerScreenContent() {
               >
                 {model.syncDisclaimer}
               </Text>
+              <Button
+                variant="outline"
+                onPress={() => Linking.openURL("https://egov.uscis.gov/")}
+                testID="tracker-check-live"
+              >
+                Check live on USCIS.gov
+              </Button>
             </View>
           </GlassCard>
 
