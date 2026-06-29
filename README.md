@@ -1,32 +1,46 @@
-# Immigration App (monorepo)
+# Welcome to your HeroUI Native app 👋
 
-All-in-one US/USCIS immigration app — guided **I-765/EAD renewal** filing, case tracker, deadline calendar with reminders, discussion forum (v1.1), and news (v1.1). Built around a retention-focused data model so renewals are near one-tap.
+This is an [Expo](https://expo.dev) project preconfigured with
+[HeroUI Native](https://heroui.com/docs/native), [Uniwind](https://docs.uniwind.dev)
+(Tailwind CSS for React Native), and [Expo Router](https://docs.expo.dev/router/introduction)
+with a bottom-tab layout.
 
-## Workspace layout
+## Get started
 
-```
-apps/
-  mobile/      Expo SDK 56 app (React Native, Expo Router, HeroUI Native Pro, Uniwind)
-  server/      Backend — Hono + Drizzle + Better Auth on Railway (scaffolded in Phase 2)
-packages/
-  shared/      Types (and, later, Zod schemas) shared between mobile + server
-docs/          PRD, architecture, data model, decisions, and Phase-0 spike memos
-```
+1. Install dependencies
 
-## Getting started
+   ```bash
+   npm install
+   ```
 
-```bash
-bun install                 # install workspace deps + link packages
-bun run mobile              # start the Expo app (apps/mobile)
-# or:
-cd apps/mobile && bunx expo start
-```
+2. Start the app
 
-> **Dev build required.** This app uses push notifications + secure storage, so it needs an
-> [EAS development build](https://docs.expo.dev/develop/development-builds/introduction/) — Expo Go won't work.
+   ```bash
+   npx expo start
+   ```
 
-## Docs
+In the output, you'll find options to open the app in a
 
-- [`docs/DECISIONS.md`](docs/DECISIONS.md) — decision log (start here)
-- [`docs/PRD.md`](docs/PRD.md) · [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`docs/DATA-MODEL.md`](docs/DATA-MODEL.md)
-- [`docs/IMPLEMENTATION-PLAN.md`](docs/IMPLEMENTATION-PLAN.md) · [`docs/PHASE-1-REVIEW.md`](docs/PHASE-1-REVIEW.md) · [`docs/spikes/`](docs/spikes/)
+- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
+- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
+- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
+- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+
+You can start developing by editing the files inside the **src/app** directory. The tabs themselves live under `src/app/(tabs)/`. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+
+## What's preconfigured
+
+- **HeroUI Native** (`heroui-native`) wrapped in `HeroUINativeProvider` and `GestureHandlerRootView` in `src/app/_layout.tsx`
+- **Uniwind** + **Tailwind CSS** wired through `metro.config.js` and `src/global.css`
+- All HeroUI Native mandatory peer dependencies: `react-native-reanimated`, `react-native-gesture-handler`, `react-native-worklets`, `react-native-safe-area-context`, `react-native-svg`, `react-native-screens`
+- `@gorhom/bottom-sheet` for bottom-sheet UIs
+- `@expo/vector-icons` (Ionicons) for tab bar icons
+- TypeScript with `strict: true` and `@/*` path alias to `./src/*`
+- React Compiler enabled
+
+## Learn more
+
+- [HeroUI Native components](https://heroui.com/docs/native) — full component reference
+- [Expo documentation](https://docs.expo.dev/) — Expo fundamentals and guides
+- [Uniwind documentation](https://docs.uniwind.dev) — Tailwind for React Native
+- [Expo Router](https://docs.expo.dev/router/introduction) — file-based routing
