@@ -155,3 +155,21 @@ _Avoid_: Pre-fill, Prepopulate, Carry-over
 **Document Vault**:
 The applicant's organized collection of stored documents and their expiry metadata, reused across filings and feeding the reminder schedule.
 _Avoid_: Storage, Locker, Folder, Drive
+
+### Experience & Money
+
+**Interview**:
+The question-first guided experience that asks an applicant friendly, plain-language questions — one per screen, with help available on each — and maps the answers to the underlying form fields behind the scenes, rather than presenting the raw USCIS form. The Interview is *how* a Filing is prepared (see ADR-0012).
+_Avoid_: Form, Questionnaire, Survey, Form-fill
+
+**Preview**:
+The free, watermarked rendering of the finished form on the real current-edition USCIS document (marked "DRAFT — NOT FOR FILING"), shown before payment so the applicant sees exactly what they will obtain. The Preview is not itself mailable.
+_Avoid_: Sample, Mockup, Proof, Demo
+
+**Filing Package**:
+The clean, print-ready output unlocked by the Service Fee — the completed current-edition USCIS PDF plus the personalized mailing/assembly instructions and supporting-document checklist for one Filing. The user prints, signs, and mails it themselves (ADR-0006).
+_Avoid_: Export, Download, Final form, Submission
+
+**Service Fee**:
+The one-time charge owed to *us* to obtain a Filing Package — payment for self-help software that prepares and renders the form, including unlimited later edits and re-downloads of that Filing. It is strictly separate from the **Filing Fee** (the government fee owed to USCIS, which we never collect), and it does not buy legal advice, representation, or any guarantee of approval (ADR-0004, ADR-0011).
+_Avoid_: Filing Fee, Subscription, Price, Cost, Unlock fee

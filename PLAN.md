@@ -16,7 +16,7 @@ Immigrants filing **recurring USCIS renewals** — green-card renewal (Form I-90
 
 ## Proposed Solution
 
-One **free** mobile app that combines guided renewal **filing + case tracking + a deadline calendar with proactive reminders + community**, built on a **persistent user profile and document vault** so the *second* filing is near one-tap. v1 deliberately targets the two most recurring, highest-anxiety renewals (I-90 and I-765) rather than complex one-time petitions, because recurrence is what proves the retention thesis. We win where competitors are siloed: filers get filing **and** tracking **and** deadline safety **and** a vault that remembers them — in one place, free at the point of use.
+One **free-to-prepare** mobile app that combines guided renewal **filing + case tracking + a deadline calendar with proactive reminders + community**, built on a **persistent user profile and document vault** so the *second* filing is near one-tap. v1 deliberately targets the two most recurring, highest-anxiety renewals (I-90 and I-765) rather than complex one-time petitions, because recurrence is what proves the retention thesis. We win where competitors are siloed: filers get filing **and** tracking **and** deadline safety **and** a vault that remembers them — in one place, free to prepare and track, with a single one-time **Service Fee** only to obtain the finished form (see ADR-0011).
 
 ## Key Hypothesis
 
@@ -29,7 +29,7 @@ We'll know we're right when **≥ 25% of activated users return to start a secon
 - **Non-US immigration systems** (Canada/IRCC, UK) — multiplies forms, news, and compliance.
 - **Complex one-time petitions** (I-130/I-485 family, asylum) — high complexity, low recurrence; defer.
 - **Discussion forum & news feed** — deferred to v1.1 (validate the filing+tracking+retention loop first).
-- **Monetization** — free for now; revisit after the retention loop is proven.
+- **Subscriptions / recurring billing** — v1 monetizes only via a one-time **Service Fee per filing** to obtain the output (see ADR-0011); no subscription. (Monetization itself is now in scope — this supersedes the earlier "free for now" stance.)
 - **Web app** — mobile (iOS + Android) only for v1.
 
 ## Success Metrics
@@ -87,7 +87,7 @@ First-time or complex family/employment petitioners, asylum seekers needing lega
 | Should | Document-expiry reminders (passport/EAD/GC) | Drives proactive return visits |
 | Could | USCIS case-status API integration | Real-time tracking if feasible (else manual) |
 | Could | Multi-language UI | Audience is often non-native English |
-| Won't | Forum, news, monetization, legal advice, web | Deferred / out of scope (see "NOT Building") |
+| Won't | Forum, news, subscriptions, legal advice, web | Deferred / out of scope (see "NOT Building") |
 
 ### MVP Scope
 
@@ -145,7 +145,9 @@ The **retention spine**: account → reusable profile → document vault → I-9
 | Immigration system | US / USCIS | Canada, UK, multi | Largest market; public case-status + news; research baseline |
 | v1 filing journeys | I-90 + I-765 renewals | N-400, I-130, H-1B | Highest recurrence → best fit for retention thesis; timing now critical |
 | North-star metric | Retention / repeat use | Activation, engagement, revenue | Directly tests the core thesis |
-| Business model | Free for now | Freemium, subscription, per-form | Prove the retention loop before monetizing; free undercuts paid filers |
+| Business model | Free to prepare; one-time **Service Fee** per filing to obtain the output | Subscription, freemium, fully free | Pay-for-output matches infrequent filings; preview-before-pay + free tracking preserve trust/retention — see ADR-0011 |
+| Filing UX | Question-first **Interview** (answers mapped to form fields behind the scenes) | Replicate raw form fields | Worth paying for; lowers comprehension burden — see ADR-0012 |
+| Filing wizard tech | Single TanStack Form instance + per-section `FormGroup`s on one host screen | One form per step; route-per-step | Cross-step state + single submit payload; reuses existing form primitives — see ADR-0013 |
 | Localization Library | expo-localization(primitives) + react-i18next | next-intl | User choice; verified expo-localization + i18n library path |
 | Backend | Convex | Railway/Hono monorepo (abandoned) | User choice; verified Convex path — see ADR-0001 |
 | Auth | Convex Better Auth | None | Owns PII (sensitive immigration data); Expo support — see ADR-0002 |
