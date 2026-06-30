@@ -2,8 +2,7 @@ import { BodyScrollView } from '@/components/core/body-scroll-view'
 import { Button, Card, Spinner, Typography } from 'heroui-native'
 import { useState } from 'react'
 import { View } from 'react-native'
-import { AddCaseForm } from './add-case-form'
-import { CaseCard } from './case-card'
+import { Case } from './case'
 import { useCases } from './cases.data'
 
 /**
@@ -32,7 +31,7 @@ export function CasesScreen() {
 						<Typography.Paragraph className="font-semibold">
 							Enter receipt number
 						</Typography.Paragraph>
-						<AddCaseForm onAdded={() => setShowForm(false)} />
+						<Case.AddForm onAdded={() => setShowForm(false)} />
 					</Card>
 				) : (
 					<Card className="items-center gap-3 p-6">
@@ -49,7 +48,7 @@ export function CasesScreen() {
 					{showForm ? (
 						<Card className="gap-4 p-5">
 							<Typography.Paragraph className="font-semibold">Add a case</Typography.Paragraph>
-							<AddCaseForm onAdded={() => setShowForm(false)} />
+							<Case.AddForm onAdded={() => setShowForm(false)} />
 						</Card>
 					) : (
 						<Button variant="ghost" onPress={() => setShowForm(true)}>
@@ -57,7 +56,7 @@ export function CasesScreen() {
 						</Button>
 					)}
 					{cases.map((theCase) => (
-						<CaseCard key={theCase._id} case={theCase} />
+						<Case.Card key={theCase._id} case={theCase} />
 					))}
 				</View>
 			)}

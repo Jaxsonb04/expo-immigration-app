@@ -1,6 +1,6 @@
 import { Typography } from 'heroui-native'
 import { View } from 'react-native'
-import type { CaseHistoryEntry } from './cases.data'
+import type { CaseHistoryEntry } from '../cases.data'
 
 /** Format an ISO 'YYYY-MM-DD' string for display; falls back to the raw value. */
 function formatDate(iso: string): string {

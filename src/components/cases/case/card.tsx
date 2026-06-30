@@ -1,10 +1,10 @@
 import { Button, Card, Label, Select, Separator, Typography } from 'heroui-native'
 import { useState } from 'react'
 import { Alert, View } from 'react-native'
-import { CaseStatusTimeline } from './case-status-timeline'
-import type { Case } from './cases.data'
-import { useUpdateCaseStatus } from './cases.data'
-import { CASE_STATUS_OPTIONS, type CaseStatusOption } from './cases.schema'
+import type { Case } from '../cases.data'
+import { useUpdateCaseStatus } from '../cases.data'
+import { CASE_STATUS_OPTIONS, type CaseStatusOption } from '../cases.schema'
+import { CaseStatusTimeline } from './status-timeline'
 
 const STATUS_OPTIONS = CASE_STATUS_OPTIONS.map((status) => ({ value: status, label: status }))
 

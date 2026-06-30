@@ -1,8 +1,8 @@
 import { useAppForm } from '@/components/form'
 import { useToast } from 'heroui-native'
 import { Alert, View } from 'react-native'
-import { useCreateCase } from './cases.data'
-import { CASE_STATUS_OPTIONS, type CaseStatusOption, receiptFormSchema } from './cases.schema'
+import { useCreateCase } from '../cases.data'
+import { CASE_STATUS_OPTIONS, type CaseStatusOption, receiptFormSchema } from '../cases.schema'
 
 const STATUS_OPTIONS = CASE_STATUS_OPTIONS.map((status) => ({ value: status, label: status }))
 
