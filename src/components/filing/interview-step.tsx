@@ -1,13 +1,9 @@
-import { featherIcon } from '@/components/styled-icon'
 import { Stack } from 'expo-router'
 import { Avatar, Button, Popover, Separator, Typography } from 'heroui-native'
 import { useState, type ReactNode } from 'react'
 import { View } from 'react-native'
 import { KeyboardAwareScrollView, KeyboardStickyView } from 'react-native-keyboard-controller'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-
-const BackIcon = featherIcon('chevron-left')
-const HelpIcon = featherIcon('help-circle')
 
 export type InterviewStepProps = {
 	/** The big, plain-language question for this step (the tax-software pattern). */
