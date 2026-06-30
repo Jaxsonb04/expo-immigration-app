@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from 'convex/react'
+import { useMutation, usePaginatedQuery, useQuery } from 'convex/react'
 import { api, type Id } from '@/lib/api'
 import type { Document } from './documents.types'
 
@@ -9,6 +9,23 @@ import type { Document } from './documents.types'
  */
 export function useDocuments(applicantId: Id<'applicants'>): Document[] | undefined {
 	return useQuery(api.documents.listDocuments, { applicantId })
+}
+
+/**
+ * The account holder's most recent documents across every applicant — for the
+ * Vault's "recent" list. `undefined` while loading; `[]` when none or signed-out.
+ */
+export function useRecentDocuments(limit?: number): Document[] | undefined {
+	return useQuery(api.documents.listRecentDocuments, limit === undefined ? {} : { limit })
+}
+
+/**
+ * A paginated stream of the account holder's documents across every applicant,
+ * for the "Browse all" page. Returns `{ results, status, loadMore, isLoading }`
+ * (Convex's `usePaginatedQuery`), driving an infinite FlashList.
+ */
+export function usePaginatedDocuments() {
+	return usePaginatedQuery(api.documents.listDocumentsPaginated, {}, { initialNumItems: 20 })
 }
 
 /** Mint a one-time upload URL to POST a file's bytes to before adding it. */

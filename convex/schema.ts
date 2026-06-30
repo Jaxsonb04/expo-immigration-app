@@ -44,7 +44,8 @@ export default defineSchema({
 		storageId: v.optional(v.id('_storage')),
 	})
 		.index('by_applicantId', ['applicantId'])
-		.index('by_applicantId_and_type', ['applicantId', 'type']),
+		.index('by_applicantId_and_type', ['applicantId', 'type'])
+		.index('by_ownerId', ['ownerId']),
 
 	// A Case is an in-progress USCIS matter — it exists only once a filing has
 	// been received, and is tracked by its Receipt Number (CONTEXT.md, ADR-0008).

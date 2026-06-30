@@ -163,3 +163,38 @@ test('getDocumentUrl returns a URL for the owner but null for a non-owner', asyn
 	// ...but a non-owner is denied issuance (null, no leak).
 	expect(await accountB.query(api.documents.getDocumentUrl, { documentId })).toBeNull()
 })
+
+test('listRecentDocuments returns the owner’s recent documents across applicants, owner-scoped', async () => {
+	const t = convexTest(schema, modules)
+	const accountA = t.withIdentity({ subject: 'account-a' })
+	const accountB = t.withIdentity({ subject: 'account-b' })
+	const applicantId = await makeApplicant(accountA)
+
+	await accountA.mutation(api.documents.addDocument, { applicantId, type: 'passport' })
+	await accountA.mutation(api.documents.addDocument, { applicantId, type: 'ead' })
+
+	const recent = await accountA.query(api.documents.listRecentDocuments, { limit: 5 })
+	expect(recent).toHaveLength(2)
+	expect(recent[0].type).toBe('ead') // most recent first
+
+	// Owner-scoped: account B sees none of A's documents.
+	expect(await accountB.query(api.documents.listRecentDocuments, {})).toEqual([])
+})
+
+test('listDocumentsPaginated returns the owner’s documents and is owner-scoped', async () => {
+	const t = convexTest(schema, modules)
+	const accountA = t.withIdentity({ subject: 'account-a' })
+	const accountB = t.withIdentity({ subject: 'account-b' })
+	const applicantId = await makeApplicant(accountA)
+	await accountA.mutation(api.documents.addDocument, { applicantId, type: 'passport' })
+
+	const pageA = await accountA.query(api.documents.listDocumentsPaginated, {
+		paginationOpts: { numItems: 10, cursor: null },
+	})
+	expect(pageA.page).toHaveLength(1)
+
+	const pageB = await accountB.query(api.documents.listDocumentsPaginated, {
+		paginationOpts: { numItems: 10, cursor: null },
+	})
+	expect(pageB.page).toEqual([])
+})

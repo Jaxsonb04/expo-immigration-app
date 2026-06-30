@@ -1,4 +1,4 @@
-import { DocumentVault } from '@/components/documents'
+import { DocumentUpload, RecentDocuments } from '@/components/documents'
 import { router } from 'expo-router'
 import { Button, ListGroup, Spinner, Typography } from 'heroui-native'
 import { ScrollView, View } from 'react-native'
@@ -53,9 +53,9 @@ export function ApplicantsScreen() {
 			</View>
 
 			{self ? (
-				<View className="gap-3">
-					<Typography.Heading className="text-lg font-bold">Your documents</Typography.Heading>
-					<DocumentVault applicantId={self._id} />
+				<View className="gap-5">
+					<DocumentUpload applicantId={self._id} />
+					<RecentDocuments />
 				</View>
 			) : null}
 		</ScrollView>
