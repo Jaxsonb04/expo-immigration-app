@@ -1,15 +1,15 @@
 {
   "expo": {
-    "name": "expo-immigration-app",
-    "slug": "expo-immigration-app",
+    "name": "Immigration Renewal Help",
+    "slug": "immigration-renewal-help",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "expo-immigration-app",
+    "scheme": "immigrationrenewalhelp",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.oliverpan.expo-immigration-app",
+      "bundleIdentifier": "dev.uing.immigrationrenewalhelp",
       "appleTeamId": "F8V4932HJN"
     },
     "android": {
@@ -18,7 +18,7 @@
         "backgroundColor": "#ffffff"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.oliverpan.expoimmigrationapp"
+      "package": "dev.uing.immigrationrenewalhelp"
     },
     "plugins": [
       "expo-router",

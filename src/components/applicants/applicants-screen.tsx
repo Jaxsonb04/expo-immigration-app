@@ -18,15 +18,12 @@ export function ApplicantsScreen(): JSX.Element {
 	return (
 		<ScrollView
 			className="flex-1 bg-background"
-			contentContainerStyle={{ padding: 24, paddingTop: insets.top + 16, gap: 24 }}
 			keyboardShouldPersistTaps="handled"
+			contentContainerClassName="gap-5 px-5 pb-2"
 		>
-			<View className="gap-1">
-				<Typography.Heading className="text-2xl font-bold">Applicants</Typography.Heading>
-				<Typography.Paragraph color="muted">
-					People you file for. Their saved details autofill future renewals.
-				</Typography.Paragraph>
-			</View>
+			<Typography.Paragraph color="muted">
+				People you file for. Their saved details autofill future renewals.
+			</Typography.Paragraph>
 
 			<Card className="gap-4 p-5">
 				<Typography.Paragraph className="font-semibold">Add an applicant</Typography.Paragraph>

@@ -1,0 +1,5 @@
+[mcp_servers.heroui-pro]
+url = "https://mcp.heroui.pro/mcp"
+
+[mcp_servers.heroui-pro.http_headers]
+x-heroui-personal-token = "b2f43407-eec2-42aa-a588-29e13cfb7fb9"

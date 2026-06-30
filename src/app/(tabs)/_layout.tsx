@@ -1,12 +1,12 @@
+import { useTabLayoutStyle } from '@/hooks/use-layout-style'
 import { NativeTabs } from 'expo-router/unstable-native-tabs'
 import type { JSX } from 'react'
-import { useTabLayoutStyle } from '@/hooks/use-layout-style'
 
 export default function TabsLayout(): JSX.Element {
 	const { tabBarStyle } = useTabLayoutStyle()
 	return (
 		<NativeTabs {...tabBarStyle} sidebarAdaptable>
-			<NativeTabs.Trigger name="index">
+			<NativeTabs.Trigger name="(deadlines)">
 				<NativeTabs.Trigger.Icon sf="calendar.badge.clock" md="event" />
 				<NativeTabs.Trigger.Label>Deadlines</NativeTabs.Trigger.Label>
 			</NativeTabs.Trigger>

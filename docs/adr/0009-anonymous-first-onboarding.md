@@ -8,7 +8,7 @@ An anonymous-only account is not recoverable across devices and has no verifiabl
 
 ## Risks / fallback
 
-The Better Auth anonymous plugin has known open issues on Convex (`get-convex/better-auth#180`, `better-auth#5824`) — verify these are resolved/workable before relying on it. If blocked, fall back to a sign-up-first flow.
+The Better Auth anonymous plugin has known open issues on Convex (`get-convex/better-auth#180`, `better-auth#5824`(closed this as completedin #5825 on Jan 8)) — verify these are resolved/workable before relying on it. If blocked, fall back to a sign-up-first flow.
 
 ## Consequences
 

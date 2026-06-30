@@ -67,7 +67,10 @@ export default function DateField({
 					<DatePicker.Content presentation="popover" width="trigger">
 						<DatePicker.Calendar>
 							<Calendar.Header>
-								<Calendar.Heading />
+								<Calendar.YearPickerTrigger>
+									<Calendar.YearPickerTriggerHeading />
+									<Calendar.YearPickerTriggerIndicator />
+								</Calendar.YearPickerTrigger>
 								<Calendar.NavButton slot="previous" />
 								<Calendar.NavButton slot="next" />
 							</Calendar.Header>
@@ -75,10 +78,15 @@ export default function DateField({
 								<Calendar.GridHeader>
 									{(day) => <Calendar.HeaderCell day={day} />}
 								</Calendar.GridHeader>
-								<Calendar.GridBody>
-									{(date) => <Calendar.Cell date={date} />}
-								</Calendar.GridBody>
+								<Calendar.GridBody>{(date) => <Calendar.Cell date={date} />}</Calendar.GridBody>
 							</Calendar.Grid>
+							<Calendar.YearPickerGrid>
+								<Calendar.YearPickerGridBody>
+									{({ year, isSelected }) => (
+										<Calendar.YearPickerCell year={year} isSelected={isSelected} />
+									)}
+								</Calendar.YearPickerGridBody>
+							</Calendar.YearPickerGrid>
 						</DatePicker.Calendar>
 					</DatePicker.Content>
 				</DatePicker.Portal>
