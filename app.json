@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.oliverpan.expo-immigration-app"
+      "bundleIdentifier": "com.oliverpan.expo-immigration-app",
+      "appleTeamId": "F8V4932HJN"
     },
     "android": {
       "adaptiveIcon": {
