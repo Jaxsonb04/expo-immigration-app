@@ -3,10 +3,10 @@ import { StyledLucideIcon } from '@/components/styled-icon'
 import { requirementLabel } from '@/lib/application-labels'
 import { Typography } from 'heroui-native'
 import { View } from 'react-native'
-import type { ApplicationDetail } from './applications.data'
+import { useJourneyHub } from './journey-hub.context'
 
-export function DocumentsSection(props: { requirements: ApplicationDetail['requirements'] }) {
-	const { requirements } = props
+export function Documents() {
+	const { requirements } = useJourneyHub()
 	return (
 		<View className="gap-2">
 			<SectionHeading title="Documents" />

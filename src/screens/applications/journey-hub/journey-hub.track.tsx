@@ -2,19 +2,17 @@ import { SectionHeading } from '@/components/core'
 import { caseStatusLabels, relativeTime } from '@/lib/application-labels'
 import { Chip, Typography } from 'heroui-native'
 import { View } from 'react-native'
-import type { ApplicationDetail } from './applications.data'
+import { useJourneyHub } from './journey-hub.context'
 
-export function TrackSection(props: {
-	application: ApplicationDetail['application']
-	linkedCase: ApplicationDetail['case']
-}) {
-	const { application, linkedCase } = props
+export function Track() {
+	const detail = useJourneyHub()
+	const linkedCase = detail.case
 	if (linkedCase === null) {
 		return (
 			<View className="gap-2">
 				<SectionHeading title="Track" />
 				<Typography.Paragraph color="muted">
-					{application.status === 'filed'
+					{detail.application.status === 'filed'
 						? 'Filed. Add your receipt number to track this case — coming with case tracking.'
 						: 'After you mail your application, enter the receipt number from your USCIS notice to track it here.'}
 				</Typography.Paragraph>

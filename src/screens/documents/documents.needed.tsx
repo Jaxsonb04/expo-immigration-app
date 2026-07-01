@@ -1,11 +1,18 @@
-import { requirementLabel, situationLabel } from '@/lib/application-labels'
+import { SectionHeading } from '@/components/core'
 import { StyledLucideIcon } from '@/components/styled-icon'
+import { requirementLabel, situationLabel } from '@/lib/application-labels'
 import { useRouter } from 'expo-router'
 import { Typography } from 'heroui-native'
 import { Pressable, View } from 'react-native'
+import { useVaultContext } from './documents.context'
 import type { NeededSlot } from './documents.data'
 
-export function NeededSlotRow(props: { slot: NeededSlot }) {
+function Heading() {
+	const { neededSlots } = useVaultContext()
+	return <SectionHeading title="Needed for your applications" count={neededSlots.length} />
+}
+
+function Item(props: { slot: NeededSlot }) {
 	const router = useRouter()
 	const { slot } = props
 	return (
@@ -25,4 +32,21 @@ export function NeededSlotRow(props: { slot: NeededSlot }) {
 			</View>
 		</Pressable>
 	)
+}
+
+function List() {
+	const { neededSlots } = useVaultContext()
+	return (
+		<>
+			{neededSlots.map((slot) => (
+				<Item key={slot.slotId} slot={slot} />
+			))}
+		</>
+	)
+}
+
+export const NeededDocuments = {
+	Heading,
+	List,
+	Item,
 }

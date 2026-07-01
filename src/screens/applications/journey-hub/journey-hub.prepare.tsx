@@ -1,14 +1,12 @@
 import { SectionHeading } from '@/components/core'
 import { Button, Typography } from 'heroui-native'
 import { View } from 'react-native'
-import type { ApplicationDetail } from './applications.data'
-import { comingSoon } from './journey-hub.coming-soon'
+import { useInterviewDone, useJourneyHub } from './journey-hub.context'
+import { comingSoon } from './journey-hub.utils'
 
-export function PrepareSection(props: {
-	application: ApplicationDetail['application']
-	interviewDone: boolean
-}) {
-	const { application, interviewDone } = props
+export function Prepare() {
+	const { application } = useJourneyHub()
+	const interviewDone = useInterviewDone()
 	const isDraft = application.status === 'draft'
 	return (
 		<View className="gap-2">

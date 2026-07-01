@@ -1,9 +1,10 @@
-import { BodyScrollView, SectionHeading } from '@/components/core'
-import { Spinner, Typography } from 'heroui-native'
+import { BodyScrollView } from '@/components/core'
+import { Spinner } from 'heroui-native'
 import { View } from 'react-native'
+import { VaultProvider } from './documents.context'
 import { useVault } from './documents.data'
-import { DocumentRow } from './documents.document-row'
-import { NeededSlotRow } from './documents.needed-slot-row'
+import { NeededDocuments } from './documents.needed'
+import { VaultDocuments } from './documents.vault'
 
 export function DocumentsScreen() {
 	const vault = useVault()
@@ -17,27 +18,20 @@ export function DocumentsScreen() {
 	}
 
 	return (
-		<BodyScrollView contentContainerClassName="gap-6 pt-4">
-			{vault.neededSlots.length > 0 && (
-				<View className="gap-1">
-					<SectionHeading title="Needed for your applications" count={vault.neededSlots.length} />
-					{vault.neededSlots.map((slot) => (
-						<NeededSlotRow key={slot.slotId} slot={slot} />
-					))}
-				</View>
-			)}
-
-			<View className="gap-1">
-				<SectionHeading title="Your documents" />
-				{vault.documents.length === 0 ? (
-					<Typography.Paragraph color="muted">
-						Documents you add — passport, EAD, Green Card, I-94 — live here and are reused across
-						applications. Capture arrives with the upload sheet.
-					</Typography.Paragraph>
-				) : (
-					vault.documents.map((document) => <DocumentRow key={document._id} document={document} />)
+		<VaultProvider vault={vault}>
+			<BodyScrollView contentContainerClassName="gap-6 pt-4">
+				{vault.neededSlots.length > 0 && (
+					<View className="gap-1">
+						<NeededDocuments.Heading />
+						<NeededDocuments.List />
+					</View>
 				)}
-			</View>
-		</BodyScrollView>
+
+				<View className="gap-1">
+					<VaultDocuments.Heading />
+					<VaultDocuments.List />
+				</View>
+			</BodyScrollView>
+		</VaultProvider>
 	)
 }

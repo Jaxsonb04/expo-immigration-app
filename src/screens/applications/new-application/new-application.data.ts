@@ -4,14 +4,9 @@ import type { ApplicationKind, FormType } from '@convex/shared/applicationShapes
 import { supportedSituations } from '@convex/shared/applicationShapes'
 import { useMutation, useQuery } from 'convex/react'
 import { useRouter } from 'expo-router'
+import type { NewApplicationValues } from './new-application.form'
 
 export type Situation = { formType: FormType; applicationKind: ApplicationKind }
-
-export type NewApplicationValues = {
-	applicantChoice: string
-	dependentName: string
-	situationKey: string
-}
 
 /** Radio value for "Myself" — the self applicant row may not exist yet (decision 3). */
 export const SELF_CHOICE = 'self'

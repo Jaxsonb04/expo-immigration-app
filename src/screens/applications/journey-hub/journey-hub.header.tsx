@@ -1,18 +1,14 @@
 import { progressLabel, situationLabel } from '@/lib/application-labels'
 import { Chip, Typography } from 'heroui-native'
 import { View } from 'react-native'
-import type { ApplicationDetail } from './applications.data'
+import { useJourneyHub } from './journey-hub.context'
 
-export function JourneyHubHeader(props: {
-	application: ApplicationDetail['application']
-	applicantName: string | undefined
-	isUnlocked: boolean
-}) {
-	const { application, applicantName, isUnlocked } = props
+export function Header() {
+	const { application, applicant, isUnlocked } = useJourneyHub()
 	const label = situationLabel(application.formType, application.applicationKind)
 	return (
 		<View className="gap-1">
-			<Typography.Paragraph color="muted">{applicantName}</Typography.Paragraph>
+			<Typography.Paragraph color="muted">{applicant?.displayName}</Typography.Paragraph>
 			<Typography.Heading className="text-2xl font-semibold">{label.primary}</Typography.Heading>
 			<View className="flex-row items-center gap-2">
 				<Typography.Paragraph color="muted" className="text-sm">

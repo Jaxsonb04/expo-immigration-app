@@ -1,11 +1,18 @@
-import { formatIsoDate, requirementLabel, situationLabel } from '@/lib/application-labels'
+import { SectionHeading } from '@/components/core'
 import { StyledLucideIcon } from '@/components/styled-icon'
+import { formatIsoDate, requirementLabel, situationLabel } from '@/lib/application-labels'
 import { useRouter } from 'expo-router'
 import { Typography } from 'heroui-native'
 import { Pressable, View } from 'react-native'
+import { useDashboard } from './home.context'
 import type { AttentionItem } from './home.data'
 
-export function AttentionRow(props: { item: AttentionItem }) {
+function Heading() {
+	const { attentionItems } = useDashboard()
+	return <SectionHeading title="Needs attention" count={attentionItems.length} />
+}
+
+function Item(props: { item: AttentionItem }) {
 	const router = useRouter()
 	const { item } = props
 	if (item.kind === 'documentExpiring') {
@@ -46,4 +53,21 @@ export function AttentionRow(props: { item: AttentionItem }) {
 			</View>
 		</Pressable>
 	)
+}
+
+function List() {
+	const { attentionItems } = useDashboard()
+	return (
+		<>
+			{attentionItems.map((item, index) => (
+				<Item key={index} item={item} />
+			))}
+		</>
+	)
+}
+
+export const Attention = {
+	Heading,
+	List,
+	Item,
 }
