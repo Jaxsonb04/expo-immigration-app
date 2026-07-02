@@ -12,10 +12,10 @@
 @theme {
   --field-radius: 0.5rem;
   --field-border-width: 0.642122456084777px;
-  --font-bold: Fredoka-Bold;
-  --font-medium: Fredoka-Medium;
-  --font-normal: Fredoka-Regular;
-  --font-semibold: Fredoka-SemiBold;
+  --font-bold: montserrat-Bold;
+  --font-medium: montserrat-Medium;
+  --font-normal: montserrat-Regular;
+  --font-semibold: montserrat-SemiBold;
 }
 
 @layer theme {

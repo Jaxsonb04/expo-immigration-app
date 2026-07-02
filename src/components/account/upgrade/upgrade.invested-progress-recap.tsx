@@ -1,0 +1,33 @@
+import { Typography } from 'heroui-native'
+import { View } from 'react-native'
+import type { InvestedProgress } from '../account.data'
+
+const DEFAULT_TITLE = 'Save your progress'
+const DEFAULT_DESCRIPTION =
+	'Create a free account to keep everything you’ve entered and pick up where you left off on any device.'
+
+/**
+ * Small, props-driven recap of invested effort shown above the upgrade actions.
+ * Falls back to generic copy when a caller does not supply a recap.
+ */
+export function InvestedProgressRecap({ recap }: { recap?: InvestedProgress }) {
+	const title = recap?.title ?? DEFAULT_TITLE
+	const description = recap?.description ?? DEFAULT_DESCRIPTION
+	const highlights = recap?.highlights ?? []
+
+	return (
+		<View className="gap-2">
+			<Typography.Heading className="text-2xl font-bold">{title}</Typography.Heading>
+			<Typography.Paragraph color="muted">{description}</Typography.Paragraph>
+			{highlights.length > 0 ? (
+				<View className="mt-2 gap-1">
+					{highlights.map((item) => (
+						<Typography.Paragraph key={item} className="text-sm">
+							{`•  ${item}`}
+						</Typography.Paragraph>
+					))}
+				</View>
+			) : null}
+		</View>
+	)
+}

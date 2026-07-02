@@ -1,0 +1,9 @@
+{
+	"formType": "i765",
+	"title": "Form I-765, Application For Employment Authorization",
+	"omb": "1615-0040",
+	"ombExpires": "08/31/2027",
+	"sourceRevised": "2025-08-26",
+	"source": "https://www.uscis.gov/sites/default/files/document/forms/i-765.pdf",
+	"note": "Decrypted + XFA-stripped from the USCIS original for on-device pdf-lib rendering; page geometry unchanged."
+}

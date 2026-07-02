@@ -1,15 +1,12 @@
 import Feather from '@react-native-vector-icons/feather/static'
 import FontAwesome from '@react-native-vector-icons/fontawesome/static'
+import Ion from '@react-native-vector-icons/ionicons/static'
+import Lucide from '@react-native-vector-icons/lucide/static'
 import MaterialCommunityIcons from '@react-native-vector-icons/material-design-icons/static'
 import Octicons from '@react-native-vector-icons/octicons/static'
-import Lucide from '@react-native-vector-icons/lucide/static'
-import Ion from '@react-native-vector-icons/ionicons/static'
 import type { ComponentProps, ReactNode } from 'react'
-import { withUniwind } from 'uniwind'
 import { Platform } from 'react-native'
-import type { StyledIconComponent, StyledIconProps } from '@/lib/ui-contracts/icon'
-
-export type { StyledIconComponent, StyledIconProps } from '@/lib/ui-contracts/icon'
+import { withUniwind } from 'uniwind'
 
 export const StyledFeatherIcon = withUniwind(Feather)
 export const StyledFontAwesomeIcon = withUniwind(FontAwesome)
@@ -32,6 +29,15 @@ export type StyledIconConfig =
 	| { family: 'materialcommunityicons'; name: MaterialCommunityIconsName }
 	| { family: 'ionicons'; name: IonIconName }
 	| { family: 'lucide'; name: LucideIconName }
+
+/** Props passed to the icon component (size and className). */
+export type StyledIconProps = {
+	size?: number
+	className?: string
+}
+
+/** Icon component returned by styledIcon (e.g. for quick actions or lists). */
+export type StyledIconComponent = (props: StyledIconProps) => ReactNode
 
 /**
  * Internal render type for the resolved family component. The public input

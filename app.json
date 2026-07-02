@@ -1,15 +1,20 @@
 {
   "expo": {
-    "name": "expo-immigration-app",
-    "slug": "expo-immigration-app",
+    "name": "Immigration Renewal Help",
+    "slug": "immigration-renewal-help",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "expo-immigration-app",
+    "scheme": "immigrationrenewalhelp",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.oliverpan.expo-immigration-app"
+      "bundleIdentifier": "dev.uing.immigrationrenewalhelp",
+      "appleTeamId": "F8V4932HJN",
+      "infoPlist": {
+        "NSCameraUsageDescription": "$(PRODUCT_NAME) needs access to your Camera to capture photos and videos.",
+        "NSMicrophoneUsageDescription": "$(PRODUCT_NAME) needs access to your Microphone to record audio for video recordings."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -17,7 +22,11 @@
         "backgroundColor": "#ffffff"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.oliverpan.expoimmigrationapp"
+      "package": "dev.uing.immigrationrenewalhelp",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-router",
@@ -39,7 +48,17 @@
       "@react-native-vector-icons/material-design-icons",
       "@react-native-vector-icons/octicons",
       "@react-native-vector-icons/ionicons",
-      "@react-native-vector-icons/lucide"
+      "@react-native-vector-icons/lucide",
+      "expo-sharing",
+      "expo-asset",
+      "expo-status-bar",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "$(PRODUCT_NAME) needs access to your Face ID to use Face ID."
+        }
+      ],
+      "expo-widgets"
     ],
     "experiments": {
       "typedRoutes": true,

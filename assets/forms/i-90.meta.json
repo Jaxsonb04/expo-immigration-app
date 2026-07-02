@@ -1,0 +1,9 @@
+{
+	"formType": "i90",
+	"title": "Form I-90, Application to Replace Permanent Residence Card",
+	"omb": "1615-0082",
+	"ombExpires": "02/28/2027",
+	"sourceRevised": "2025-02-27",
+	"source": "https://www.uscis.gov/sites/default/files/document/forms/i-90.pdf",
+	"note": "Decrypted + XFA-stripped from the USCIS original for on-device pdf-lib rendering; page geometry unchanged."
+}

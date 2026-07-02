@@ -43,7 +43,7 @@ export const useLayoutStyle = () => {
 		},
 		headerBackButtonDisplayMode: 'generic',
 		headerTitleStyle: {
-			fontFamily: 'Fredoka_600SemiBold',
+			fontFamily: 'Montserrat_600SemiBold',
 		},
 		headerShadowVisible: false,
 		headerLargeTitleStyle: {
@@ -73,7 +73,7 @@ export const useTabLayoutStyle = () => {
 				default: {
 					color: themeColorForeground,
 				},
-				fontFamily: 'Fredoka_600SemiBold',
+				fontFamily: 'Montserrat_600SemiBold',
 				selected: {
 					color: themeColorAccent,
 				},

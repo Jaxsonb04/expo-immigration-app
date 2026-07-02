@@ -1,14 +1,13 @@
 import { useConvexAuth } from 'convex/react'
 import { Stack } from 'expo-router'
 import { Spinner } from 'heroui-native'
-import type { JSX } from 'react'
 import { View } from 'react-native'
 
 import { Providers } from '@/components/providers'
 import { useLayoutStyle } from '@/hooks/use-layout-style'
 import '../global.css'
 
-export default function RootLayout(): JSX.Element {
+export default function RootLayout() {
 	return (
 		<Providers>
 			<AppContent />
@@ -16,7 +15,7 @@ export default function RootLayout(): JSX.Element {
 	)
 }
 
-const AppContent = (): JSX.Element => {
+const AppContent = () => {
 	const layoutStyle = useLayoutStyle()
 	const { isLoading, isAuthenticated } = useConvexAuth()
 
@@ -32,14 +31,42 @@ const AppContent = (): JSX.Element => {
 	}
 
 	return (
-		<Stack screenOptions={layoutStyle}>
-			{/* Expo Router swaps the active group whenever `isAuthenticated` changes
-			    and clears the now-guarded routes from history. */}
+			<Stack screenOptions={layoutStyle}>
 			<Stack.Protected guard={isAuthenticated}>
-				<Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+				<Stack.Screen name="(tabs)" options={{ headerShown: false, title: 'Home' }} />
+				{/* Root-level modal slots present above the tab bar. */}
+				<Stack.Screen
+					name="(modal)"
+					options={{
+						presentation: 'modal',
+						animation: 'fade_from_bottom',
+						headerShown: false,
+					}}
+				/>
 			</Stack.Protected>
 			<Stack.Protected guard={!isAuthenticated}>
-				<Stack.Screen name="auth" options={{ headerShown: false }} />
+				{/*
+				 * Anonymous-first onboarding (ADR-0009). `welcome` is the initial
+				 * unauthenticated screen ("Start filing" creates an anonymous
+				 * session); `sign-in` is pushed from it for returning users. An
+				 * anonymous session makes `useConvexAuth().isAuthenticated` true, so
+				 * the authenticated group (tabs) takes over with no manual nav.
+				 */}
+				<Stack.Screen
+					name="welcome"
+					options={{
+						headerShown: false,
+					}}
+				/>
+				<Stack.Screen
+					name="sign-in"
+					options={{
+						headerShown: false,
+						title: 'Sign in',
+						presentation: 'formSheet',
+						sheetAllowedDetents: 'fitToContents',
+					}}
+				/>
 			</Stack.Protected>
 		</Stack>
 	)
