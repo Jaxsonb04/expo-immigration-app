@@ -1,0 +1,324 @@
+// @vitest-environment node
+import type { I765DraftAnswers, I90DraftAnswers } from '@convex/shared/applicationShapes'
+import { emptyDraftAnswers } from '@convex/shared/applicationShapes'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { PDFDocument } from 'pdf-lib'
+import { describe, expect, test } from 'vitest'
+import {
+	applyOps,
+	formatUsDate,
+	normalizeANumber,
+	parseUnit,
+	splitEligibilityCategory,
+	type FillOp,
+} from './pdf.fill'
+import { renderDraftPreview } from './pdf.render'
+import { buildI765Ops, I765_FIELDS } from './pdf.i765-map'
+import { buildI90Ops, I90_FIELDS } from './pdf.i90-map'
+
+// The render path is pure (no React Native imports), so it runs against the
+// REAL bundled USCIS templates here — the field-existence tests are the
+// tripwire that fires when a new edition renames AcroForm fields.
+
+const i765Template = readFileSync(
+	fileURLToPath(new URL('../../../../../assets/forms/i-765.pdf', import.meta.url)),
+)
+const i90Template = readFileSync(
+	fileURLToPath(new URL('../../../../../assets/forms/i-90.pdf', import.meta.url)),
+)
+
+async function fieldNamesOf(template: Uint8Array): Promise<string[]> {
+	const doc = await PDFDocument.load(template, { ignoreEncryption: true })
+	return doc
+		.getForm()
+		.getFields()
+		.map((field) => field.getName())
+}
+
+const fullI765Draft: I765DraftAnswers = {
+	personFacts: {
+		givenName: 'Maria',
+		middleName: 'Q',
+		familyName: 'Santos',
+		dateOfBirth: '1990-01-05',
+		countryOfBirth: 'Mexico',
+		aNumber: 'A12345678',
+		mailingAddress: {
+			street: '2350 Mission St',
+			unit: 'APT 4B',
+			city: 'San Francisco',
+			state: 'ca',
+			zipCode: '94110',
+		},
+		eligibilityCategory: 'C08',
+	},
+	form: { previousEadCardNumber: 'ABC1234567890', replacementReason: 'lost', ssn: '123-45-6789' },
+}
+
+const fullI90Draft: I90DraftAnswers = {
+	personFacts: {
+		givenName: 'Maria',
+		middleName: 'Q',
+		familyName: 'Santos',
+		dateOfBirth: '1990-01-05',
+		countryOfBirth: 'Mexico',
+		aNumber: 'A12345678',
+		mailingAddress: {
+			street: '2350 Mission St',
+			unit: 'STE 200',
+			city: 'San Francisco',
+			state: 'ca',
+			zipCode: '94110',
+		},
+	},
+	form: { cardExpirationDate: '2027-03-15', replacementReason: 'lost' },
+}
+
+describe('I-765 field map against the bundled template', () => {
+	test('every I765_FIELDS path exists in the real template', async () => {
+		const names = await fieldNamesOf(i765Template)
+		for (const path of Object.values(I765_FIELDS)) {
+			expect(names).toContain(path)
+		}
+	})
+
+	test('every op emitted for a full draft targets a field that exists', async () => {
+		const names = await fieldNamesOf(i765Template)
+		for (const kind of ['initial', 'renewal', 'replacement'] as const) {
+			for (const op of buildI765Ops(fullI765Draft, kind)) {
+				expect(names).toContain(op.field)
+			}
+		}
+	})
+
+	// Geometry tripwire: these indices were verified by widget x/y coordinates
+	// and deliberately do NOT follow visual order. Pin the literal paths so a
+	// well-meaning "normalization" (e.g. apt back to Unit[0]) fails loudly
+	// instead of silently checking the wrong box on a federal form — every
+	// sibling index exists in the template, so the existence tests alone
+	// cannot catch a swap.
+	test('pins the counterintuitive checkbox indices to literal paths', () => {
+		expect(I765_FIELDS.mailingUnitApt).toBe('form1[0].Page2[0].Pt2Line5_Unit[2]')
+		expect(I765_FIELDS.mailingUnitSte).toBe('form1[0].Page2[0].Pt2Line5_Unit[0]')
+		expect(I765_FIELDS.mailingUnitFlr).toBe('form1[0].Page2[0].Pt2Line5_Unit[1]')
+		expect(I765_FIELDS.reasonInitial).toBe('form1[0].Page1[0].Part1_Checkbox[0]')
+		expect(I765_FIELDS.reasonReplacement).toBe('form1[0].Page1[0].Part1_Checkbox[1]')
+		expect(I765_FIELDS.reasonRenewal).toBe('form1[0].Page1[0].Part1_Checkbox[2]')
+	})
+})
+
+describe('I-90 field map against the bundled template', () => {
+	test('every I90_FIELDS path exists in the real template', async () => {
+		const names = await fieldNamesOf(i90Template)
+		for (const path of Object.values(I90_FIELDS)) {
+			expect(names).toContain(path)
+		}
+	})
+
+	test('every op emitted for a full draft targets a field that exists', async () => {
+		const names = await fieldNamesOf(i90Template)
+		for (const op of buildI90Ops(fullI90Draft)) {
+			expect(names).toContain(op.field)
+		}
+	})
+
+	// Geometry tripwire: the I-90 unit boxes are in plain visual order —
+	// DIFFERENT from the I-765's shuffled indices — so pin the literal paths
+	// to catch a cross-form copy-paste of the wrong ordering.
+	test('pins the unit checkbox indices to literal paths', () => {
+		expect(I90_FIELDS.mailingUnitApt).toBe('form1[0].#subform[0].P1_checkbox6c_Unit[0]')
+		expect(I90_FIELDS.mailingUnitSte).toBe('form1[0].#subform[0].P1_checkbox6c_Unit[1]')
+		expect(I90_FIELDS.mailingUnitFlr).toBe('form1[0].#subform[0].P1_checkbox6c_Unit[2]')
+	})
+})
+
+describe('buildI765Ops', () => {
+	const ops = buildI765Ops(fullI765Draft, 'renewal')
+
+	test('formats the date of birth as MM/DD/YYYY', () => {
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I765_FIELDS.dateOfBirth,
+			value: '01/05/1990',
+		})
+	})
+
+	test('normalizes the A-Number into the 9-digit comb', () => {
+		expect(ops).toContainEqual({ kind: 'text', field: I765_FIELDS.aNumber, value: '012345678' })
+	})
+
+	test('splits the eligibility category across the Item 27 boxes', () => {
+		expect(ops).toContainEqual({ kind: 'text', field: I765_FIELDS.eligibilityLetter, value: 'c' })
+		expect(ops).toContainEqual({ kind: 'text', field: I765_FIELDS.eligibilityNumber, value: '8' })
+	})
+
+	test('keeps two-digit eligibility categories intact', () => {
+		const c33 = buildI765Ops(
+			{
+				...fullI765Draft,
+				personFacts: { ...fullI765Draft.personFacts, eligibilityCategory: 'C33' },
+			},
+			'renewal',
+		)
+		expect(c33).toContainEqual({ kind: 'text', field: I765_FIELDS.eligibilityLetter, value: 'c' })
+		expect(c33).toContainEqual({ kind: 'text', field: I765_FIELDS.eligibilityNumber, value: '33' })
+	})
+
+	test('parses the unit into the APT checkbox plus the number box', () => {
+		expect(ops).toContainEqual({ kind: 'check', field: I765_FIELDS.mailingUnitApt })
+		expect(ops).toContainEqual({ kind: 'text', field: I765_FIELDS.mailingUnitNumber, value: '4B' })
+	})
+
+	test('uppercases the state for the dropdown select', () => {
+		expect(ops).toContainEqual({ kind: 'select', field: I765_FIELDS.mailingState, value: 'CA' })
+	})
+
+	test('checks exactly the renewal reason box for a renewal', () => {
+		expect(ops).toContainEqual({ kind: 'check', field: I765_FIELDS.reasonRenewal })
+		expect(ops).not.toContainEqual({ kind: 'check', field: I765_FIELDS.reasonInitial })
+		expect(ops).not.toContainEqual({ kind: 'check', field: I765_FIELDS.reasonReplacement })
+	})
+
+	test('checks the initial reason box for an initial application', () => {
+		const initial = buildI765Ops(fullI765Draft, 'initial')
+		expect(initial).toContainEqual({ kind: 'check', field: I765_FIELDS.reasonInitial })
+	})
+
+	test('an empty draft emits no empty-valued ops and never throws', () => {
+		const empty = buildI765Ops(emptyDraftAnswers, 'initial')
+		for (const op of empty) {
+			if (op.kind !== 'check') {
+				expect(op.value).not.toBe('')
+			}
+		}
+	})
+})
+
+describe('buildI90Ops', () => {
+	test('maps the name and normalized A-Number', () => {
+		const ops = buildI90Ops(fullI90Draft)
+		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.familyName, value: 'Santos' })
+		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.givenName, value: 'Maria' })
+		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.aNumber, value: '012345678' })
+	})
+
+	test('uses the plain-order STE checkbox for a suite unit', () => {
+		const ops = buildI90Ops(fullI90Draft)
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.mailingUnitSte })
+		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.mailingUnitNumber, value: '200' })
+	})
+
+	test('an empty draft emits no empty-valued ops and never throws', () => {
+		const empty = buildI90Ops(emptyDraftAnswers)
+		for (const op of empty) {
+			if (op.kind !== 'check') {
+				expect(op.value).not.toBe('')
+			}
+		}
+	})
+})
+
+describe('applyOps', () => {
+	test('skips ops for fields absent from this edition without throwing', async () => {
+		const doc = await PDFDocument.load(i765Template, { ignoreEncryption: true })
+		const ops: FillOp[] = [
+			{ kind: 'text', field: 'form1[0].Page1[0].No_Such_Field[0]', value: 'x' },
+			{ kind: 'text', field: I765_FIELDS.familyName, value: 'Santos' },
+		]
+		expect(applyOps(doc.getForm(), ops)).toBe(1)
+	})
+
+	test('truncates overflowing text to the field maxLength', async () => {
+		const doc = await PDFDocument.load(i765Template, { ignoreEncryption: true })
+		const form = doc.getForm()
+		const filledCount = applyOps(form, [
+			{ kind: 'text', field: I765_FIELDS.mailingZip, value: '12345-6789' },
+		])
+		expect(filledCount).toBe(1)
+		expect(form.getTextField(I765_FIELDS.mailingZip).getText()).toBe('12345')
+	})
+})
+
+describe('renderDraftPreview', () => {
+	test('renders a flattened, watermarked I-765 preview from a full draft', async () => {
+		const { base64, filledCount } = await renderDraftPreview(i765Template.toString('base64'), {
+			formType: 'i765',
+			answers: fullI765Draft,
+			applicationKind: 'renewal',
+		})
+		const rendered = await PDFDocument.load(base64)
+		expect(rendered.getPageCount()).toBe(7)
+		// Flatten proof: baked values leave no interactive fields behind.
+		expect(rendered.getForm().getFields().length).toBe(0)
+		// Every op must land — a silently-skipped op (renamed field, dropdown
+		// value missing from options) shows up as a count mismatch here.
+		expect(filledCount).toBe(buildI765Ops(fullI765Draft, 'renewal').length)
+	})
+
+	test('renders a flattened I-90 preview from a full draft', async () => {
+		const { base64, filledCount } = await renderDraftPreview(i90Template.toString('base64'), {
+			formType: 'i90',
+			answers: fullI90Draft,
+			applicationKind: 'renewal',
+		})
+		const rendered = await PDFDocument.load(base64)
+		expect(rendered.getPageCount()).toBeGreaterThan(0)
+		expect(rendered.getForm().getFields().length).toBe(0)
+		expect(filledCount).toBe(buildI90Ops(fullI90Draft).length)
+	})
+})
+
+describe('formatUsDate', () => {
+	test('formats an ISO date as MM/DD/YYYY', () => {
+		expect(formatUsDate('1990-01-05')).toBe('01/05/1990')
+	})
+
+	test.each(['01/05/1990', '1990-1-5', 'yesterday', ''])('rejects %j', (raw) => {
+		expect(formatUsDate(raw)).toBeUndefined()
+	})
+})
+
+describe('normalizeANumber', () => {
+	test('left-pads an 8-digit A-Number to the 9-digit comb', () => {
+		expect(normalizeANumber('12345678')).toBe('012345678')
+	})
+
+	test('strips the A prefix and separators', () => {
+		expect(normalizeANumber('A-123-456-78')).toBe('012345678')
+	})
+
+	test.each(['123456', '1234567890', '', 'ABC'])('rejects %j', (raw) => {
+		expect(normalizeANumber(raw)).toBeUndefined()
+	})
+})
+
+describe('splitEligibilityCategory', () => {
+	test.each([
+		['C08', ['c', '8']],
+		['C33', ['c', '33']],
+		['A17', ['a', '17']],
+		['c9', ['c', '9']],
+	])('splits %s into letter and digits', (code, expected) => {
+		expect(splitEligibilityCategory(code)).toEqual(expected)
+	})
+
+	test.each(['B12', 'C3C', '08', ''])('returns null for %j', (code) => {
+		expect(splitEligibilityCategory(code)).toBeNull()
+	})
+})
+
+describe('parseUnit', () => {
+	test.each([
+		['APT 4B', { unitType: 'apt', unitNumber: '4B' }],
+		['Suite 200', { unitType: 'ste', unitNumber: '200' }],
+		['STE 200', { unitType: 'ste', unitNumber: '200' }],
+		['FLR 3', { unitType: 'flr', unitNumber: '3' }],
+		['Floor 3', { unitType: 'flr', unitNumber: '3' }],
+		['#12', { unitNumber: '12' }],
+		['Unit 7', { unitNumber: '7' }],
+		['4B', { unitNumber: '4B' }],
+	])('parses %j', (raw, expected) => {
+		expect(parseUnit(raw)).toEqual(expected)
+	})
+})

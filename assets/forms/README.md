@@ -28,5 +28,14 @@ python3 scripts/normalize-uscis-form.py /tmp/i-765.source.pdf \
   assets/forms/i-765.pdf assets/forms/i-765.meta.json
 ```
 
-Then re-check the field map in `src/components/filing/i765/i765.pdf.utils.ts` against
-the new edition (field names occasionally change) and run the render test.
+The same flow refreshes `i-90.pdf` / `i-90.meta.json` (swap the form slug in both
+the URL and the output paths).
+
+Then re-check the field maps in
+`src/screens/applications/journey-hub/pdf/pdf.i765-map.ts` (and `pdf.i90-map.ts`)
+against the new edition — field names and checkbox widget order occasionally
+change — and run the field-existence tripwire:
+
+```sh
+node ./node_modules/vitest/vitest.mjs run src/screens/applications/journey-hub/pdf/pdf.fill.test.ts
+```

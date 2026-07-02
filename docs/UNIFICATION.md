@@ -35,7 +35,10 @@ is preserved in history.
 
 Candidates to port onto the Convex architecture:
 
-- **Full I-765 form coverage + on-device PDF preview/print/save** (`efda423`)
+- **Full I-765 form coverage + on-device PDF preview/print/save** (`efda423`) —
+  **PORTED (2026-07-01)** to `src/screens/applications/journey-hub/pdf/` as the
+  free watermarked Preview via the OS share sheet for I-765 + I-90; print/save
+  happen through the share sheet; the paid clean Filing Package is still stubbed
 - **Address autocomplete** on the mailing-address step (`bcaf863`)
 - **Better Auth email/password accounts + Railway deploy** (`c1bf3b0`) — superseded
   by Convex auth direction, but the account-creation UX flows may be worth reusing
