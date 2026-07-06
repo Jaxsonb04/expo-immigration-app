@@ -1,7 +1,4 @@
 import { ScreenEmpty } from '@/components/core'
-import { featherIcon } from '@/components/styled-icon'
-
-const CasesIcon = featherIcon('clock')
 
 /**
  * Cases tab shell. Receipt-number tracking and status timelines are built in M3;
@@ -10,7 +7,6 @@ const CasesIcon = featherIcon('clock')
 export function CasesScreen() {
 	return (
 		<ScreenEmpty
-			icon={CasesIcon}
 			title="No cases to track yet"
 			description="Once you’ve filed with USCIS, add your receipt number here to follow each case’s status and timeline."
 		/>

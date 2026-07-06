@@ -2,9 +2,7 @@ import { Button, Spinner, Typography } from 'heroui-native'
 import type { ReactNode } from 'react'
 import { View } from 'react-native'
 
-import { featherIcon, type StyledIconComponent } from '@/components/styled-icon'
-
-const DefaultErrorIcon = featherIcon('alert-triangle')
+import type { StyledIconComponent } from '@/components/styled-icon'
 
 /** Centered, full-height container shared by every screen state. */
 function StateShell({ children }: { children: ReactNode }) {
@@ -13,7 +11,13 @@ function StateShell({ children }: { children: ReactNode }) {
 	)
 }
 
-/** Circular icon chip used by the empty and error states. */
+// NOTE: an optional circular icon chip is supported below, but the placeholder
+// screens ship icon-less on purpose. The `@react-native-vector-icons` glyph map
+// is newer than the bundled TTFs, so many in-screen glyphs (e.g. lucide
+// `sparkles`, feather `clock`) fall through to the system font and render as a
+// stray emoji/□. Resolve that font/glyph-map mismatch before leaning on
+// decorative in-screen icons (needed for M1-T3 chat UI).
+/** Circular icon chip used by the empty and error states when an icon renders. */
 function StateIcon({ icon: Icon }: { icon: StyledIconComponent }) {
 	return (
 		<View className="h-16 w-16 items-center justify-center rounded-full bg-surface">
@@ -66,6 +70,7 @@ export function ScreenEmpty({ icon, title, description, action }: ScreenEmptyPro
 }
 
 type ScreenErrorProps = {
+	icon?: StyledIconComponent
 	title?: string
 	description?: string
 	onRetry?: () => void
@@ -73,13 +78,14 @@ type ScreenErrorProps = {
 
 /** Error state with an optional retry affordance. */
 export function ScreenError({
+	icon,
 	title = 'Something went wrong',
 	description,
 	onRetry,
 }: ScreenErrorProps) {
 	return (
 		<StateShell>
-			<StateIcon icon={DefaultErrorIcon} />
+			{icon ? <StateIcon icon={icon} /> : null}
 			<View className="gap-2">
 				<Typography.Heading className="text-center text-xl font-semibold">{title}</Typography.Heading>
 				{description ? (

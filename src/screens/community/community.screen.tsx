@@ -1,7 +1,4 @@
 import { ScreenEmpty } from '@/components/core'
-import { featherIcon } from '@/components/styled-icon'
-
-const CommunityIcon = featherIcon('users')
 
 /**
  * Community tab shell. The pseudonymous forum (M4) lands here. The description
@@ -11,7 +8,6 @@ const CommunityIcon = featherIcon('users')
 export function CommunityScreen() {
 	return (
 		<ScreenEmpty
-			icon={CommunityIcon}
 			title="Community is coming soon"
 			description="A place to ask questions and share experiences with others going through the same USCIS renewals. Posts are peer support, not legal advice."
 		/>
