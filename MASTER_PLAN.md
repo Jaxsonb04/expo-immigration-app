@@ -4,9 +4,9 @@
 
 ```yaml
 status: in_progress
-current_milestone: M0
-next_task: M0-T2
-last_completed: M0-T1
+current_milestone: M1
+next_task: M1-T1
+last_completed: M0-T2
 blockers: []
 updated_at: 2026-07-05
 ```
@@ -56,11 +56,11 @@ Forms. Keep the interface quiet, mobile-first, and task-oriented.
   - Done when: The amended architecture decisions are reviewed and baseline checks are recorded.
   - Evidence: Baseline green at `039442f` — typecheck ✓, lint ✓, 85/85 vitest tests ✓ (4 files) — recorded in `docs/BASELINE.md`. ADR-0003 amended 2026-07-05 (`docs/adr/0003-v1-scope-i90-i765.md`) to withdraw the forum/news exclusion (M4 Community forum + M5-T2 Recent news now in v1 scope) and reconcile the stale "monetization" exclusion against ADR-0011; the amendment was reviewed by a 3-lens adversarial panel (ADR-consistency, UPL/scope-boundary, factual-wording) — all approved, low-severity polish incorporated.
 
-- [ ] **M0-T2 Navigation**
-  - Status: NOT_STARTED
+- [x] **M0-T2 Navigation**
+  - Status: DONE
   - Implement the four-tab shell, empty/loading/error states, and migrate existing Home/Documents entry points.
   - Done when: Assistant, Forms, Cases, and Community tabs work on iOS without navigation regressions.
-  - Evidence: Not recorded.
+  - Evidence: Four `NativeTabs` — Assistant (`(assistant)`, holds index `/`, default tab), Forms (`/forms`), Cases (`/cases`), Community (`/community`). Migrated the old `(home)` tab → `forms/` and folded the `documents` tab into `forms/documents` (Document Vault now reached via a Forms header action + attention items, per ADR-0003 Layout); `/application/[id]` → `/forms/application/[id]` and `/documents` → `/forms/documents`, with all five `router.push` refs updated. Added reusable `ScreenLoading`/`ScreenEmpty`/`ScreenError` in `src/components/core/screen-state.tsx`; Assistant/Cases/Community render intentional empty states (features land in M1/M3/M4). Verified: `tsc` ✓ (against freshly regenerated typed-routes — strict Href validation), `eslint` ✓, 85/85 vitest ✓; Expo Router parsed the 4-tab tree with no route conflicts (single `/` index). Not yet driven in the iOS simulator (needs a GUI console session) — static + route-tree verification only.
 
 - [ ] **M1-T1 Claude backend**
   - Status: NOT_STARTED

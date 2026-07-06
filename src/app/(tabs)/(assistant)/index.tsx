@@ -1,8 +1,8 @@
-import { HomeScreen } from '@/screens/home'
+import { AssistantScreen } from '@/screens/assistant'
 import { router, Stack } from 'expo-router'
 import { useThemeColor } from 'heroui-native'
 
-export default function HomeTab() {
+export default function AssistantTab() {
 	const themeColorForeground = useThemeColor('foreground')
 	return (
 		<>
@@ -13,13 +13,13 @@ export default function HomeTab() {
 					color: themeColorForeground,
 				}}
 			>
-				Home
+				Assistant
 			</Stack.Title>
 			<Stack.Toolbar placement="right">
 				<Stack.Toolbar.Button icon="person.fill" onPress={() => router.push('/account')} />
 			</Stack.Toolbar>
 
-			<HomeScreen />
+			<AssistantScreen />
 		</>
 	)
 }
