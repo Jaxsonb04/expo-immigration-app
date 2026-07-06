@@ -16,6 +16,7 @@
     "test:once": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0",
     "@better-auth/expo": "~1.6.22",
     "@convex-dev/better-auth": "^0.12.5",
     "@expo-google-fonts/montserrat": "^0.4.1",

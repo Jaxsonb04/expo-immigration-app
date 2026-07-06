@@ -78,4 +78,14 @@ export async function deleteOwnerData(ctx: MutationCtx, ownerId: string): Promis
 		if (rows.length === 0) break
 		for (const row of rows) await ctx.db.delete('applicants', row._id)
 	}
+
+	// Assistant daily-usage counters (M1-T1): per-owner data, so it goes too.
+	for (;;) {
+		const rows = await ctx.db
+			.query('assistantUsage')
+			.withIndex('by_ownerId_and_day', (q) => q.eq('ownerId', ownerId))
+			.take(DELETE_BATCH)
+		if (rows.length === 0) break
+		for (const row of rows) await ctx.db.delete('assistantUsage', row._id)
+	}
 }

@@ -5,8 +5,8 @@
 ```yaml
 status: in_progress
 current_milestone: M1
-next_task: M1-T1
-last_completed: M0-T2
+next_task: M1-T2
+last_completed: M1-T1
 blockers: []
 updated_at: 2026-07-05
 ```
@@ -62,12 +62,12 @@ Forms. Keep the interface quiet, mobile-first, and task-oriented.
   - Done when: Assistant, Forms, Cases, and Community tabs work on iOS without navigation regressions.
   - Evidence: Four `NativeTabs` — Assistant (`(assistant)`, holds index `/`, default tab), Forms (`/forms`), Cases (`/cases`), Community (`/community`). Migrated the old `(home)` tab → `forms/` and folded the `documents` tab into `forms/documents` (Document Vault now reached via a Forms header action + attention items, per ADR-0003 Layout); `/application/[id]` → `/forms/application/[id]` and `/documents` → `/forms/documents`, with all five `router.push` refs updated. Added reusable `ScreenLoading`/`ScreenEmpty`/`ScreenError` in `src/components/core/screen-state.tsx`; Assistant/Cases/Community render intentional empty states (features land in M1/M3/M4). Verified: `tsc` ✓ (against freshly regenerated typed-routes — strict Href validation), `eslint` ✓, 85/85 vitest ✓; Expo Router parsed the 4-tab tree with no route conflicts (single `/` index). Driven in the iOS simulator (iPhone 17, `expo run:ios`): all four tabs navigate via Maestro with correct titles, selection states, and empty-state copy; Forms shows the Documents header action + migrated dashboard; screenshots captured. Empty states ship **icon-less** — the `@react-native-vector-icons` glyph map is newer than the bundled TTFs, so decorative in-screen glyphs mis-render (lucide `sparkles` → 😂, feather → □); flagged as a follow-up to fix before M1-T3's icon-heavy chat UI.
 
-- [ ] **M1-T1 Claude backend**
-  - Status: NOT_STARTED
+- [x] **M1-T1 Claude backend**
+  - Status: DONE
   - Add a validated Convex action using the Anthropic Messages API.
   - Store `ANTHROPIC_API_KEY` and `ANTHROPIC_MODEL` only in Convex deployment secrets.
   - Done when: An authenticated or anonymous owner can receive a validated response without exposing secrets to the client.
-  - Evidence: Not recorded.
+  - Evidence: `convex/assistant.ts` — a `"use node"` `sendMessage` action calls the Anthropic Messages API via `@anthropic-ai/sdk` (model from `ANTHROPIC_MODEL`, default `claude-opus-4-8`; key from `ANTHROPIC_API_KEY`), both declared in `convex.config.ts` env and read server-side only — never returned to the client (result is `{reply, usage}`). The action holds no DB access; authorization + the 20/day per-owner quota are enforced by internal mutations in `convex/assistantQuota.ts` (`requireOwnerId`-scoped; `reserveDailyMessage`/`refundDailyMessage` + public `dailyUsage`), backed by the new `assistantUsage` table (wiped by the account-deletion cascade). Anonymous and authenticated owners are treated identically (ADR-0009). Input is validated (non-empty, ≤4000 chars, ≤40 history turns); refusals and API errors refund the reserved message. TDD: `convex/assistant.test.ts` — 11 tests (happy path, history ordering, no-secret-leak, auth required, empty/over-long input, 20-message limit, owner isolation, missing-key config error, API-error refund, refusal handling). Verified: `tsc` ✓, `eslint` ✓, **96/96** vitest ✓; `convex codegen` bundled + deployed the Node action to the dev deployment without error. Security-reviewed (secrets, owner isolation, quota bypass, input validation). Live end-to-end needs a real key set via `npx convex env set ANTHROPIC_API_KEY` (not set — it's the owner's secret).
 
 - [ ] **M1-T2 Safe navigator**
   - Status: NOT_STARTED

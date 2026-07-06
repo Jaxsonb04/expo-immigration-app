@@ -154,4 +154,15 @@ export default defineSchema({
 		.index('by_applicationId', ['applicationId'])
 		.index('by_ownerId', ['ownerId'])
 		.index('by_providerEventId', ['providerEventId']),
+
+	// Per-owner daily message counter for the Claude assistant (M1-T1,
+	// MASTER_PLAN "Interfaces"). Chat transcripts stay device-session-only; the
+	// only Convex-stored chat data is this bounded counter, which enforces the
+	// 20-message daily limit. One row per (ownerId, day); the day key is UTC.
+	assistantUsage: defineTable({
+		ownerId: v.string(),
+		day: v.string(), // UTC calendar day, YYYY-MM-DD
+		count: v.number(),
+		updatedAt: v.number(),
+	}).index('by_ownerId_and_day', ['ownerId', 'day']),
 })
