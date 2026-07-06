@@ -5,8 +5,8 @@
 ```yaml
 status: in_progress
 current_milestone: M1
-next_task: M1-T2
-last_completed: M1-T1
+next_task: M1-T3
+last_completed: M1-T2
 blockers: []
 updated_at: 2026-07-05
 ```
@@ -69,12 +69,12 @@ Forms. Keep the interface quiet, mobile-first, and task-oriented.
   - Done when: An authenticated or anonymous owner can receive a validated response without exposing secrets to the client.
   - Evidence: `convex/assistant.ts` — a `"use node"` `sendMessage` action calls the Anthropic Messages API via `@anthropic-ai/sdk` (model from `ANTHROPIC_MODEL`, default `claude-opus-4-8`; key from `ANTHROPIC_API_KEY`), both declared in `convex.config.ts` env and read server-side only — never returned to the client (result is `{reply, usage}`). The action holds no DB access; authorization + the 20/day per-owner quota are enforced by internal mutations in `convex/assistantQuota.ts` (`requireOwnerId`-scoped; `reserveDailyMessage`/`refundDailyMessage` + public `dailyUsage`), backed by the new `assistantUsage` table (wiped by the account-deletion cascade). Anonymous and authenticated owners are treated identically (ADR-0009). Input is validated (non-empty, ≤4000 chars, ≤40 history turns); refusals and API errors refund the reserved message. TDD: `convex/assistant.test.ts` — 11 tests (happy path, history ordering, no-secret-leak, auth required, empty/over-long input, 20-message limit, owner isolation, missing-key config error, API-error refund, refusal handling). Verified: `tsc` ✓, `eslint` ✓, **96/96** vitest ✓; `convex codegen` bundled + deployed the Node action to the dev deployment without error. Security-reviewed (secrets, owner isolation, quota bypass, input validation). Live end-to-end needs a real key set via `npx convex env set ANTHROPIC_API_KEY` (not set — it's the owner's secret).
 
-- [ ] **M1-T2 Safe navigator**
-  - Status: NOT_STARTED
+- [x] **M1-T2 Safe navigator**
+  - Status: DONE
   - Claude gathers plain-language facts; deterministic application logic selects only the five supported I-765/I-90 situations.
   - Never infer eligibility categories or provide legal advice.
   - Done when: All supported, ambiguous, and out-of-scope scenarios return the expected typed result.
-  - Evidence: Not recorded.
+  - Evidence: `convex/shared/navigator.ts` — Claude extracts only four plain-language `NavigatorFacts` (credential/situation + two orthogonal legal-advice/out-of-scope flags) via structured output; a pure `classifyFacts` + deterministic `preScreen` (raw-text regex for eligibility category codes, legal-advice phrases, and unsupported forms) produce the `AssistantRecommendation` union (`supported`/`needsClarification`/`outOfScope`), reusing `isSupportedSituation`. Only honest facts that map to one of the five supported situations can yield `supported`; `unsupportedForm` precedes `legalAdvice`; off-schema model output falls back to `needsClarification`. `convex/navigator.ts` (`getRecommendation`, "use node") extracts + Zod-validates + classifies, sharing the M1-T1 owner quota. Design vetted by a 5-agent adversarial panel (design critic + 3 generators + synthesis) which flagged and drove fixes for a CRITICAL trust-boundary issue; captured in `docs/adr/0015-safe-navigator-facts-not-decisions.md`. Tests: 53 classifier/matrix + 8 action = 61 new, encoding the vetted 32-scenario matrix (all 5 supported situations, ambiguity, unsupported forms, 6 prompt-injections, 6 legal-advice baits) with a hard invariant that no injection/legal-advice/out-of-scope input ever reaches `supported`; a mocked action test proves the pre-screen overrides a jailbroken "supported"-looking extraction. Verified: `tsc` ✓, `eslint` ✓, **159/159** vitest ✓; `convex codegen` deployed the action. App model set to cheapest (`claude-haiku-4-5`). Live extraction-quality eval against the real model deferred to M1-T3 (authenticated simulator flow).
 
 - [ ] **M1-T3 Chat UI**
   - Status: NOT_STARTED
