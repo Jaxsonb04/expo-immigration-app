@@ -47,6 +47,7 @@
       "expo-localization",
       "expo-image",
       "expo-web-browser",
+      "expo-notifications",
       "@react-native-vector-icons/lucide",
       "expo-sharing",
       "expo-asset",

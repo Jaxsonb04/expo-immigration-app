@@ -4,6 +4,7 @@ import { View } from 'react-native'
 import { VaultProvider } from './documents.context'
 import { useVault } from './documents.data'
 import { NeededDocuments } from './documents.needed'
+import { RenewalReminders } from './documents.reminders'
 import { VaultDocuments } from './documents.vault'
 
 export function DocumentsScreen() {
@@ -20,6 +21,8 @@ export function DocumentsScreen() {
 	return (
 		<VaultProvider vault={vault}>
 			<BodyScrollView contentContainerClassName="gap-6 pt-4">
+				<RenewalReminders />
+
 				{vault.neededSlots.length > 0 && (
 					<View className="gap-1">
 						<NeededDocuments.Heading />
