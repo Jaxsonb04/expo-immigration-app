@@ -16,6 +16,7 @@ export default function CommunityTab() {
 				Community
 			</Stack.Title>
 			<Stack.Toolbar placement="right">
+				<Stack.Toolbar.Button icon="plus" onPress={() => router.push('/new-post')} />
 				<Stack.Toolbar.Button icon="person.fill" onPress={() => router.push('/account')} />
 			</Stack.Toolbar>
 
