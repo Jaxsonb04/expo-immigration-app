@@ -3,10 +3,10 @@
 ## Project Status
 
 ```yaml
-status: in_progress
-current_milestone: M4
-next_task: M5-T3
-last_completed: M5-T2
+status: complete
+current_milestone: M5
+next_task: none
+last_completed: M5-T3
 blockers: []
 updated_at: 2026-07-07
 ```
@@ -154,11 +154,11 @@ Forms. Keep the interface quiet, mobile-first, and task-oriented.
   - Done when: The Assistant screen displays bounded official items and remains usable during source failures.
   - Evidence: Shipped on fallback rung 1 — the official USCIS RSS feed (`uscis.gov/news/rss-feed/59144`; fetched with a browser UA, 15s abort timeout). Convex caches ≤12 parsed items (`newsItems` + singleton `newsMeta`), refreshed by a 6-hour cron (`convex/crons.ts`); every stored URL is validated twice against the `https://www.uscis.gov/` prefix (lookalike domains, plain-http, third-party hosts dropped — test-covered) and any fetch/parse failure leaves the last-good cache untouched (all-invalid batches throw and roll back; failures only touch `newsMeta`). Public `news:latestNews` returns ≤8 items newest-first with a 48h `isStale` flag and never throws (empty cache → empty list). The Assistant screen renders the section only while the transcript is empty: "Latest from USCIS" + "Official · uscis.gov" tag, expo-web-browser link-outs, staleness note, and an official-newsroom link-out on empty cache. Parser is pure and dependency-free (`convex/shared/news.ts`) — bounded, entity-decoding (incl. double-encoded feeds), tag/CDATA-stripping, url-deduped. +20 tests (12 parser + 8 convex-test). Deployed to dev, cron registered, cache populated live (12 items). Simulator-verified on the rebuilt client: the Assistant tab shows real items ("Defendants Sentenced in Visa Fraud and Conspiracy Case" · 4d ago, "USCIS Opens Asylum Office in Atlanta" · 5d ago) under the greeting. Commit 26d7018.
 
-- [ ] **M5-T3 Release audit**
-  - Status: NOT_STARTED
+- [x] **M5-T3 Release audit**
+  - Status: DONE
   - Verify privacy, account deletion, accessibility, analytics, rate limits, disclaimers, and App Store readiness.
   - Done when: All release checks pass and remaining risks are explicitly documented.
-  - Evidence: Not recorded.
+  - Evidence: **Reframed per owner decision** — App Store submission work (store metadata, EAS submit, the App Privacy questionnaire) was explicitly deferred; this audit verified privacy, in-app account deletion, accessibility, rate limits, and disclaimers, with the full findings table + evidence (file:line for every item) in the new `docs/RELEASE_AUDIT.md`. **Privacy — all PASS:** no secrets in the client bundle (`grep sk-ant|apiKey` over `src/` → only `EXPO_PUBLIC_CONVEX_URL`/`_SITE_URL`); the Anthropic key lives only in the Convex deployment env (`convex.config.ts` → `assistant.ts:76`/`navigator.ts:111`); the only three non-test `console.*` calls log platform/API errors, never answers/drafts/documents; chat transcripts confirmed device-session-only (`assistant.data.ts`); community pseudonymity re-verified at the allowlist constructors (`toPublicPost`/`toPublicComment`); **zero analytics/tracker SDKs** in the app. **Account deletion — the audit's one real gap, FIXED:** `api.account.deleteAccountData` existed server-side but nothing in `src/` called it — there was no delete button. Added a Delete-account section to the Account modal (`src/app/(modal)/account/index.tsx`: destructive confirm Alert → full cascade → `authClient.signOut()`), reachable from every tab's person toolbar button. Cascade coverage verified table-by-table against `convex/schema.ts`: all 13 owner-keyed tables erased by `convex/model/ownerData.ts` — including `communityBlocks` in BOTH directions and `forumReports` filed and received — plus document storage blobs; `newsItems`/`newsMeta` are global caches, correctly untouched; coverage already pinned by the M4 erasure tests, so no cascade change was needed. FINDING (deferred with Better Auth hardening, per the `convex/account.ts` scope note): the Better Auth user row (email) survives — `user.deleteUser` must be enabled and chained before public release. **Accessibility — FIXED the gaps:** added `accessibilityLabel` to all nine icon-only `Stack.Toolbar.Button`s across the five tab headers ("Account" ×5, "New post", "New case", "Document vault", "Moderation queue") and to the reminders `Switch` ("Renewal reminders"); send/report/block/delete/close/help actions were already labeled; moderation-queue actions are text buttons; contrast + reduced-motion stand on the prior `docs/FABLE_NOTES.md` measurements. **Rate limits — PASS:** assistant 20/day quota + pre-billing refund intact (`assistantQuota.ts`, `assistant.ts:101-103`); community title/body/note caps (120/10k/500) + [1,50] page clamps + report dedupe + 200-block cap all enforced server-side; news cache ≤12 / reads ≤8 with double URL validation. FINDING (low): owner-scoped `documents.saveDocument` `label` and the draft-answer zod fields have `.min()` but no `.max()` — auth-gated self-DoS only, cheap hardening left documented. **Disclaimers — all PASS with file evidence:** assistant persistent bar + greeting, community feed/detail/rules/composer, review-pay fee provenance ("Paid directly to USCIS … never to this app" + uscis.gov/feecalculator, test-pinned `FEE_DISCLAIMER`), news "Official · uscis.gov". The **left-for-release-day list** (store track, `immigrationrenewalhelp://`→Immifile scheme/bundle rename, prod Convex env incl. `ANTHROPIC_API_KEY`/`MODERATOR_EMAILS`, Better Auth hardening, push entitlements if remote push ever ships, Sign in with Apple when social login ships, RevenueCat deletion for a future IAP phase) closes `docs/RELEASE_AUDIT.md`. Gates on the remote Mac: ESLint ✓, `tsc --noEmit` ✓, **358/358 vitest** ✓.
 
 ## Interfaces
 

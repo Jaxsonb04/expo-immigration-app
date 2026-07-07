@@ -21,8 +21,16 @@ export default function FormsTab() {
 				Forms
 			</Stack.Title>
 			<Stack.Toolbar placement="right">
-				<Stack.Toolbar.Button icon="folder.fill" onPress={() => router.push('/forms/documents')} />
-				<Stack.Toolbar.Button icon="person.fill" onPress={() => router.push('/account')} />
+				<Stack.Toolbar.Button
+					icon="folder.fill"
+					accessibilityLabel="Document vault"
+					onPress={() => router.push('/forms/documents')}
+				/>
+				<Stack.Toolbar.Button
+					icon="person.fill"
+					accessibilityLabel="Account"
+					onPress={() => router.push('/account')}
+				/>
 			</Stack.Toolbar>
 
 			<HomeScreen />

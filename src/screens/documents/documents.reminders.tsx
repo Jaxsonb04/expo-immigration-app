@@ -108,6 +108,7 @@ export function RenewalReminders() {
 				</Typography.Paragraph>
 			</View>
 			<Switch
+				accessibilityLabel="Renewal reminders"
 				isSelected={isEnabled}
 				isDisabled={!isLoaded}
 				onSelectedChange={(next) => {

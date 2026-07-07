@@ -16,7 +16,11 @@ export default function DocumentsTab() {
 				Documents
 			</Stack.Title>
 			<Stack.Toolbar placement="right">
-				<Stack.Toolbar.Button icon="person.fill" onPress={() => router.push('/account')} />
+				<Stack.Toolbar.Button
+					icon="person.fill"
+					accessibilityLabel="Account"
+					onPress={() => router.push('/account')}
+				/>
 			</Stack.Toolbar>
 
 			<DocumentsScreen />

@@ -19,10 +19,22 @@ export default function CommunityTab() {
 			</Stack.Title>
 			<Stack.Toolbar placement="right">
 				{isModerator === true ? (
-					<Stack.Toolbar.Button icon="shield" onPress={() => router.push('/moderation')} />
+					<Stack.Toolbar.Button
+						icon="shield"
+						accessibilityLabel="Moderation queue"
+						onPress={() => router.push('/moderation')}
+					/>
 				) : null}
-				<Stack.Toolbar.Button icon="plus" onPress={() => router.push('/new-post')} />
-				<Stack.Toolbar.Button icon="person.fill" onPress={() => router.push('/account')} />
+				<Stack.Toolbar.Button
+					icon="plus"
+					accessibilityLabel="New post"
+					onPress={() => router.push('/new-post')}
+				/>
+				<Stack.Toolbar.Button
+					icon="person.fill"
+					accessibilityLabel="Account"
+					onPress={() => router.push('/account')}
+				/>
 			</Stack.Toolbar>
 
 			<CommunityScreen />

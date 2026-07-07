@@ -82,6 +82,60 @@ function BlockedAuthorsSection() {
 	)
 }
 
+/** Permanent in-app account deletion (M5-T3 release audit). Runs the full
+ * owner-data cascade (convex/account.ts → convex/model/ownerData.ts): every
+ * app-owned row AND every stored file, then signs the session out. The Better
+ * Auth user record itself is deleted in the deferred auth-hardening phase
+ * (scope note in convex/account.ts) — no app data or files survive today. */
+function DeleteAccountSection() {
+	const deleteAccountData = useMutation(api.account.deleteAccountData)
+	const [busy, setBusy] = useState(false)
+
+	async function eraseAndSignOut() {
+		setBusy(true)
+		try {
+			await deleteAccountData({})
+			await authClient.signOut()
+		} catch (error) {
+			Alert.alert(
+				'Delete account',
+				error instanceof Error ? error.message : 'Something went wrong. Please try again.',
+			)
+		} finally {
+			setBusy(false)
+		}
+	}
+
+	function confirmDelete() {
+		Alert.alert(
+			'Delete your account?',
+			'This permanently erases everything — applications, answers, uploaded documents, cases, and your community posts and profile. It cannot be undone.',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{ text: 'Delete everything', style: 'destructive', onPress: () => void eraseAndSignOut() },
+			],
+		)
+	}
+
+	return (
+		<>
+			<Separator />
+			<View className="gap-3">
+				<Typography.Heading className="text-lg font-semibold">Delete account</Typography.Heading>
+				<Typography.Paragraph color="muted" className="text-sm">
+					Permanently erase your applications, answers, uploaded documents, cases, and community
+					activity from Immifile. This cannot be undone.
+				</Typography.Paragraph>
+				<Button variant="ghost" isDisabled={busy} onPress={confirmDelete}>
+					<Button.Label className="text-danger">
+						{busy ? 'Deleting…' : 'Delete account'}
+					</Button.Label>
+				</Button>
+			</View>
+		</>
+	)
+}
+
 export default function AccountTab() {
 	const themeColorForeground = useThemeColor('foreground')
 	return (
@@ -105,6 +159,8 @@ export default function AccountTab() {
 				</Button>
 
 				<BlockedAuthorsSection />
+
+				<DeleteAccountSection />
 
 				{__DEV__ && (
 					<>

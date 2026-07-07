@@ -16,8 +16,16 @@ export default function CasesTab() {
 				Cases
 			</Stack.Title>
 			<Stack.Toolbar placement="right">
-				<Stack.Toolbar.Button icon="plus" onPress={() => router.push('/new-case')} />
-				<Stack.Toolbar.Button icon="person.fill" onPress={() => router.push('/account')} />
+				<Stack.Toolbar.Button
+					icon="plus"
+					accessibilityLabel="New case"
+					onPress={() => router.push('/new-case')}
+				/>
+				<Stack.Toolbar.Button
+					icon="person.fill"
+					accessibilityLabel="Account"
+					onPress={() => router.push('/account')}
+				/>
 			</Stack.Toolbar>
 
 			<CasesScreen />
