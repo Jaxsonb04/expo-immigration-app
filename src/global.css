@@ -9,51 +9,134 @@
 @source '../node_modules/heroui-native/lib';
 @source '../node_modules/heroui-native-pro/lib';
 
+/*
+ * Immifile design system — editorial minimalism on warm paper.
+ *
+ * One warm hue family carries every neutral (backgrounds, surfaces, borders
+ * all sit near hue 70–90 at very low chroma); a single terracotta accent is
+ * reserved for primary actions and focus. Fraunces (serif) is display-only —
+ * large headlines and screen titles; Inter carries body and UI text.
+ *
+ * Every color pairing below is contrast-verified (scripts in
+ * docs/FABLE_NOTES.md): body text ≥ 4.5:1, non-text UI ≥ 3:1, both themes.
+ * Do NOT hardcode colors in components — everything flows from these tokens.
+ */
+
 @theme {
-  --field-radius: 0.5rem;
+  --field-radius: 0.625rem;
   --field-border-width: 0.642122456084777px;
-  --font-bold: montserrat-Bold;
-  --font-medium: montserrat-Medium;
-  --font-normal: montserrat-Regular;
-  --font-semibold: montserrat-SemiBold;
+
+  /* UI + body face: Inter (loaded in src/components/providers.tsx) */
+  --font-normal: Inter_400Regular;
+  --font-medium: Inter_500Medium;
+  --font-semibold: Inter_600SemiBold;
+  --font-bold: Inter_700Bold;
+
+  /* Display face: Fraunces — headlines and large titles ONLY. Body and
+     anything at or below h2 stays on Inter. */
+  --font-display: Fraunces_600SemiBold;
+
+  /* Modular display sizes (~1.25 ratio above body 17). */
+  --text-display: 2.625rem; /* 42 — onboarding hero */
+  --text-display--line-height: 1.1;
+  --text-title: 2rem; /* 32 — screen-level display titles */
+  --text-title--line-height: 1.15;
 }
 
 @layer theme {
   @variant light {
-    /* Theme Colors */
-    --background: oklch(97.02% 0.0027 181.37);
-    --muted: oklch(55.17% 0.0053 181.37);
-    --surface-secondary: oklch(95.24% 0.004 181.37);
-    --surface-tertiary: oklch(93.73% 0.004 181.37);
-    --default: oklch(94% 0.0027 181.37);
-    --accent: oklch(71.73% 0.1096 181.37);
-    --accent-foreground: var(--eclipse);
-    --success: oklch(64.52% 0.1776 141.57);
-    --warning: oklch(68.73% 0.1419 74.72);
-    --danger: oklch(62.39% 0.1883 17.66);
-    --border: oklch(90% 0.0027 181.37);
-    --separator: oklch(92% 0.0027 181.37);
+    /* Warm paper ground + warm ink. */
+    --background: oklch(96.5% 0.012 85);
+    --foreground: oklch(24% 0.02 60);
+
+    /* Cards float on slightly brighter paper; hairline borders, not shadows,
+       do the separating. */
+    --surface: oklch(98.5% 0.008 90);
+    --surface-foreground: oklch(26% 0.02 60);
+    --surface-secondary: oklch(94% 0.014 85);
+    --surface-secondary-foreground: oklch(28% 0.02 60);
+    --surface-tertiary: oklch(91.5% 0.016 83);
+    --surface-tertiary-foreground: oklch(28% 0.02 60);
+
+    --overlay: oklch(98.5% 0.008 90);
+    --overlay-foreground: oklch(26% 0.02 60);
+    --backdrop: oklch(20% 0.02 60 / 35%);
+
+    --muted: oklch(46% 0.025 65);
+
+    --default: oklch(92% 0.014 85);
+    --default-foreground: oklch(30% 0.025 60);
+
+    /* The one accent: terracotta. Primary actions + focus only. */
+    --accent: oklch(50% 0.09 40);
+    --accent-foreground: oklch(97.5% 0.01 85);
+
+    /* Status colors as low-chroma, warm-compatible variants. */
+    --success: oklch(52% 0.08 145);
+    --success-foreground: oklch(97.5% 0.01 85);
+    --warning: oklch(63% 0.1 75);
+    --warning-foreground: oklch(23% 0.045 75);
+    --danger: oklch(52% 0.12 30);
+    --danger-foreground: oklch(97.5% 0.01 85);
+
+    --field-background: oklch(98.5% 0.008 90);
+    --field-foreground: oklch(24% 0.02 60);
+    --field-placeholder: var(--muted);
+    --field-border: oklch(86% 0.02 80);
+
+    --segment: oklch(98.5% 0.008 90);
+    --segment-foreground: oklch(24% 0.02 60);
+
+    --border: oklch(88% 0.018 80);
+    --separator: oklch(90% 0.016 82);
+    --focus: var(--accent);
+    --link: var(--accent);
   }
 
   @variant dark {
-    /* Theme Colors */
-    --background: oklch(12% 0.0027 181.37);
-    --muted: oklch(70.5% 0.0053 181.37);
-    --surface: oklch(21.03% 0.0053 181.37);
-    --surface-secondary: oklch(25.7% 0.004 181.37);
-    --surface-secondary-foreground: oklch(25.7% 0 181.37);
-    --surface-tertiary: oklch(27.21% 0.004 181.37);
-    --surface-tertiary-foreground: oklch(27.21% 0 181.37);
-    --overlay: oklch(21.03% 0.0053 181.37);
-    --default: oklch(27.4% 0.0027 181.37);
-    --accent: oklch(71.73% 0.1096 181.37);
-    --accent-foreground: var(--eclipse);
-    --success: oklch(64.52% 0.1776 141.57);
-    --warning: oklch(68.73% 0.1419 74.72);
-    --danger: oklch(62.39% 0.1883 17.66);
-    --field-background: oklch(21.03% 0.0053 181.37);
-    --segment: oklch(39.64% 0.0027 181.37);
-    --border: oklch(28% 0.0027 181.37);
-    --separator: oklch(25% 0.0027 181.37);
+    /* Warm near-black — its own composition, not an inverted light theme.
+       Elevation comes from lighter warm surfaces, not shadows. */
+    --background: oklch(17% 0.012 70);
+    --foreground: oklch(92% 0.012 80);
+
+    --surface: oklch(21.5% 0.014 72);
+    --surface-foreground: oklch(90% 0.012 78);
+    --surface-secondary: oklch(24.5% 0.015 74);
+    --surface-secondary-foreground: oklch(90% 0.012 78);
+    --surface-tertiary: oklch(27% 0.016 75);
+    --surface-tertiary-foreground: oklch(90% 0.012 78);
+
+    --overlay: oklch(23% 0.015 73);
+    --overlay-foreground: oklch(90% 0.012 78);
+    --backdrop: oklch(0% 0 0 / 45%);
+
+    --muted: oklch(68% 0.02 75);
+
+    --default: oklch(26% 0.015 74);
+    --default-foreground: oklch(88% 0.014 78);
+
+    /* Accent re-tuned for the dark ground: lifted lightness + chroma. */
+    --accent: oklch(70% 0.11 45);
+    --accent-foreground: oklch(18% 0.03 45);
+
+    --success: oklch(70% 0.1 145);
+    --success-foreground: oklch(16% 0.04 145);
+    --warning: oklch(75% 0.11 80);
+    --warning-foreground: oklch(20% 0.05 80);
+    --danger: oklch(66% 0.14 30);
+    --danger-foreground: oklch(18% 0.05 30);
+
+    --field-background: oklch(22.5% 0.014 72);
+    --field-foreground: var(--foreground);
+    --field-placeholder: var(--muted);
+    --field-border: oklch(32% 0.016 74);
+
+    --segment: oklch(30% 0.015 74);
+    --segment-foreground: oklch(92% 0.012 80);
+
+    --border: oklch(30% 0.016 74);
+    --separator: oklch(27% 0.015 73);
+    --focus: var(--accent);
+    --link: oklch(74% 0.1 50);
   }
 }

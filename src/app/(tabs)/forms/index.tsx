@@ -14,7 +14,7 @@ export default function FormsTab() {
 			<Stack.Title
 				large
 				largeStyle={{
-					fontFamily: 'Montserrat_600SemiBold',
+					fontFamily: 'Fraunces_600SemiBold',
 					color: themeColorForeground,
 				}}
 			>

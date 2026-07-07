@@ -55,3 +55,46 @@ Maestro `inputText` crashes the XCUITest driver on iOS 26.5. Workaround that
 works: `echo -n "text" | xcrun simctl pbcopy booted`, then Maestro
 `longPressOn` the input + `tapOn: "Paste"` + `tapOn: "Send message"`
 (accessibility label). Used to drive freeform assistant turns.
+
+## Immifile design system — measured contrast (2026-07-07)
+
+Palette: warm paper ground, one terracotta accent, Fraunces (OFL) display +
+Inter (OFL) body — both bundled via @expo-google-fonts (license permits app
+redistribution). All tokens in src/global.css; zero hardcoded colors in
+components (grep-gated). WCAG ratios computed via oklch→linear-sRGB→relative
+luminance (script kept in session scratchpad; re-run on any token change).
+
+| Pairing (text on ground)              | Light   | Dark    | Min |
+|---------------------------------------|---------|---------|-----|
+| foreground / background               | 14.91:1 | 15.10:1 | 4.5 |
+| surface-fg / surface                  | 14.94:1 | 13.00:1 | 4.5 |
+| surface-secondary-fg / surface-sec.   | 12.29:1 | 12.05:1 | 4.5 |
+| surface-tertiary-fg / surface-tert.   | 11.38:1 | 11.19:1 | 4.5 |
+| muted / background                    |  6.47:1 |  6.63:1 | 4.5 |
+| muted / surface-secondary             |  6.01:1 |  5.63:1 | 4.5 |
+| default-fg / default                  | 10.82:1 | 10.83:1 | 4.5 |
+| accent-fg / accent (button label)     |  5.80:1 |  6.81:1 | 4.5 |
+| accent as text / background           |  5.63:1 |  6.90:1 | 4.5 |
+| success-fg / success                  |  4.94:1 |  7.51:1 | 4.5 |
+| warning-fg / warning                  |  4.78:1 |  8.07:1 | 4.5 |
+| danger-fg / danger                    |  5.43:1 |  5.74:1 | 4.5 |
+| foreground / field                    | 15.81:1 | 13.51:1 | 4.5 |
+| accent vs background (focus, non-text)|  5.63:1 |  6.90:1 | 3.0 |
+| danger as text / background           |  5.27:1 |  5.79:1 | 4.5 |
+| success as text / background          |  4.80:1 |  7.45:1 | 4.5 |
+
+All 32 pairings PASS. Key hexes: light bg #f7f3eb, light accent #8e503a,
+dark bg #130f0a, dark accent #d78863.
+
+Gotchas learned:
+- The old global.css font tokens (`montserrat-Bold`) never matched the
+  registered font names (`Montserrat_700Bold`), so HeroUI text silently fell
+  back to the system font. CSS font vars MUST equal the exact useFonts keys.
+- The Remi mascot PNG had a semi-transparent white background (alpha 1–2)
+  that was invisible on light but showed as a ghost box on dark — stripped
+  alpha<16 pixels with PIL and overwrote the asset.
+- Motion: 2 purposeful animations only (welcome staggered rise, assistant
+  recommendation-card settle), both `ReduceMotion.System`-gated; verified
+  with ReduceMotionEnabled=1 on the sim (instant render, no crash).
+- Icons rationalized to Lucide only; removed 5 unused
+  @react-native-vector-icons families (packages + app.json plugins).

@@ -2,7 +2,7 @@ import { authClient } from '@/lib/auth-client'
 import { Button, Input, Label, Separator, TextField, Typography } from 'heroui-native'
 import { SocialAuthButton, type SocialAuthButtonProvider } from 'heroui-native-pro'
 import { useState } from 'react'
-import { Alert, View } from 'react-native'
+import { Alert, Text, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 
 type Mode = 'sign-in' | 'sign-up'
@@ -78,9 +78,9 @@ export default function SignInScreen() {
 			contentInsetAdjustmentBehavior="automatic"
 		>
 			<View>
-				<Typography.Heading className="text-3xl font-bold">
-					{isSignUp ? 'Create your account' : 'Welcome back'}
-				</Typography.Heading>
+				<Text className="font-display text-title text-foreground">
+
+				</Text>
 				<Typography.Paragraph color="muted">
 					{isSignUp
 						? 'Sign up to start tracking your immigration journey.'

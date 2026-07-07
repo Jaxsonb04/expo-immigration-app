@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Immigration Renewal Help",
+    "name": "Immifile",
     "slug": "immigration-renewal-help",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -19,7 +19,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#f7f3eb"
       },
       "predictiveBackGestureEnabled": false,
       "package": "dev.uing.immigrationrenewalhelp",
@@ -36,18 +36,17 @@
         {
           "image": "./assets/images/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff"
+          "backgroundColor": "#f7f3eb",
+          "dark": {
+            "image": "./assets/images/splash-icon-dark.png",
+            "backgroundColor": "#130f0a"
+          }
         }
       ],
       "expo-secure-store",
       "expo-localization",
       "expo-image",
       "expo-web-browser",
-      "@react-native-vector-icons/feather",
-      "@react-native-vector-icons/fontawesome",
-      "@react-native-vector-icons/material-design-icons",
-      "@react-native-vector-icons/octicons",
-      "@react-native-vector-icons/ionicons",
       "@react-native-vector-icons/lucide",
       "expo-sharing",
       "expo-asset",

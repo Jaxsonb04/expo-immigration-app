@@ -9,7 +9,7 @@ export default function CasesTab() {
 			<Stack.Title
 				large
 				largeStyle={{
-					fontFamily: 'Montserrat_600SemiBold',
+					fontFamily: 'Fraunces_600SemiBold',
 					color: themeColorForeground,
 				}}
 			>

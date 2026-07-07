@@ -1,11 +1,12 @@
 import { ConvexBetterAuthProvider, type AuthClient } from '@convex-dev/better-auth/react'
+import { Fraunces_600SemiBold } from '@expo-google-fonts/fraunces'
 import {
-	Montserrat_400Regular,
-	Montserrat_500Medium,
-	Montserrat_600SemiBold,
-	Montserrat_700Bold,
+	Inter_400Regular,
+	Inter_500Medium,
+	Inter_600SemiBold,
+	Inter_700Bold,
 	useFonts,
-} from '@expo-google-fonts/montserrat'
+} from '@expo-google-fonts/inter'
 import { ConvexReactClient } from 'convex/react'
 import { StatusBar } from 'expo-status-bar'
 import { HeroUINativeProvider } from 'heroui-native'
@@ -62,10 +63,11 @@ function AppContent({ children }: { children: React.ReactNode }) {
 
 export function Providers({ children }: { children: React.ReactNode }) {
 	const [fontsLoaded] = useFonts({
-		Montserrat_400Regular,
-		Montserrat_500Medium,
-		Montserrat_600SemiBold,
-		Montserrat_700Bold,
+		Inter_400Regular,
+		Inter_500Medium,
+		Inter_600SemiBold,
+		Inter_700Bold,
+		Fraunces_600SemiBold,
 	})
 
 	if (!fontsLoaded) {

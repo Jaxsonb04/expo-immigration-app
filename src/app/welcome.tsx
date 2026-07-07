@@ -1,16 +1,29 @@
 import { authClient } from '@/lib/auth-client'
 import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
-import { Button, Typography } from 'heroui-native'
+import { Button } from 'heroui-native'
 import { useState } from 'react'
-import { Alert, View } from 'react-native'
+import { Alert, Text, View } from 'react-native'
+import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated'
 
 /**
  * Anonymous-first entry point (ADR-0009). "Start filing" silently creates an
  * anonymous Better Auth session — no form, no "guest" wording — and the root
  * guard in `_layout.tsx` flips to the authenticated group, dropping the user
  * straight into the tabs. Returning users push the dedicated sign-in screen.
+ *
+ * This screen is the design system's proving ground: warm paper ground,
+ * Fraunces display type, one terracotta accent, generous whitespace. The
+ * entrance is a single staggered fade/rise (transform + opacity only), and
+ * `ReduceMotion.System` collapses it to an instant appearance when the user
+ * has Reduce Motion enabled.
  */
+
+const rise = (order: number) =>
+	FadeInDown.duration(320)
+		.delay(120 + order * 90)
+		.reduceMotion(ReduceMotion.System)
+
 export default function WelcomeScreen() {
 	const router = useRouter()
 	const [pending, setPending] = useState(false)
@@ -33,37 +46,39 @@ export default function WelcomeScreen() {
 	}
 
 	return (
-		<>
-			<View className="relative bg-accent/15 pt-safe items-center justify-center">
-				<Image
-					source={require('@/assets/images/remi-mascots/waving.png')}
-					style={{
-						aspectRatio: 1,
-						width: '100%',
-						maxWidth: 220,
-						resizeMode: 'contain',
-					}}
-				/>
-			</View>
-			<View className="gap-4 pt-5 flex-1 px-5">
-				<Typography.Heading className="text-4xl font-bold">
-					Renew with confidence
-				</Typography.Heading>
-				<Typography.Paragraph color="muted" className="text-lg">
-					Track deadlines, organize your documents, and prepare your immigration filing — step by
-					step. Start now; create an account only when you're ready to submit.
-				</Typography.Paragraph>
+		<View className="flex-1 bg-background">
+			{/* Remi greets from the paper ground itself — no tinted box. */}
+			<View className="flex-1 items-center justify-end pt-safe">
+				<Animated.View entering={rise(0)}>
+					<Image
+						source={require('@/assets/images/remi-mascots/waving.png')}
+						style={{ aspectRatio: 1, width: 176 }}
+						contentFit="contain"
+					/>
+				</Animated.View>
 			</View>
 
-			<View className="gap-3 pb-safe-offset-5 px-5">
-				<Button isDisabled={pending} onPress={handleStartFiling}>
+			<View className="gap-5 px-6 pt-9">
+				<Animated.View entering={rise(1)} className="gap-5">
+					<Text className="font-display text-display text-foreground">
+						Renew with{'\n'}confidence.
+					</Text>
+					<Text className="font-normal text-[17px] leading-relaxed text-muted">
+						Immifile walks you through your work permit or green card renewal — deadlines,
+						documents, and a print-ready filing, step by step. Create an account only when
+						you’re ready.
+					</Text>
+				</Animated.View>
+			</View>
+
+			<Animated.View entering={rise(2)} className="gap-3 px-6 pt-10 pb-safe-offset-6">
+				<Button size="lg" isDisabled={pending} onPress={handleStartFiling}>
 					<Button.Label>{pending ? 'Starting…' : 'Start filing'}</Button.Label>
 				</Button>
-
-				<Button variant="ghost" isDisabled={pending} onPress={() => router.push('/sign-in')}>
-					<Button.Label>Sign in</Button.Label>
+				<Button size="lg" variant="ghost" isDisabled={pending} onPress={() => router.push('/sign-in')}>
+					<Button.Label>I already have an account</Button.Label>
 				</Button>
-			</View>
-		</>
+			</Animated.View>
+		</View>
 	)
 }
