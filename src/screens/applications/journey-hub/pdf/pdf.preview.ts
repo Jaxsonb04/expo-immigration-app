@@ -5,7 +5,7 @@ import type { FormType } from '@convex/shared/applicationShapes'
 import { Asset } from 'expo-asset'
 import * as FileSystem from 'expo-file-system/legacy'
 import * as Sharing from 'expo-sharing'
-import { renderDraftPreview, type RenderDraftArgs } from './pdf.render'
+import { renderDraftPreview, renderFilingPackage, type RenderDraftArgs } from './pdf.render'
 
 // On-device glue for the watermarked draft Preview: resolve the bundled
 // current-edition USCIS template, render it via the pure engine (pdf.render.ts),
@@ -33,17 +33,31 @@ export function formMetaFor(formType: FormType): {
 	return FORM_META[formType]
 }
 
-const OUTPUT_FILENAMES: Record<FormType, string> = {
+const DRAFT_FILENAMES: Record<FormType, string> = {
 	i765: 'i-765-draft-preview.pdf',
 	i90: 'i-90-draft-preview.pdf',
 }
 
+const PACKAGE_FILENAMES: Record<FormType, string> = {
+	i765: 'i-765-filing-package.pdf',
+	i90: 'i-90-filing-package.pdf',
+}
+
+type RenderFn = (
+	templateBase64: string,
+	args: RenderDraftArgs,
+) => Promise<{ base64: string; filledCount: number }>
+
 /**
- * Render the draft's answers onto the bundled USCIS form and open the
- * watermarked result in the OS share sheet (print/save happen there).
- * Rejects on any asset, render, or share failure so the caller can surface it.
+ * Resolve the bundled template, render it, write the result to the cache
+ * directory only (generated on demand, never persisted — ADR-0007), and open it
+ * in the OS share sheet. Rejects on any asset, render, or share failure so the
+ * caller can surface it.
  */
-export async function openDraftPreview(args: RenderDraftArgs): Promise<void> {
+async function renderAndShare(
+	args: RenderDraftArgs,
+	options: { render: RenderFn; filename: string; dialogTitle: string },
+): Promise<void> {
 	const asset = Asset.fromModule(TEMPLATE_MODULES[args.formType])
 	if (!asset.localUri) {
 		await asset.downloadAsync()
@@ -52,21 +66,46 @@ export async function openDraftPreview(args: RenderDraftArgs): Promise<void> {
 		encoding: FileSystem.EncodingType.Base64,
 	})
 
-	const { base64 } = await renderDraftPreview(templateBase64, args)
+	const { base64 } = await options.render(templateBase64, args)
 
-	const outUri = `${FileSystem.cacheDirectory}${OUTPUT_FILENAMES[args.formType]}`
+	const outUri = `${FileSystem.cacheDirectory}${options.filename}`
 	await FileSystem.writeAsStringAsync(outUri, base64, {
 		encoding: FileSystem.EncodingType.Base64,
 	})
 
-	// Fail loudly rather than silently no-op: without the share sheet the
-	// preview never appears, so the caller must be able to surface an error.
+	// Fail loudly rather than silently no-op: without the share sheet the file
+	// never appears, so the caller must be able to surface an error.
 	if (!(await Sharing.isAvailableAsync())) {
 		throw new Error("Opening files isn't available on this device.")
 	}
 	await Sharing.shareAsync(outUri, {
 		mimeType: 'application/pdf',
 		UTI: 'com.adobe.pdf',
+		dialogTitle: options.dialogTitle,
+	})
+}
+
+/** Free watermarked draft preview. */
+export function openDraftPreview(args: RenderDraftArgs): Promise<void> {
+	return renderAndShare(args, {
+		render: renderDraftPreview,
+		filename: DRAFT_FILENAMES[args.formType],
 		dialogTitle: `${situationLabel(args.formType, args.applicationKind).primary} — draft preview`,
+	})
+}
+
+/**
+ * Entitlement-gated clean (un-watermarked) print-ready form. The caller must
+ * only invoke this for an unlocked application; the entitlement is
+ * server-authoritative (getApplication.isUnlocked). The render itself is
+ * on-device — a determined user could re-create a clean copy of their own
+ * public USCIS form, so this is a payment nudge, not DRM; a future server-render
+ * would harden it if ever needed.
+ */
+export function openFilingPackage(args: RenderDraftArgs): Promise<void> {
+	return renderAndShare(args, {
+		render: renderFilingPackage,
+		filename: PACKAGE_FILENAMES[args.formType],
+		dialogTitle: `${situationLabel(args.formType, args.applicationKind).primary} — filing package`,
 	})
 }

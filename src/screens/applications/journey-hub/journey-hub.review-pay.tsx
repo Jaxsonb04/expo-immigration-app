@@ -1,60 +1,140 @@
 import { SectionHeading } from '@/components/core'
-import { Button, Typography } from 'heroui-native'
+import {
+	FEE_DISCLAIMER,
+	FILING_FEE_AS_OF,
+	OFFICIAL_LINKS,
+	SERVICE_FEE_USD,
+	filingInfoFor,
+} from '@/lib/filing-info'
+import { Button, Separator, Surface, Typography } from 'heroui-native'
 import { useState } from 'react'
-import { Alert, View } from 'react-native'
+import { Alert, Linking, Pressable, View } from 'react-native'
 import { useInterviewDone, useJourneyHub } from './journey-hub.context'
 import { comingSoon } from './journey-hub.utils'
-import { formMetaFor, openDraftPreview } from './pdf/pdf.preview'
+import type { RenderDraftArgs } from './pdf/pdf.render'
+import { formMetaFor, openDraftPreview, openFilingPackage } from './pdf/pdf.preview'
+
+/** A muted, tappable official uscis.gov link. */
+function OfficialLink({ label, url }: { label: string; url: string }) {
+	return (
+		<Pressable accessibilityRole="link" onPress={() => void Linking.openURL(url)}>
+			<Typography.Paragraph className="text-sm text-accent underline">{label}</Typography.Paragraph>
+		</Pressable>
+	)
+}
+
+/** USCIS government fee and this app's service fee, kept as two clearly separate
+ * line items so no one mistakes the app's charge for a government fee. */
+function FeeBreakdown({ formType }: { formType: RenderDraftArgs['formType'] }) {
+	const info = filingInfoFor(formType)
+	return (
+		<Surface variant="secondary" className="gap-3 rounded-2xl p-4">
+			<View className="gap-1">
+				<Typography.Paragraph className="font-medium">
+					USCIS government filing fee
+				</Typography.Paragraph>
+				<Typography.Paragraph color="muted" className="text-xs">
+					Paid directly to USCIS (the U.S. government), never to this app.
+				</Typography.Paragraph>
+				<Typography.Paragraph className="text-sm leading-relaxed">
+					{info.usciFeeSummary}
+				</Typography.Paragraph>
+				<OfficialLink label="Check your exact fee →" url={OFFICIAL_LINKS.feeCalculator} />
+			</View>
+
+			<Separator />
+
+			<View className="flex-row items-start justify-between gap-3">
+				<View className="flex-1">
+					<Typography.Paragraph className="font-medium">This app’s service fee</Typography.Paragraph>
+					<Typography.Paragraph color="muted" className="text-xs">
+						One-time, to unlock your print-ready package. Not a government fee.
+					</Typography.Paragraph>
+				</View>
+				<Typography.Paragraph className="font-semibold tabular-nums">
+					${SERVICE_FEE_USD}
+				</Typography.Paragraph>
+			</View>
+
+			<Typography.Paragraph color="muted" className="text-xs leading-relaxed">
+				{FEE_DISCLAIMER} ({FILING_FEE_AS_OF}.)
+			</Typography.Paragraph>
+		</Surface>
+	)
+}
+
+function FilingInstructions({ formType }: { formType: RenderDraftArgs['formType'] }) {
+	const info = filingInfoFor(formType)
+	return (
+		<View className="gap-2">
+			<Typography.Heading className="text-base font-semibold">How to file</Typography.Heading>
+			<Typography.Paragraph className="text-sm leading-relaxed">
+				{info.filingInstructions}
+			</Typography.Paragraph>
+			<Typography.Paragraph color="muted" className="text-sm leading-relaxed">
+				Use the current form edition, sign and date it (an unsigned form is rejected), and include
+				the correct fee. Confirm all details on uscis.gov before submitting.
+			</Typography.Paragraph>
+			<View className="flex-row flex-wrap gap-4">
+				<OfficialLink label="Filing address →" url={info.addressLink} />
+				<OfficialLink label="Fee waiver (I-912) →" url={OFFICIAL_LINKS.feeWaiver} />
+			</View>
+		</View>
+	)
+}
 
 export function ReviewPay() {
 	const { application, draft, isUnlocked } = useJourneyHub()
 	const interviewDone = useInterviewDone()
 	const [previewBusy, setPreviewBusy] = useState(false)
+	const [packageBusy, setPackageBusy] = useState(false)
 	const isDraft = application.status === 'draft'
 	const meta = formMetaFor(application.formType)
 
-	const handlePreview = async () => {
-		if (!draft || previewBusy) return
-		setPreviewBusy(true)
+	async function runExport(
+		open: (args: RenderDraftArgs) => Promise<void>,
+		setBusy: (value: boolean) => void,
+		failureTitle: string,
+	) {
+		if (!draft || previewBusy || packageBusy) return
+		setBusy(true)
 		try {
 			// Branch on draft.formType so the answers union discriminates.
 			if (draft.formType === 'i765') {
-				await openDraftPreview({
+				await open({
 					formType: 'i765',
 					answers: draft.answers,
 					applicationKind: application.applicationKind,
 				})
 			} else {
-				await openDraftPreview({
+				await open({
 					formType: 'i90',
 					answers: draft.answers,
 					applicationKind: application.applicationKind,
 				})
 			}
 		} catch (error) {
-			Alert.alert(
-				'Could not build preview',
-				error instanceof Error ? error.message : 'Something went wrong building the preview.',
-			)
+			Alert.alert(failureTitle, error instanceof Error ? error.message : 'Something went wrong.')
 		} finally {
-			setPreviewBusy(false)
+			setBusy(false)
 		}
 	}
 
 	return (
-		<View className="gap-2">
+		<View className="gap-3">
 			<SectionHeading title="Review & Pay" />
 			<Typography.Paragraph color="muted">
 				{isUnlocked
-					? 'Unlocked — download your filing package anytime, edits included.'
-					: 'Preview your completed form for free. Pay once to download the print-ready filing package. The government filing fee is separate and paid to USCIS directly.'}
+					? 'Unlocked — download your clean, print-ready filing package anytime, edits included.'
+					: 'Preview your completed form for free. Pay once to download the print-ready package. The USCIS filing fee is separate and paid to USCIS directly.'}
 			</Typography.Paragraph>
+
 			{isDraft && (
 				<>
 					<Button
 						variant="secondary"
-						isDisabled={!interviewDone || previewBusy}
-						onPress={handlePreview}
+						isDisabled={!interviewDone || previewBusy || packageBusy}
+						onPress={() => runExport(openDraftPreview, setPreviewBusy, 'Could not build preview')}
 					>
 						<Button.Label>
 							{previewBusy ? 'Preparing preview…' : 'Preview your form (free)'}
@@ -63,13 +143,26 @@ export function ReviewPay() {
 					<Typography.Paragraph color="muted" type="body-sm">
 						{`Official ${meta.title} · OMB ${meta.omb} (expires ${meta.ombExpires}). Watermarked — not for filing.`}
 					</Typography.Paragraph>
-					<Button
-						variant="secondary"
-						isDisabled={!interviewDone}
-						onPress={() => comingSoon(isUnlocked ? 'Filing package' : 'Preview & pay')}
-					>
-						<Button.Label>{isUnlocked ? 'Get filing package' : 'Preview & pay'}</Button.Label>
-					</Button>
+
+					<FeeBreakdown formType={application.formType} />
+					<FilingInstructions formType={application.formType} />
+
+					{isUnlocked ? (
+						<Button
+							isDisabled={!interviewDone || packageBusy || previewBusy}
+							onPress={() =>
+								runExport(openFilingPackage, setPackageBusy, 'Could not build filing package')
+							}
+						>
+							<Button.Label>
+								{packageBusy ? 'Preparing package…' : 'Get filing package (clean PDF)'}
+							</Button.Label>
+						</Button>
+					) : (
+						<Button isDisabled={!interviewDone} onPress={() => comingSoon('Preview & pay')}>
+							<Button.Label>Unlock filing package</Button.Label>
+						</Button>
+					)}
 				</>
 			)}
 		</View>

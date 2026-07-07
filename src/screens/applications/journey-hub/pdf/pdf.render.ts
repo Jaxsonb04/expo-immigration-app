@@ -18,22 +18,42 @@ export type RenderDraftArgs = (
 ) & { applicationKind: ApplicationKind }
 
 /**
- * Fill the bundled template from the application's own draft (ADR-0014),
- * flatten so the values are baked page content (not a clean editable form),
- * then watermark — AFTER flatten, so the baked values sit under the stamp.
+ * Fill the bundled template from the application's own draft (ADR-0014) and
+ * flatten so the values are baked page content (not a clean editable form).
+ * The free preview stamps a DRAFT watermark AFTER flatten (so baked values sit
+ * under the stamp); the entitlement-gated filing package renders clean.
  */
-export async function renderDraftPreview(
+export async function renderFilledForm(
 	templateBase64: string,
 	args: RenderDraftArgs,
+	options: { watermark: boolean },
 ): Promise<{ base64: string; filledCount: number }> {
 	const doc = await PDFDocument.load(templateBase64, { ignoreEncryption: true })
-	const boldFont = await doc.embedFont(StandardFonts.HelveticaBold)
 	const ops =
 		args.formType === 'i765'
 			? buildI765Ops(args.answers, args.applicationKind)
 			: buildI90Ops(args.answers)
 	const filledCount = applyOps(doc.getForm(), ops)
 	doc.getForm().flatten()
-	drawDraftWatermark(doc, boldFont)
+	if (options.watermark) {
+		const boldFont = await doc.embedFont(StandardFonts.HelveticaBold)
+		drawDraftWatermark(doc, boldFont)
+	}
 	return { base64: await doc.saveAsBase64(), filledCount }
+}
+
+/** Free watermarked draft preview (ADR-0007). */
+export function renderDraftPreview(
+	templateBase64: string,
+	args: RenderDraftArgs,
+): Promise<{ base64: string; filledCount: number }> {
+	return renderFilledForm(templateBase64, args, { watermark: true })
+}
+
+/** Entitlement-gated clean render for the print-ready filing package. */
+export function renderFilingPackage(
+	templateBase64: string,
+	args: RenderDraftArgs,
+): Promise<{ base64: string; filledCount: number }> {
+	return renderFilledForm(templateBase64, args, { watermark: false })
 }
