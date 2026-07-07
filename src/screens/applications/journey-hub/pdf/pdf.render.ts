@@ -32,7 +32,7 @@ export async function renderFilledForm(
 	const ops =
 		args.formType === 'i765'
 			? buildI765Ops(args.answers, args.applicationKind)
-			: buildI90Ops(args.answers)
+			: buildI90Ops(args.answers, args.applicationKind)
 	const filledCount = applyOps(doc.getForm(), ops)
 	doc.getForm().flatten()
 	if (options.watermark) {

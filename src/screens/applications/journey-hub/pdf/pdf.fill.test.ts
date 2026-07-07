@@ -118,8 +118,10 @@ describe('I-90 field map against the bundled template', () => {
 
 	test('every op emitted for a full draft targets a field that exists', async () => {
 		const names = await fieldNamesOf(i90Template)
-		for (const op of buildI90Ops(fullI90Draft)) {
-			expect(names).toContain(op.field)
+		for (const kind of ['renewal', 'replacement'] as const) {
+			for (const op of buildI90Ops(fullI90Draft, kind)) {
+				expect(names).toContain(op.field)
+			}
 		}
 	})
 
@@ -130,6 +132,35 @@ describe('I-90 field map against the bundled template', () => {
 		expect(I90_FIELDS.mailingUnitApt).toBe('form1[0].#subform[0].P1_checkbox6c_Unit[0]')
 		expect(I90_FIELDS.mailingUnitSte).toBe('form1[0].#subform[0].P1_checkbox6c_Unit[1]')
 		expect(I90_FIELDS.mailingUnitFlr).toBe('form1[0].#subform[0].P1_checkbox6c_Unit[2]')
+	})
+
+	// Same tripwire for the Part 2 Item 2 reason boxes: the P2_checkbox2
+	// indices do NOT follow the printed 2.a–2.j order (verified against the
+	// template's own TU tooltips and export values — 2.a is [5], 2.e is [0]).
+	// Every sibling index exists, so only literal pins catch a renumbering.
+	test('pins the Part 2 reason checkbox indices to literal paths', () => {
+		expect(I90_FIELDS.reasonLostStolenDestroyed).toBe('form1[0].#subform[1].P2_checkbox2[5]')
+		expect(I90_FIELDS.reasonMutilated).toBe('form1[0].#subform[1].P2_checkbox2[7]')
+		expect(I90_FIELDS.reasonDhsError).toBe('form1[0].#subform[1].P2_checkbox2[4]')
+		expect(I90_FIELDS.reasonNameChanged).toBe('form1[0].#subform[1].P2_checkbox2[0]')
+		expect(I90_FIELDS.reasonExpiring).toBe('form1[0].#subform[1].P2_checkbox2[1]')
+	})
+
+	test('every mapped Part 2 reason box is checkable on the real template', async () => {
+		const doc = await PDFDocument.load(i90Template, { ignoreEncryption: true })
+		const form = doc.getForm()
+		const reasonFields = [
+			I90_FIELDS.reasonLostStolenDestroyed,
+			I90_FIELDS.reasonMutilated,
+			I90_FIELDS.reasonDhsError,
+			I90_FIELDS.reasonNameChanged,
+			I90_FIELDS.reasonExpiring,
+		]
+		const ops: FillOp[] = reasonFields.map((field) => ({ kind: 'check', field }))
+		expect(applyOps(form, ops)).toBe(reasonFields.length)
+		for (const field of reasonFields) {
+			expect(form.getCheckBox(field).isChecked()).toBe(true)
+		}
 	})
 })
 
@@ -193,24 +224,79 @@ describe('buildI765Ops', () => {
 			}
 		}
 	})
+
+	// Cross-form tripwire: the I-90 Part 2 mapping must never leak into the
+	// I-765 build — every I-765 op stays on that form's Page paths.
+	test('never targets I-90 subform paths', () => {
+		for (const kind of ['initial', 'renewal', 'replacement'] as const) {
+			for (const op of buildI765Ops(fullI765Draft, kind)) {
+				expect(op.field).not.toContain('#subform')
+			}
+		}
+	})
 })
 
 describe('buildI90Ops', () => {
+	const i90ReasonFields = [
+		I90_FIELDS.reasonLostStolenDestroyed,
+		I90_FIELDS.reasonMutilated,
+		I90_FIELDS.reasonDhsError,
+		I90_FIELDS.reasonNameChanged,
+		I90_FIELDS.reasonExpiring,
+	]
+
 	test('maps the name and normalized A-Number', () => {
-		const ops = buildI90Ops(fullI90Draft)
+		const ops = buildI90Ops(fullI90Draft, 'replacement')
 		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.familyName, value: 'Santos' })
 		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.givenName, value: 'Maria' })
 		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.aNumber, value: '012345678' })
 	})
 
 	test('uses the plain-order STE checkbox for a suite unit', () => {
-		const ops = buildI90Ops(fullI90Draft)
+		const ops = buildI90Ops(fullI90Draft, 'replacement')
 		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.mailingUnitSte })
 		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.mailingUnitNumber, value: '200' })
 	})
 
+	test('checks exactly the expiring-card reason box (2.f) for a renewal', () => {
+		const ops = buildI90Ops(fullI90Draft, 'renewal')
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.reasonExpiring })
+		for (const field of i90ReasonFields) {
+			if (field === I90_FIELDS.reasonExpiring) continue
+			expect(ops).not.toContainEqual({ kind: 'check', field })
+		}
+	})
+
+	test.each([
+		['lost', I90_FIELDS.reasonLostStolenDestroyed],
+		['stolen', I90_FIELDS.reasonLostStolenDestroyed],
+		['damaged', I90_FIELDS.reasonMutilated],
+		['error', I90_FIELDS.reasonDhsError],
+		['nameChange', I90_FIELDS.reasonNameChanged],
+	] as const)('checks exactly the right reason box for a %s replacement', (reason, expected) => {
+		const ops = buildI90Ops(
+			{ ...fullI90Draft, form: { ...fullI90Draft.form, replacementReason: reason } },
+			'replacement',
+		)
+		expect(ops).toContainEqual({ kind: 'check', field: expected })
+		for (const field of i90ReasonFields) {
+			if (field === expected) continue
+			expect(ops).not.toContainEqual({ kind: 'check', field })
+		}
+	})
+
+	test('a replacement draft without a reason answer checks no reason box', () => {
+		const ops = buildI90Ops(
+			{ ...fullI90Draft, form: { ...fullI90Draft.form, replacementReason: undefined } },
+			'replacement',
+		)
+		for (const field of i90ReasonFields) {
+			expect(ops).not.toContainEqual({ kind: 'check', field })
+		}
+	})
+
 	test('an empty draft emits no empty-valued ops and never throws', () => {
-		const empty = buildI90Ops(emptyDraftAnswers)
+		const empty = buildI90Ops(emptyDraftAnswers, 'renewal')
 		for (const op of empty) {
 			if (op.kind !== 'check') {
 				expect(op.value).not.toBe('')
@@ -265,7 +351,7 @@ describe('renderDraftPreview', () => {
 		const rendered = await PDFDocument.load(base64)
 		expect(rendered.getPageCount()).toBeGreaterThan(0)
 		expect(rendered.getForm().getFields().length).toBe(0)
-		expect(filledCount).toBe(buildI90Ops(fullI90Draft).length)
+		expect(filledCount).toBe(buildI90Ops(fullI90Draft, 'renewal').length)
 	})
 })
 

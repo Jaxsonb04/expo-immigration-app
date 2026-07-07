@@ -1,4 +1,4 @@
-import type { I90DraftAnswers } from '@convex/shared/applicationShapes'
+import type { ApplicationKind, I90DraftAnswers } from '@convex/shared/applicationShapes'
 import { formatUsDate, normalizeANumber, pushAddressOps, pushTextOp, type FillOp } from './pdf.fill'
 
 // Fully-qualified AcroForm paths verified against the bundled 2025-02-27
@@ -25,17 +25,57 @@ export const I90_FIELDS = {
 	dateOfBirth: `${S1}P1_Line9_DateOfBirth[0]`,
 	// Note the lowercase 'of' — this edition really names it CountryofBirth.
 	countryOfBirth: `${S1}P1_Line11_CountryofBirth[0]`,
+	// Part 2 Item 2 "Reason for Application" (Section A) boxes, verified per
+	// checkbox against this edition's own TU tooltips (which carry the printed
+	// item text) plus widget y-geometry AND the checkbox export values
+	// ('2a'/'2c'/'2d'/'2e'/'2f'). The indices do NOT follow the printed
+	// 2.a–2.j order — e.g. 2.a is [5] and 2.e is [0] — so never renumber
+	// these from the printed form.
+	reasonLostStolenDestroyed: `${S1}P2_checkbox2[5]`, // 2.a
+	reasonMutilated: `${S1}P2_checkbox2[7]`, // 2.c
+	reasonDhsError: `${S1}P2_checkbox2[4]`, // 2.d
+	reasonNameChanged: `${S1}P2_checkbox2[0]`, // 2.e
+	reasonExpiring: `${S1}P2_checkbox2[1]`, // 2.f
 } as const
 
+// Part 2 Item 2 destination per collected replacement reason. Every value the
+// interview offers maps to a printed box: 'lost' and 'stolen' share 2.a
+// ("lost, stolen, or destroyed"), 'damaged' is the printed "mutilated" (2.c),
+// 'error' is the DHS data-error box (2.d), 'nameChange' is 2.e.
+const REPLACEMENT_REASON_FIELDS: Record<
+	NonNullable<I90DraftAnswers['form']['replacementReason']>,
+	string
+> = {
+	lost: I90_FIELDS.reasonLostStolenDestroyed,
+	stolen: I90_FIELDS.reasonLostStolenDestroyed,
+	damaged: I90_FIELDS.reasonMutilated,
+	error: I90_FIELDS.reasonDhsError,
+	nameChange: I90_FIELDS.reasonNameChanged,
+}
+
 /**
- * Build the fill ops for an I-90 draft. form.cardExpirationDate and
- * form.replacementReason are deliberately unmapped: the Part 2 reason
- * checkboxes (P2_checkbox2[0..n]) cannot be safely ordered without visual
- * verification, and no expiration-date field exists on this edition.
+ * Build the fill ops for an I-90 draft. form.cardExpirationDate stays
+ * unmapped — no expiration-date field exists on this edition.
+ *
+ * TODO(M2-T2): Part 2 Item 1 "My status is" (P2_checkbox1[0..2] = lawful
+ * permanent resident / commuter / conditional) stays unmapped: the interview
+ * does not collect immigration status, and defaulting everyone to 1.a would
+ * mis-file commuter or conditional residents. Needs a new interview step
+ * before it can be wired (see docs/M2-T1-form-field-audit.md, rec. 2–3).
  */
-export function buildI90Ops(answers: I90DraftAnswers): FillOp[] {
+export function buildI90Ops(answers: I90DraftAnswers, applicationKind: ApplicationKind): FillOp[] {
 	const ops: FillOp[] = []
 	const personFacts = answers.personFacts
+
+	// Part 2 Item 2 reason (Section A): a renewal is always the expiring-card
+	// box (2.f); a replacement follows the collected reason. 'initial' is not
+	// a supported I-90 situation, and a replacement draft that has not yet
+	// answered the reason step emits nothing rather than guessing.
+	if (applicationKind === 'renewal') {
+		ops.push({ kind: 'check', field: I90_FIELDS.reasonExpiring })
+	} else if (applicationKind === 'replacement' && answers.form.replacementReason !== undefined) {
+		ops.push({ kind: 'check', field: REPLACEMENT_REASON_FIELDS[answers.form.replacementReason] })
+	}
 
 	pushTextOp(ops, I90_FIELDS.familyName, personFacts.familyName)
 	pushTextOp(ops, I90_FIELDS.givenName, personFacts.givenName)
