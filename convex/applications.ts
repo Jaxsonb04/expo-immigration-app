@@ -119,22 +119,30 @@ export const getApplication = query({
 	handler: async (ctx, args) => {
 		const ownerId = await requireOwnerId(ctx)
 		const application = await getOwnedApplication(ctx, ownerId, args.applicationId)
-		const [applicant, draft, requirements, entitlement, linkedCase] = await Promise.all([
-			ctx.db.get('applicants', application.applicantId),
-			getDraftForApplication(ctx, application._id),
-			ctx.db
-				.query('applicationDocuments')
-				.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))
-				.take(50),
-			ctx.db
-				.query('entitlements')
-				.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))
-				.take(10),
-			ctx.db
-				.query('cases')
-				.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))
-				.first(),
-		])
+		const [applicant, draft, requirements, entitlement, linkedCase, applicantDocs] =
+			await Promise.all([
+				ctx.db.get('applicants', application.applicantId),
+				getDraftForApplication(ctx, application._id),
+				ctx.db
+					.query('applicationDocuments')
+					.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))
+					.take(50),
+				ctx.db
+					.query('entitlements')
+					.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))
+					.take(10),
+				ctx.db
+					.query('cases')
+					.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))
+					.first(),
+				// The applicant's Vault documents, so the UI can resolve an attached
+				// slot's document and offer the reuse picker (M2-T3) without a second
+				// round-trip.
+				ctx.db
+					.query('documents')
+					.withIndex('by_applicantId', (q) => q.eq('applicantId', application.applicantId))
+					.take(100),
+			])
 		return {
 			application,
 			applicant,
@@ -142,6 +150,17 @@ export const getApplication = query({
 			requirements,
 			isUnlocked: entitlement.some((e) => e.status === 'active'),
 			case: linkedCase,
+			// Only current (non-superseded) documents are reusable.
+			applicantDocuments: applicantDocs
+				.filter((doc) => doc.supersededById === undefined)
+				.map((doc) => ({
+					_id: doc._id,
+					type: doc.type,
+					label: doc.label,
+					expiryDate: doc.expiryDate,
+					updatedAt: doc.updatedAt,
+				}))
+				.sort((a, b) => b.updatedAt - a.updatedAt),
 		}
 	},
 })
