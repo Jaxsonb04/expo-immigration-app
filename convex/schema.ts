@@ -163,6 +163,27 @@ export default defineSchema({
 		.index('by_ownerId', ['ownerId'])
 		.index('by_providerEventId', ['providerEventId']),
 
+	// M5-T2: bounded cache of the latest official USCIS news (RSS). Replaced
+	// wholesale on each successful fetch; on fetch failure the previous rows stay
+	// (stale-cache fallback, convex/news.ts). Every url is validated against the
+	// official https://www.uscis.gov/ prefix before it is written — twice (parse
+	// time and write time).
+	newsItems: defineTable({
+		title: v.string(),
+		url: v.string(),
+		publishedAt: v.number(),
+		summary: v.string(),
+		fetchedAt: v.number(),
+	}).index('by_publishedAt', ['publishedAt']),
+
+	// Singleton fetch-status row for the news cache; lastSuccessAt/status are
+	// diagnostic (the UI staleness note derives from newsItems.fetchedAt).
+	newsMeta: defineTable({
+		status: literals('ok', 'error'),
+		lastFetchAt: v.number(),
+		lastSuccessAt: v.optional(v.number()),
+	}),
+
 	// Per-owner daily message counter for the Claude assistant (M1-T1,
 	// MASTER_PLAN "Interfaces"). Chat transcripts stay device-session-only; the
 	// only Convex-stored chat data is this bounded counter, which enforces the

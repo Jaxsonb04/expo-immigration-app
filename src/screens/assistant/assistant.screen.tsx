@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { styledIcon } from '@/components/styled-icon'
 
 import { Composer } from './assistant.composer'
+import { AssistantNews } from './assistant.news'
 import { useAssistantChat } from './assistant.data'
 import { Message } from './assistant.message'
 import { OPENING_REPLIES } from './assistant.recommendation'
@@ -114,6 +115,9 @@ export function AssistantScreen() {
 						isBusy={!canSend}
 					/>
 				))}
+				{/* M5-T2: official USCIS news, only while the transcript is empty so it
+				    never crowds an active conversation. */}
+				{isEmpty ? <AssistantNews /> : null}
 			</ScrollView>
 
 			<KeyboardStickyView>
