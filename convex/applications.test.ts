@@ -92,7 +92,27 @@ describe('createApplication', () => {
 			'passportPhoto',
 		])
 		expect(detail.requirements.every((r) => r.status === 'needed')).toBe(true)
-		expect(detail.isUnlocked).toBe(false)
+		// The app is free: a brand-new application with no entitlement rows is
+		// already unlocked for the clean export (convex/model/entitlements.ts).
+		expect(detail.isUnlocked).toBe(true)
+	})
+
+	test('clean export is unlocked for a plain owner who never purchased anything', async () => {
+		const t = newT()
+		const alice = t.withIdentity({ subject: 'alice' })
+		const applicantId = await alice.mutation(api.applicants.createApplicant, {
+			displayName: 'Alice',
+			isSelf: true,
+		})
+		const applicationId = await alice.mutation(api.applications.createApplication, {
+			applicantId,
+			formType: 'i765',
+			applicationKind: 'renewal',
+		})
+		// No entitlement row exists and no purchase mutation was ever called —
+		// the server still treats the owner as entitled to the clean export.
+		const detail = await alice.query(api.applications.getApplication, { applicationId })
+		expect(detail.isUnlocked).toBe(true)
 	})
 
 	test('rejects unsupported situations (I-90 has no initial)', async () => {
@@ -376,8 +396,8 @@ describe('home dashboard + vault', () => {
 		expect(needed[0]).toMatchObject({ requirementKey: 'passportPhoto' })
 
 		expect(dashboard.recentActivity.length).toBeLessThanOrEqual(5)
-		const unlocked = dashboard.activeApplications.filter((a) => a.isUnlocked)
-		expect(unlocked.length).toBeGreaterThanOrEqual(1)
+		// Free-for-everyone entitlement seam: every active application is unlocked.
+		expect(dashboard.activeApplications.every((a) => a.isUnlocked)).toBe(true)
 	})
 
 	test('vault is owner-scoped and includes needed slots with context', async () => {

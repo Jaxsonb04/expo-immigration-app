@@ -13,14 +13,6 @@ import type { FormType } from '@convex/shared/applicationShapes'
  * stale build is visible. */
 export const FILING_FEE_AS_OF = 'G-1055 Edition 05/29/26, verified 2026-07-06'
 
-/**
- * The app's own one-time service fee to unlock the print-ready package — kept
- * strictly separate from the government filing fee below.
- * PLACEHOLDER: at runtime the real price should come from the store product
- * (RevenueCat), not this constant. TODO(business): confirm the price.
- */
-export const SERVICE_FEE_USD = 49
-
 export const OFFICIAL_LINKS = {
 	feeCalculator: 'https://www.uscis.gov/feecalculator',
 	feeWaiver: 'https://www.uscis.gov/i-912',

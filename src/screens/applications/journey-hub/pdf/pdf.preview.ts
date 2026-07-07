@@ -95,12 +95,11 @@ export function openDraftPreview(args: RenderDraftArgs): Promise<void> {
 }
 
 /**
- * Entitlement-gated clean (un-watermarked) print-ready form. The caller must
- * only invoke this for an unlocked application; the entitlement is
- * server-authoritative (getApplication.isUnlocked). The render itself is
- * on-device — a determined user could re-create a clean copy of their own
- * public USCIS form, so this is a payment nudge, not DRM; a future server-render
- * would harden it if ever needed.
+ * Clean (un-watermarked) print-ready form — free for every user. The
+ * server-side entitlement seam (getApplication.isUnlocked, backed by
+ * convex/model/entitlements.ts) defaults to unlocked for all owners, so no
+ * purchase exists anywhere in the app; the seam stays server-authoritative in
+ * case monetization ever returns. The render itself is on-device.
  */
 export function openFilingPackage(args: RenderDraftArgs): Promise<void> {
 	return renderAndShare(args, {

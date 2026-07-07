@@ -11,7 +11,7 @@ export function EmptyDashboard() {
 			</Typography.Heading>
 			<Typography.Paragraph color="muted" className="text-lg">
 				Answer plain-language questions, keep your documents in one place, and never miss a
-				deadline. Free to prepare.
+				deadline. Completely free.
 			</Typography.Paragraph>
 			<StartApplicationButton />
 		</BodyScrollView>

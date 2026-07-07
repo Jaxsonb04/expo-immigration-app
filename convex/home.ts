@@ -2,6 +2,7 @@ import { query } from './_generated/server'
 import type { Doc } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
 import { requireOwnerId } from './lib/auth'
+import { isEntitledToCleanExport } from './model/entitlements'
 import { filingWindowDays } from './shared/applicationShapes'
 
 // Home dashboard (decision 8): everything here is derived from bounded,
@@ -61,7 +62,7 @@ export const getHomeDashboard = query({
 				currentStepKey: application.currentStepKey,
 				completedStepCount: application.completedStepCount,
 				totalStepCount: application.totalStepCount,
-				isUnlocked: unlockedApplicationIds.has(application._id),
+				isUnlocked: isEntitledToCleanExport(unlockedApplicationIds.has(application._id)),
 				updatedAt: application.updatedAt,
 			}))
 		const activeApplicationIds = new Set(activeApplications.map((a) => a._id))

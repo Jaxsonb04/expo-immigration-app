@@ -5,7 +5,6 @@ import {
 	FEE_DISCLAIMER,
 	FILING_INFO,
 	OFFICIAL_LINKS,
-	SERVICE_FEE_USD,
 	filingInfoFor,
 } from './filing-info'
 
@@ -24,10 +23,6 @@ describe('filing info', () => {
 
 	test('i765 fee summary never presents a single flat number (it is category-dependent)', () => {
 		expect(FILING_INFO.i765.usciFeeSummary.toLowerCase()).toMatch(/varies|categor/)
-	})
-
-	test('service fee is a positive one-time amount, kept separate from the USCIS fee', () => {
-		expect(SERVICE_FEE_USD).toBeGreaterThan(0)
 	})
 
 	test('every official link is an https uscis.gov URL', () => {

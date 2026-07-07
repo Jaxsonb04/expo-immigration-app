@@ -8,7 +8,7 @@ import { Track } from './journey-hub.track'
 
 /**
  * The Journey Hub namespace (decision 10): the Prepare | Documents |
- * Review & Pay | Track spine as provider-fed parts. Every part reads from
+ * Review & File | Track spine as provider-fed parts. Every part reads from
  * `JourneyHub.Provider`, so layouts can rearrange or drop sections without
  * editing their internals.
  */

@@ -3,6 +3,7 @@ import { zodToConvex } from 'convex-helpers/server/zod4'
 import { literals } from 'convex-helpers/validators'
 import { mutation, query } from './_generated/server'
 import { requireOwnerId } from './lib/auth'
+import { isEntitledToCleanExport } from './model/entitlements'
 import {
 	computeProgress,
 	getDraftForApplication,
@@ -148,7 +149,7 @@ export const getApplication = query({
 			applicant,
 			draft,
 			requirements,
-			isUnlocked: entitlement.some((e) => e.status === 'active'),
+			isUnlocked: isEntitledToCleanExport(entitlement.some((e) => e.status === 'active')),
 			case: linkedCase,
 			// Only current (non-superseded) documents are reusable.
 			applicantDocuments: applicantDocs

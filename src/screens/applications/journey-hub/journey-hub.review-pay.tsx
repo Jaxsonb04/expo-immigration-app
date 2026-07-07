@@ -1,16 +1,9 @@
 import { SectionHeading } from '@/components/core'
-import {
-	FEE_DISCLAIMER,
-	FILING_FEE_AS_OF,
-	OFFICIAL_LINKS,
-	SERVICE_FEE_USD,
-	filingInfoFor,
-} from '@/lib/filing-info'
-import { Button, Separator, Surface, Typography } from 'heroui-native'
+import { FEE_DISCLAIMER, FILING_FEE_AS_OF, OFFICIAL_LINKS, filingInfoFor } from '@/lib/filing-info'
+import { Button, Surface, Typography } from 'heroui-native'
 import { useState } from 'react'
 import { Alert, Linking, Pressable, View } from 'react-native'
 import { useInterviewDone, useJourneyHub } from './journey-hub.context'
-import { comingSoon } from './journey-hub.utils'
 import type { RenderDraftArgs } from './pdf/pdf.render'
 import { formMetaFor, openDraftPreview, openFilingPackage } from './pdf/pdf.preview'
 
@@ -23,9 +16,9 @@ function OfficialLink({ label, url }: { label: string; url: string }) {
 	)
 }
 
-/** USCIS government fee and this app's service fee, kept as two clearly separate
- * line items so no one mistakes the app's charge for a government fee. */
-function FeeBreakdown({ formType }: { formType: RenderDraftArgs['formType'] }) {
+/** The USCIS government filing fee, shown for information only. The app itself
+ * charges nothing — this fee goes to the U.S. government, never to this app. */
+function UscisFeeInfo({ formType }: { formType: RenderDraftArgs['formType'] }) {
 	const info = filingInfoFor(formType)
 	return (
 		<Surface variant="secondary" className="gap-3 rounded-2xl p-4">
@@ -40,20 +33,6 @@ function FeeBreakdown({ formType }: { formType: RenderDraftArgs['formType'] }) {
 					{info.usciFeeSummary}
 				</Typography.Paragraph>
 				<OfficialLink label="Check your exact fee →" url={OFFICIAL_LINKS.feeCalculator} />
-			</View>
-
-			<Separator />
-
-			<View className="flex-row items-start justify-between gap-3">
-				<View className="flex-1">
-					<Typography.Paragraph className="font-medium">This app’s service fee</Typography.Paragraph>
-					<Typography.Paragraph color="muted" className="text-xs">
-						One-time, to unlock your print-ready package. Not a government fee.
-					</Typography.Paragraph>
-				</View>
-				<Typography.Paragraph className="font-semibold tabular-nums">
-					${SERVICE_FEE_USD}
-				</Typography.Paragraph>
 			</View>
 
 			<Typography.Paragraph color="muted" className="text-xs leading-relaxed">
@@ -84,7 +63,7 @@ function FilingInstructions({ formType }: { formType: RenderDraftArgs['formType'
 }
 
 export function ReviewPay() {
-	const { application, draft, isUnlocked } = useJourneyHub()
+	const { application, draft } = useJourneyHub()
 	const interviewDone = useInterviewDone()
 	const [previewBusy, setPreviewBusy] = useState(false)
 	const [packageBusy, setPackageBusy] = useState(false)
@@ -122,11 +101,10 @@ export function ReviewPay() {
 
 	return (
 		<View className="gap-3">
-			<SectionHeading title="Review & Pay" />
+			<SectionHeading title="Review & File" />
 			<Typography.Paragraph color="muted">
-				{isUnlocked
-					? 'Unlocked — download your clean, print-ready filing package anytime, edits included.'
-					: 'Preview your completed form for free. Pay once to download the print-ready package. The USCIS filing fee is separate and paid to USCIS directly.'}
+				Preview your form, then download your clean, print-ready filing package — free, edits
+				included. The USCIS filing fee is separate and paid to USCIS directly, never to this app.
 			</Typography.Paragraph>
 
 			{isDraft && (
@@ -136,33 +114,25 @@ export function ReviewPay() {
 						isDisabled={!interviewDone || previewBusy || packageBusy}
 						onPress={() => runExport(openDraftPreview, setPreviewBusy, 'Could not build preview')}
 					>
-						<Button.Label>
-							{previewBusy ? 'Preparing preview…' : 'Preview your form (free)'}
-						</Button.Label>
+						<Button.Label>{previewBusy ? 'Preparing preview…' : 'Preview your form'}</Button.Label>
 					</Button>
 					<Typography.Paragraph color="muted" type="body-sm">
 						{`Official ${meta.title} · OMB ${meta.omb} (expires ${meta.ombExpires}). Watermarked — not for filing.`}
 					</Typography.Paragraph>
 
-					<FeeBreakdown formType={application.formType} />
+					<UscisFeeInfo formType={application.formType} />
 					<FilingInstructions formType={application.formType} />
 
-					{isUnlocked ? (
-						<Button
-							isDisabled={!interviewDone || packageBusy || previewBusy}
-							onPress={() =>
-								runExport(openFilingPackage, setPackageBusy, 'Could not build filing package')
-							}
-						>
-							<Button.Label>
-								{packageBusy ? 'Preparing package…' : 'Get filing package (clean PDF)'}
-							</Button.Label>
-						</Button>
-					) : (
-						<Button isDisabled={!interviewDone} onPress={() => comingSoon('Preview & pay')}>
-							<Button.Label>Unlock filing package</Button.Label>
-						</Button>
-					)}
+					<Button
+						isDisabled={!interviewDone || packageBusy || previewBusy}
+						onPress={() =>
+							runExport(openFilingPackage, setPackageBusy, 'Could not build filing package')
+						}
+					>
+						<Button.Label>
+							{packageBusy ? 'Preparing package…' : 'Get filing package (clean PDF)'}
+						</Button.Label>
+					</Button>
 				</>
 			)}
 		</View>
