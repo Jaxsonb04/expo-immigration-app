@@ -51,6 +51,51 @@ export function useDeleteComment() {
 	return useMutation(api.community.deleteComment)
 }
 
+// --- M4-T3: per-viewer blocks ------------------------------------------------
+
+export function useBlockAuthor() {
+	return useMutation(api.community.blockAuthor)
+}
+
+export function useUnblockAuthor() {
+	return useMutation(api.community.unblockAuthor)
+}
+
+/** The viewer's own block list (blocked handles + pseudonymous profile ids). */
+export function useMyBlocks() {
+	return useQuery(api.community.listMyBlocks)
+}
+
+// --- M4-T3: moderation (email-allowlisted moderators only) -------------------
+
+export type ModerationReport = FunctionReturnType<
+	typeof api.moderation.listReports
+>['page'][number]
+
+/** Whether the current identity is a moderator (undefined while loading;
+ * false for everyone who is not on the server-side email allowlist). */
+export function useIsModerator() {
+	return useQuery(api.moderation.isModerator)
+}
+
+const REPORTS_PAGE_SIZE = 20
+
+/** Paginated open-report queue. Moderator-only — pass enabled=false to skip
+ * the query entirely for regular users (the server rejects them anyway). */
+export function useReports(enabled: boolean) {
+	return usePaginatedQuery(api.moderation.listReports, enabled ? {} : 'skip', {
+		initialNumItems: REPORTS_PAGE_SIZE,
+	})
+}
+
+export function useSetModerationStatus() {
+	return useMutation(api.moderation.setModerationStatus)
+}
+
+export function useResolveReport() {
+	return useMutation(api.moderation.resolveReport)
+}
+
 export {
 	REPORT_REASON_LABELS,
 	commentCountLabel,

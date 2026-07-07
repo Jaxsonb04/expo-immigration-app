@@ -242,6 +242,21 @@ export default defineSchema({
 		.index('by_postId_and_moderationStatus_and_createdAt', ['postId', 'moderationStatus', 'createdAt'])
 		.index('by_author', ['authorOwnerId']),
 
+	// Per-viewer block list (M4-T3). NOT moderation: a block only filters the
+	// blocker's own reads. The blocked side is the pseudonymous profile —
+	// `blockedProfileId` plus the denormalized (immutable, unique) `blockedHandle`
+	// so feed filtering never joins back to communityProfiles. No ownerId of the
+	// blocked user is ever stored here.
+	communityBlocks: defineTable({
+		blockerOwnerId: v.string(),
+		blockedProfileId: v.id('communityProfiles'),
+		blockedHandle: v.string(),
+		createdAt: v.number(),
+	})
+		.index('by_blocker', ['blockerOwnerId'])
+		.index('by_blocker_and_profile', ['blockerOwnerId', 'blockedProfileId'])
+		.index('by_blockedProfile', ['blockedProfileId']),
+
 	// Forum reports. `reporterOwnerId` is private and never surfaced. `targetKey`
 	// (`p:<id>`/`c:<id>`) is the single dedupe/lookup key spanning both target
 	// tables — at most one report per (reporter, target). by_status powers the

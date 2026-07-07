@@ -11,6 +11,7 @@ import {
 	formatRelativeTime,
 	handleInitials,
 	useAddComment,
+	useBlockAuthor,
 	useComments,
 	useDeleteComment,
 	useDeletePost,
@@ -54,17 +55,69 @@ function DeleteAction({ label, onConfirm }: { label: string; onConfirm: () => Pr
 	)
 }
 
+/**
+ * "Block author" (M4-T3): a per-viewer filter, not moderation. Confirms, then
+ * awaits the account gate (blocks belong to a recoverable account) and calls
+ * the server; the reactive queries make the author's content vanish for this
+ * viewer only. Unblock lives in Account.
+ */
+function BlockAuthorAction({ handle }: { handle: string }) {
+	const requireAccount = useRequireAccount()
+	const blockAuthor = useBlockAuthor()
+
+	async function block() {
+		const ok = await requireAccount({
+			title: 'Create a free account to block',
+			description: 'A free account remembers who you\u2019ve blocked across devices.',
+		})
+		if (!ok) return
+		try {
+			await blockAuthor({ handle })
+		} catch (error) {
+			Alert.alert('Could not block', error instanceof Error ? error.message : 'Please try again.')
+		}
+	}
+
+	function confirm() {
+		Alert.alert(
+			`Block ${handle}?`,
+			'You won\u2019t see their posts or comments anymore. You can unblock them from Account.',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{ text: 'Block', style: 'destructive', onPress: () => void block() },
+			],
+		)
+	}
+
+	return (
+		<Pressable
+			accessibilityRole="button"
+			accessibilityLabel={`Block ${handle}`}
+			className="flex-row items-center gap-1.5"
+			onPress={confirm}
+		>
+			<StyledLucideIcon name="user-x" size={13} className="text-muted" />
+			<Typography.Paragraph color="muted" className="text-xs font-medium">
+				Block author
+			</Typography.Paragraph>
+		</Pressable>
+	)
+}
+
 function CommentRow({ comment, now }: { comment: ForumComment; now: number }) {
 	const deleteComment = useDeleteComment()
 	return (
 		<Surface variant="secondary" className="gap-2 rounded-2xl p-3.5">
 			<AuthorRow handle={comment.authorHandle} at={comment.createdAt} now={now} />
 			<Typography.Paragraph className="text-sm leading-relaxed">{comment.body}</Typography.Paragraph>
-			<View className="flex-row">
+			<View className="flex-row flex-wrap items-center gap-x-4 gap-y-2">
 				{comment.isMine ? (
 					<DeleteAction label="comment" onConfirm={() => deleteComment({ commentId: comment._id })} />
 				) : (
-					<ReportAction target={{ type: 'comment', id: comment._id }} />
+					<>
+						<ReportAction target={{ type: 'comment', id: comment._id }} />
+						<BlockAuthorAction handle={comment.authorHandle} />
+					</>
 				)}
 			</View>
 		</Surface>
@@ -130,11 +183,14 @@ function PostCard({ post, now }: { post: ForumPost; now: number }) {
 			<AuthorRow handle={post.authorHandle} at={post.createdAt} now={now} />
 			<Typography.Heading className="text-xl font-bold leading-snug">{post.title}</Typography.Heading>
 			<Typography.Paragraph className="leading-relaxed">{post.body}</Typography.Paragraph>
-			<View className="flex-row">
+			<View className="flex-row flex-wrap items-center gap-x-4 gap-y-2">
 				{post.isMine ? (
 					<DeleteAction label="post" onConfirm={remove} />
 				) : (
-					<ReportAction target={{ type: 'post', id: post._id }} />
+					<>
+						<ReportAction target={{ type: 'post', id: post._id }} />
+						<BlockAuthorAction handle={post.authorHandle} />
+					</>
 				)}
 			</View>
 		</View>
@@ -157,6 +213,14 @@ export function CommunityDetailScreen({ postId }: { postId: Id<'forumPosts'> }) 
 	return (
 		<BodyScrollView contentContainerClassName="gap-5 py-4">
 			<PostCard post={post} now={now} />
+
+			<View className="flex-row items-center justify-center gap-1.5">
+				<StyledLucideIcon name="info" size={12} className="text-muted" />
+				<Typography.Paragraph color="muted" className="text-xs leading-relaxed">
+					Peer experiences from other applicants — not legal advice.
+				</Typography.Paragraph>
+			</View>
+
 			<Separator />
 
 			<View className="gap-3">

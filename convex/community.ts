@@ -6,6 +6,7 @@ import { type MutationCtx, type QueryCtx, mutation, query } from './_generated/s
 import { getAccountIdentity, getOwnerId, requireCredentialedOwnerId } from './lib/auth'
 import {
 	COMMENT_BODY_MAX,
+	MAX_BLOCKS_PER_OWNER,
 	POST_BODY_MAX,
 	POST_TITLE_MAX,
 	REPORT_NOTE_MAX,
@@ -39,8 +40,9 @@ import {
 
 // Allowlisted public post: no authorOwnerId, no reportCount, no moderation
 // internals. `isMine` lets the viewer's own content be styled without exposing
-// any other author's identity.
-const publicPostValidator = v.object({
+// any other author's identity. Exported so the M4-T3 moderation queue
+// (convex/moderation.ts) reuses the SAME allowlist for report targets.
+export const publicPostValidator = v.object({
 	_id: v.id('forumPosts'),
 	authorHandle: v.string(),
 	title: v.string(),
@@ -51,7 +53,7 @@ const publicPostValidator = v.object({
 	isMine: v.boolean(),
 })
 
-const publicCommentValidator = v.object({
+export const publicCommentValidator = v.object({
 	_id: v.id('forumComments'),
 	authorHandle: v.string(),
 	body: v.string(),
@@ -65,7 +67,7 @@ type PublicComment = typeof publicCommentValidator.type
 // Build the public shape field-by-field. `isMine` is a pure in-memory string
 // compare against the row's authorOwnerId — NO per-row DB read — so a large page
 // never fans out into N profile lookups.
-function toPublicPost(post: Doc<'forumPosts'>, callerOwnerId: string | null): PublicPost {
+export function toPublicPost(post: Doc<'forumPosts'>, callerOwnerId: string | null): PublicPost {
 	return {
 		_id: post._id,
 		authorHandle: post.authorHandle,
@@ -78,7 +80,7 @@ function toPublicPost(post: Doc<'forumPosts'>, callerOwnerId: string | null): Pu
 	}
 }
 
-function toPublicComment(comment: Doc<'forumComments'>, callerOwnerId: string | null): PublicComment {
+export function toPublicComment(comment: Doc<'forumComments'>, callerOwnerId: string | null): PublicComment {
 	return {
 		_id: comment._id,
 		authorHandle: comment.authorHandle,
@@ -88,7 +90,7 @@ function toPublicComment(comment: Doc<'forumComments'>, callerOwnerId: string | 
 	}
 }
 
-const paginatedValidator = <T extends Parameters<typeof v.array>[0]>(item: T) =>
+export const paginatedValidator = <T extends Parameters<typeof v.array>[0]>(item: T) =>
 	v.object({
 		page: v.array(item),
 		isDone: v.boolean(),
@@ -387,6 +389,113 @@ export const reportContent = mutation({
 })
 
 // ---------------------------------------------------------------------------
+// Per-viewer blocks (M4-T3). NOT moderation: a block filters ONLY the
+// blocker's own reads. Block rows reference the pseudonymous profile
+// (id + immutable handle) — never the blocked user's ownerId.
+// ---------------------------------------------------------------------------
+
+const publicBlockValidator = v.object({
+	profileId: v.id('communityProfiles'),
+	handle: v.string(),
+	createdAt: v.number(),
+})
+
+/**
+ * The handles the viewer has blocked, or null when there is nothing to filter
+ * (unauthenticated viewer, or no blocks). One bounded indexed read — handles
+ * are denormalized onto the block row, so the feed filter never joins back to
+ * communityProfiles.
+ */
+async function blockedHandlesFor(
+	ctx: QueryCtx | MutationCtx,
+	callerOwnerId: string | null,
+): Promise<Set<string> | null> {
+	if (callerOwnerId === null) return null
+	const blocks = await ctx.db
+		.query('communityBlocks')
+		.withIndex('by_blocker', (q) => q.eq('blockerOwnerId', callerOwnerId))
+		.take(MAX_BLOCKS_PER_OWNER)
+	if (blocks.length === 0) return null
+	return new Set(blocks.map((block) => block.blockedHandle))
+}
+
+/**
+ * Block an author by their public handle (the only author identifier a public
+ * read exposes). Credentialed-only, idempotent, cannot block yourself. Stores
+ * the pseudonymous profile id + handle — no ownerId of the blocked user.
+ */
+export const blockAuthor = mutation({
+	args: { handle: v.string() },
+	handler: async (ctx, args): Promise<null> => {
+		const ownerId = await requireCredentialedOwnerId(ctx)
+		const handle = normalizeHandle(args.handle)
+		const profile = await ctx.db
+			.query('communityProfiles')
+			.withIndex('by_handle', (q) => q.eq('handle', handle))
+			.first()
+		if (profile === null) throw new Error('Author not found')
+		if (profile.ownerId === ownerId) throw new Error('You can\u2019t block yourself')
+		const existing = await ctx.db
+			.query('communityBlocks')
+			.withIndex('by_blocker_and_profile', (q) =>
+				q.eq('blockerOwnerId', ownerId).eq('blockedProfileId', profile._id),
+			)
+			.first()
+		if (existing !== null) return null
+		const current = await ctx.db
+			.query('communityBlocks')
+			.withIndex('by_blocker', (q) => q.eq('blockerOwnerId', ownerId))
+			.take(MAX_BLOCKS_PER_OWNER)
+		if (current.length >= MAX_BLOCKS_PER_OWNER) {
+			throw new Error('Your block list is full \u2014 unblock someone first')
+		}
+		await ctx.db.insert('communityBlocks', {
+			blockerOwnerId: ownerId,
+			blockedProfileId: profile._id,
+			blockedHandle: profile.handle,
+			createdAt: Date.now(),
+		})
+		return null
+	},
+})
+
+/** Remove one of the caller's own blocks. Idempotent. */
+export const unblockAuthor = mutation({
+	args: { profileId: v.id('communityProfiles') },
+	handler: async (ctx, args): Promise<null> => {
+		const ownerId = await requireCredentialedOwnerId(ctx)
+		const existing = await ctx.db
+			.query('communityBlocks')
+			.withIndex('by_blocker_and_profile', (q) =>
+				q.eq('blockerOwnerId', ownerId).eq('blockedProfileId', args.profileId),
+			)
+			.first()
+		if (existing !== null) await ctx.db.delete('communityBlocks', existing._id)
+		return null
+	},
+})
+
+/** The caller's own block list: blocked profiles' PUBLIC handle only (plus the
+ * pseudonymous profile id needed to unblock). Empty for anonymous viewers. */
+export const listMyBlocks = query({
+	args: {},
+	returns: v.array(publicBlockValidator),
+	handler: async (ctx) => {
+		const ownerId = await getOwnerId(ctx)
+		if (ownerId === null) return []
+		const blocks = await ctx.db
+			.query('communityBlocks')
+			.withIndex('by_blocker', (q) => q.eq('blockerOwnerId', ownerId))
+			.take(MAX_BLOCKS_PER_OWNER)
+		return blocks.map((block) => ({
+			profileId: block.blockedProfileId,
+			handle: block.blockedHandle,
+			createdAt: block.createdAt,
+		}))
+	},
+})
+
+// ---------------------------------------------------------------------------
 // Public reads — bounded, sanitized, no auth required.
 // ---------------------------------------------------------------------------
 
@@ -397,12 +506,17 @@ export const listPosts = query({
 		const account = await getAccountIdentity(ctx) // best-effort; null when unauth
 		const callerOwnerId = account?.ownerId ?? null
 		const opts = { ...args.paginationOpts, numItems: clampPageSize(args.paginationOpts.numItems) }
+		const blocked = await blockedHandlesFor(ctx, callerOwnerId)
 		const result = await ctx.db
 			.query('forumPosts')
 			.withIndex('by_moderationStatus_and_lastActivityAt', (q) => q.eq('moderationStatus', 'visible'))
 			.order('desc')
 			.paginate(opts)
-		return { ...result, page: result.page.map((p) => toPublicPost(p, callerOwnerId)) }
+		// Per-viewer block filter, in-memory per page (a filtered page may run
+		// short; pagination cursors are unaffected). Anonymous viewers have no
+		// blocks, so the public/unauthenticated read path is unchanged.
+		const page = blocked === null ? result.page : result.page.filter((p) => !blocked.has(p.authorHandle))
+		return { ...result, page: page.map((p) => toPublicPost(p, callerOwnerId)) }
 	},
 })
 
@@ -413,6 +527,9 @@ export const getPost = query({
 		const account = await getAccountIdentity(ctx)
 		const post = await ctx.db.get('forumPosts', args.postId)
 		if (post === null || post.moderationStatus !== 'visible') return null
+		// A blocked author's post reads as not-found for the blocker only.
+		const blocked = await blockedHandlesFor(ctx, account?.ownerId ?? null)
+		if (blocked !== null && blocked.has(post.authorHandle)) return null
 		return toPublicPost(post, account?.ownerId ?? null)
 	},
 })
@@ -431,6 +548,7 @@ export const listComments = query({
 		if (post === null || post.moderationStatus !== 'visible') {
 			return { page: [], isDone: true, continueCursor: '' }
 		}
+		const blocked = await blockedHandlesFor(ctx, callerOwnerId)
 		const result = await ctx.db
 			.query('forumComments')
 			.withIndex('by_postId_and_moderationStatus_and_createdAt', (q) =>
@@ -438,6 +556,7 @@ export const listComments = query({
 			)
 			.order('asc')
 			.paginate(opts)
-		return { ...result, page: result.page.map((c) => toPublicComment(c, callerOwnerId)) }
+		const page = blocked === null ? result.page : result.page.filter((c) => !blocked.has(c.authorHandle))
+		return { ...result, page: page.map((c) => toPublicComment(c, callerOwnerId)) }
 	},
 })

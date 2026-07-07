@@ -1,5 +1,6 @@
 import { BodyScrollView } from '@/components/core'
 import { authClient } from '@/lib/auth-client'
+import { useMyBlocks, useUnblockAuthor } from '@/screens/community/community.data'
 import { api } from '@convex/_generated/api'
 import { useAction, useMutation } from 'convex/react'
 import { Stack } from 'expo-router'
@@ -48,6 +49,39 @@ function DevSection() {
 	)
 }
 
+/** Blocked community authors (M4-T3): handles only, with one-tap unblock.
+ * Hidden entirely while the viewer has no blocks. */
+function BlockedAuthorsSection() {
+	const blocks = useMyBlocks()
+	const unblockAuthor = useUnblockAuthor()
+	if (blocks === undefined || blocks.length === 0) return null
+	return (
+		<>
+			<Separator />
+			<View className="gap-3">
+				<Typography.Heading className="text-lg font-semibold">
+					Blocked in Community
+				</Typography.Heading>
+				<Typography.Paragraph color="muted" className="text-sm">
+					You won’t see posts or comments from these authors.
+				</Typography.Paragraph>
+				{blocks.map((block) => (
+					<View key={block.profileId} className="flex-row items-center justify-between gap-3">
+						<Typography.Paragraph className="flex-1 font-medium">{block.handle}</Typography.Paragraph>
+						<Button
+							size="sm"
+							variant="secondary"
+							onPress={() => void unblockAuthor({ profileId: block.profileId })}
+						>
+							<Button.Label>Unblock</Button.Label>
+						</Button>
+					</View>
+				))}
+			</View>
+		</>
+	)
+}
+
 export default function AccountTab() {
 	const themeColorForeground = useThemeColor('foreground')
 	return (
@@ -69,6 +103,8 @@ export default function AccountTab() {
 				<Button onPress={() => authClient.signOut()}>
 					<Button.Label>Sign Out</Button.Label>
 				</Button>
+
+				<BlockedAuthorsSection />
 
 				{__DEV__ && (
 					<>

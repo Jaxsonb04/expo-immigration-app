@@ -161,13 +161,36 @@ export async function deleteOwnerData(ctx: MutationCtx, ownerId: string): Promis
 		}
 	}
 
+	// Blocks the owner CREATED (they are the blocker).
+	for (;;) {
+		const rows = await ctx.db
+			.query('communityBlocks')
+			.withIndex('by_blocker', (q) => q.eq('blockerOwnerId', ownerId))
+			.take(DELETE_BATCH)
+		if (rows.length === 0) break
+		for (const row of rows) await ctx.db.delete('communityBlocks', row._id)
+	}
+
+	// The owner's profile(s), plus every OTHER viewer's block pointing AT that
+	// profile (a dangling block row would otherwise pin the erased pseudonym's
+	// handle forever). Must run while the profile rows still exist.
 	for (;;) {
 		const rows = await ctx.db
 			.query('communityProfiles')
 			.withIndex('by_ownerId', (q) => q.eq('ownerId', ownerId))
 			.take(DELETE_BATCH)
 		if (rows.length === 0) break
-		for (const row of rows) await ctx.db.delete('communityProfiles', row._id)
+		for (const row of rows) {
+			for (;;) {
+				const blocks = await ctx.db
+					.query('communityBlocks')
+					.withIndex('by_blockedProfile', (q) => q.eq('blockedProfileId', row._id))
+					.take(DELETE_BATCH)
+				if (blocks.length === 0) break
+				for (const block of blocks) await ctx.db.delete('communityBlocks', block._id)
+			}
+			await ctx.db.delete('communityProfiles', row._id)
+		}
 	}
 	// NOTE: reportCount on FOREIGN targets the erased owner reported is a
 	// non-personal aggregate and may drift down by the deleted reports; the

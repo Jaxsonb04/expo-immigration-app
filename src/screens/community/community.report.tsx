@@ -75,7 +75,7 @@ export function ReportAction({ target }: { target: ReportTarget }) {
 	}
 
 	return (
-		<Surface variant="secondary" className="gap-3 rounded-2xl p-4">
+		<Surface variant="secondary" className="w-full gap-3 rounded-2xl p-4">
 			<Typography.Paragraph className="font-medium">Why are you reporting this?</Typography.Paragraph>
 			<View className="flex-row flex-wrap gap-2">
 				{reportReasons.map((option) => (

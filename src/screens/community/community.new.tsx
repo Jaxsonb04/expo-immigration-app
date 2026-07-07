@@ -4,7 +4,7 @@ import { POST_BODY_MAX, POST_TITLE_MAX } from '@convex/shared/community'
 import { router } from 'expo-router'
 import { Button, Input, Label, TextArea, TextField, Typography } from 'heroui-native'
 import { useState } from 'react'
-import { Alert, View } from 'react-native'
+import { Alert, Pressable, View } from 'react-native'
 import { useCreatePost } from './community.data'
 
 /**
@@ -71,9 +71,20 @@ export function NewPostScreen() {
 				/>
 			</TextField>
 
-			<Button isDisabled={busy || !canSubmit} onPress={submit}>
-				<Button.Label>{busy ? 'Posting…' : 'Post to community'}</Button.Label>
-			</Button>
+			<View className="gap-2">
+				<Button isDisabled={busy || !canSubmit} onPress={submit}>
+					<Button.Label>{busy ? 'Posting…' : 'Post to community'}</Button.Label>
+				</Button>
+				<Pressable
+					accessibilityRole="link"
+					accessibilityLabel="Read the community rules"
+					onPress={() => router.push('/community-rules')}
+				>
+					<Typography.Paragraph color="muted" className="text-center text-xs leading-relaxed">
+						By posting you agree to the <Typography.Paragraph className="text-xs underline">community rules</Typography.Paragraph>.
+					</Typography.Paragraph>
+				</Pressable>
+			</View>
 		</BodyScrollView>
 	)
 }

@@ -70,9 +70,20 @@ export function CommunityScreen() {
 
 	return (
 		<BodyScrollView contentContainerClassName="gap-3 py-4">
-			<Typography.Paragraph color="muted" className="px-1 text-center text-xs leading-relaxed">
-				Peer support from others going through USCIS renewals — not legal advice.
-			</Typography.Paragraph>
+			<View className="gap-0.5 px-1">
+				<Typography.Paragraph color="muted" className="text-center text-xs leading-relaxed">
+					Peer support from others going through USCIS renewals — not legal advice.
+				</Typography.Paragraph>
+				<Pressable
+					accessibilityRole="link"
+					accessibilityLabel="Read the community rules"
+					onPress={() => router.push('/community-rules')}
+				>
+					<Typography.Paragraph color="muted" className="text-center text-xs font-medium underline">
+						Community rules
+					</Typography.Paragraph>
+				</Pressable>
+			</View>
 			{results.map((post) => (
 				<PostRow key={post._id} post={post} now={now} />
 			))}

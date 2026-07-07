@@ -1,3 +1,5 @@
 export { CommunityScreen } from './community.screen'
 export { CommunityDetailScreen } from './community.detail'
 export { NewPostScreen } from './community.new'
+export { CommunityRulesScreen } from './community.rules'
+export { CommunityModerationScreen } from './community.moderation'

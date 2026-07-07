@@ -13,10 +13,17 @@ export type ModerationStatus = (typeof moderationStatuses)[number]
 export const reportReasons = ['spam', 'harassment', 'misinformation', 'legalAdvice', 'other'] as const
 export type ReportReason = (typeof reportReasons)[number]
 
-// `open` = awaiting moderator review; `reviewed` = a moderator has actioned it
-// (M4-T3 refines the queue). Kept minimal for M4-T1.
-export const reportStatuses = ['open', 'reviewed'] as const
+// Report lifecycle (M4-T3). `open` = awaiting moderator review. A moderator
+// closes a report as `resolved` (action was taken — usually a hide) or
+// `dismissed` (nothing wrong). `reviewed` is the deprecated M4-T1 catch-all,
+// kept only so any pre-M4-T3 rows still satisfy the schema; nothing writes it.
+export const reportStatuses = ['open', 'reviewed', 'resolved', 'dismissed'] as const
 export type ReportStatus = (typeof reportStatuses)[number]
+
+// The two closed states a moderator can pick (a report can never be re-opened
+// to `open` via resolveReport, and `reviewed` is write-retired).
+export const reportResolutions = ['resolved', 'dismissed'] as const
+export type ReportResolution = (typeof reportResolutions)[number]
 
 export const reportTargetTypes = ['post', 'comment'] as const
 export type ReportTargetType = (typeof reportTargetTypes)[number]
@@ -100,3 +107,31 @@ export function generateHandle(seed: number, salt: number): string {
 export function targetKeyFor(targetType: ReportTargetType, targetId: string): string {
 	return `${targetType === 'post' ? 'p' : 'c'}:${targetId}`
 }
+
+/**
+ * Invert {@link targetKeyFor}: recover the raw document id from a targetKey.
+ * Returns null for a malformed key (wrong prefix / empty id) so callers treat
+ * garbage the same as a missing target instead of throwing.
+ */
+export function targetIdFromKey(targetType: ReportTargetType, targetKey: string): string | null {
+	const prefix = targetType === 'post' ? 'p:' : 'c:'
+	if (!targetKey.startsWith(prefix)) return null
+	const id = targetKey.slice(prefix.length)
+	return id.length > 0 ? id : null
+}
+
+// Moderator allowlist parsing (M4-T3). The MODERATOR_EMAILS deployment env var
+// is a comma-separated, case-insensitive list of account emails. Pure so it is
+// unit-testable; the trust boundary (reading the caller's email from the JWT,
+// never from an argument) lives in convex/lib/moderation.ts.
+export function parseModeratorEmails(raw: string | undefined): string[] {
+	if (raw === undefined) return []
+	return raw
+		.split(',')
+		.map((email) => email.trim().toLowerCase())
+		.filter((email) => email.length > 0)
+}
+
+// Per-viewer block list bound: enough for any real user while keeping the feed
+// filter's read fan-out bounded (public reads must stay bounded, M4-T1).
+export const MAX_BLOCKS_PER_OWNER = 200
