@@ -5,8 +5,8 @@
 ```yaml
 status: in_progress
 current_milestone: M2
-next_task: M2-T1
-last_completed: M1-T4
+next_task: M2-T2
+last_completed: M2-T1
 blockers: []
 updated_at: 2026-07-06
 ```
@@ -88,11 +88,11 @@ Forms. Keep the interface quiet, mobile-first, and task-oriented.
   - Done when: Each supported recommendation creates the correct application draft after user confirmation.
   - Evidence: The assistant recommendation card's "Start this form" now deep-links to the existing create-application modal (`/new-application`) with the recommended form + kind as router params (`assistant.screen.tsx` `handleStart` → `router.push({ pathname: '/new-application', params: { formType, applicationKind } })`, replacing the M1-T3 placeholder alert). To keep pure logic unit-testable (the hook pulls in `convex/react`/`expo-router`, which the vitest edge-runtime can't import), the situation helpers were extracted into a new pure module `new-application.situations.ts` (`situationKey`, `parseSituationKey`, choice constants, and the new `situationKeyFromParams`), which `new-application.data.ts` re-exports (`export *`) so existing `./new-application.data` importers are unchanged. `NewApplicationScreen` reads the params via `useLocalSearchParams` and seeds the form's `situationKey` default through `situationKeyFromParams`, which preselects the radio **only** when the params name one of the five supported situations (unknown/unsupported/injection params → `''`, no preselection) — the deterministic safety boundary holds; the user still confirms the applicant and taps Start. Tests: `new-application.situations.test.ts` — 7 new (all 5 supported combos preselect the right key; unsupported i90-initial, unknown form, malformed, and missing params all yield `''`). Verified: `tsc` ✓, ESLint ✓, **179/179 vitest** ✓. Live in the iOS simulator (Maestro): "Renew my work permit" → I-765 renewal card → "Start this form" → the create modal opened with **"Work Permit renewal (Form I-765)" preselected**; choosing "Myself" + "Start application" created the correct **I-765 renewal draft** (journey hub: "Work Permit renewal / Form I-765 / Step 1 of 7", with the I-765-renewal document requirements) and dismissed to `/forms/application/[id]`. The remaining four supported combos are covered by the unit tests and use the identical param→preselect→`createApplication` path.
 
-- [ ] **M2-T1 Form audit**
-  - Status: NOT_STARTED
+- [x] **M2-T1 Form audit**
+  - Status: DONE
   - Compare every I-765/I-90 interview answer with the bundled USCIS editions and document missing questions or field mappings.
   - Done when: Every required supported-flow field has an interview source, validation rule, and PDF destination.
-  - Evidence: Not recorded.
+  - Evidence: Full traceability audit in `docs/M2-T1-form-field-audit.md`. Cross-referenced all three axes — **interview source** (`interview.form.ts` step descriptors / `interviewSteps.ts`), **validation rule** (`fieldValidators` + `applicationShapes.ts` Zod shapes), and **PDF destination** (`pdf.i765-map.ts` / `pdf.i90-map.ts`) — against the ground-truth AcroForm inventory dumped from the bundled editions (`assets/forms/i-765.pdf` ed. 2025-08-26, 161 fields; `assets/forms/i-90.pdf` ed. 2025-02-27, 195 fields) via `pdf-lib`. Findings: the walkthrough-phase flow solidly covers name/DOB/country-of-birth/A-Number/mailing-address across all five situations, but **none are fileable end-to-end**. Three gap classes documented: (1) *mapped but no source* — I-765 `Line12b_SSN` is wired yet never collected; (2) *collected but never written* — I-765 & I-90 `replacementReason`, I-90 `cardExpirationDate`, and the dead `previousEadCardNumber`; (3) *required by USCIS, entirely absent* — most critically the **I-90 Part 2 application-type/reason checkboxes are entirely unmapped, so the generated I-90 indicates no renewal-vs-replacement reason at all** (P0), plus country of citizenship + city of birth (I-765), and gender/city-of-birth/mother+father names/biometrics(height,weight,eye,hair,race)/class-of-admission (I-90), and phone/email/signature on both. Includes a per-situation coverage table and a prioritized M2-T2 remediation plan. Accuracy discipline: USCIS-required judgments are marked `[confirm]` where inferred, and I-765 gender is explicitly NOT asserted as a gap because that edition's generic `LineNN` checkbox names don't track printed items (the map warns of this) — only self-named fields (all the I-90 gaps, I-765 phone/email/signature/city-of-birth) are asserted with confidence. No code changed (audit only); remediation is M2-T2.
 
 - [ ] **M2-T2 Complete pipeline**
   - Status: NOT_STARTED
