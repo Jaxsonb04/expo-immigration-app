@@ -39,7 +39,12 @@ export function preReviewStepKeys(formType: FormType): readonly string[] {
 
 // Requirement-slot templates per supported situation (decision 7): slots are
 // materialized at application creation and reconciled after each Next-save.
-// Static for now; answer-dependent requirements plug into the reconciler.
+// These are STATIC per (formType, applicationKind): requirements do NOT vary by
+// interview answers today — replacementReason (lost/stolen/damaged/error) and
+// the i90 nameChange reason do not change the required-document set. Making them
+// answer-aware would thread the draft answers into requiredSlotKeys +
+// reconcileRequirements (which already add/delete slots idempotently); it is
+// deferred until the per-reason document sets are decided.
 export const requirementTemplates: Record<FormType, Partial<Record<ApplicationKind, readonly string[]>>> = {
 	i765: {
 		initial: ['passportPhoto', 'i94'],

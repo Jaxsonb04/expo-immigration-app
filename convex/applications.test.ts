@@ -3,6 +3,7 @@ import { convexTest } from 'convex-test'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { api } from './_generated/api'
 import schema from './schema'
+import { type ApplicationKind, type FormType, supportedSituations } from './shared/applicationShapes'
 
 const modules = import.meta.glob('./**/*.ts')
 
@@ -237,6 +238,112 @@ describe('saveApplicationStep', () => {
 			eligibilityCategory: 'C08',
 		})
 	})
+
+	test('does not mark a step complete when required data is missing (server-enforced)', async () => {
+		const { alice, applicationId } = await setup()
+		// familyName missing — the slice persists, but the step must NOT flip
+		// complete, so Review stays locked. The guarantee is server-side, not a
+		// client-supplied boolean.
+		const result = await alice.mutation(api.applications.saveApplicationStep, {
+			applicationId,
+			stepKey: 'legal-name',
+			stepData: { personFacts: { givenName: 'Alice' } },
+		})
+		expect(result.completedStepCount).toBe(0)
+		expect(result.nextStepKey).toBe('legal-name')
+		const detail = await alice.query(api.applications.getApplication, { applicationId })
+		expect(detail.draft.answers.personFacts.givenName).toBe('Alice')
+		expect(detail.draft.stepCompletion['legal-name']).not.toBe(true)
+	})
+
+	test('rejects the review step key so it can never be marked complete', async () => {
+		const { alice, applicationId } = await setup()
+		await expect(
+			alice.mutation(api.applications.saveApplicationStep, {
+				applicationId,
+				stepKey: 'review',
+				stepData: { personFacts: {} },
+			}),
+		).rejects.toThrow(/Unknown step/)
+	})
+
+	test('clears a previously-saved optional field on re-save (no stale retention)', async () => {
+		const { alice, applicationId } = await setup()
+		await alice.mutation(api.applications.saveApplicationStep, {
+			applicationId,
+			stepKey: 'legal-name',
+			stepData: { personFacts: { givenName: 'Alice', middleName: 'Q', familyName: 'Anders' } },
+		})
+		// User goes Back and clears the middle name; re-saving must drop it.
+		await alice.mutation(api.applications.saveApplicationStep, {
+			applicationId,
+			stepKey: 'legal-name',
+			stepData: { personFacts: { givenName: 'Alice', familyName: 'Anders' } },
+		})
+		const detail = await alice.query(api.applications.getApplication, { applicationId })
+		expect(detail.draft.answers.personFacts.middleName).toBeUndefined()
+		expect(detail.draft.answers.personFacts.givenName).toBe('Alice')
+	})
+})
+
+// The M2-T2 Done-when, encoded as an executable end-to-end check driving the
+// real mutation: every supported situation walks its full pre-Review step
+// sequence with valid data and lands on 'review' with all 6 steps complete.
+describe('pipeline reaches Review for every supported situation (M2-T2)', () => {
+	function finalStep(situation: { formType: FormType; applicationKind: ApplicationKind }) {
+		const reason = { replacementReason: 'lost' as const }
+		if (situation.formType === 'i765') {
+			return {
+				stepKey: 'eligibility-category',
+				stepData: {
+					personFacts: { eligibilityCategory: 'C08' },
+					...(situation.applicationKind === 'replacement' ? { form: reason } : {}),
+				},
+			}
+		}
+		return {
+			stepKey: 'card-details',
+			stepData: {
+				form:
+					situation.applicationKind === 'replacement' ? reason : { cardExpirationDate: '2030-01-01' },
+			},
+		}
+	}
+
+	test.each(supportedSituations)(
+		'$formType/$applicationKind reaches Review with valid persisted data',
+		async (situation) => {
+			const t = newT()
+			const alice = t.withIdentity({ subject: 'alice' })
+			const applicantId = await alice.mutation(api.applicants.createApplicant, {
+				displayName: 'Ana',
+				isSelf: true,
+			})
+			const applicationId = await alice.mutation(api.applications.createApplication, {
+				applicantId,
+				...situation,
+			})
+
+			const steps = [
+				{ stepKey: 'legal-name', stepData: { personFacts: { givenName: 'Ana', familyName: 'Diaz' } } },
+				{ stepKey: 'date-of-birth', stepData: { personFacts: { dateOfBirth: '1990-05-01' } } },
+				{ stepKey: 'country-of-birth', stepData: { personFacts: { countryOfBirth: 'Mexico' } } },
+				{ stepKey: 'a-number', stepData: { personFacts: { aNumber: '123456789' } } },
+				{ stepKey: 'mailing-address', stepData: { personFacts: { mailingAddress } } },
+				finalStep(situation),
+			]
+
+			let result: { nextStepKey: string; completedStepCount: number; totalStepCount: number } | undefined
+			for (const step of steps) {
+				result = await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
+			}
+
+			expect(result).toBeDefined()
+			expect(result!.nextStepKey).toBe('review')
+			expect(result!.completedStepCount).toBe(6)
+			expect(result!.totalStepCount).toBe(7)
+		},
+	)
 })
 
 describe('home dashboard + vault', () => {

@@ -18,6 +18,7 @@ import {
 	type PersonFacts,
 } from './shared/applicationShapes'
 import { interviewStepKeys, preReviewStepKeys } from './shared/interviewSteps'
+import { isStepComplete, stepOwnedKeys } from './shared/interviewValidation'
 
 const draftShapeFor = { i765: i765DraftAnswersShape, i90: i90DraftAnswersShape } as const
 
@@ -169,15 +170,27 @@ export const saveApplicationStep = mutation({
 		if (application.status !== 'draft') {
 			throw new Error('Only draft applications can be edited')
 		}
-		const stepKeys = interviewStepKeys[application.formType]
-		if (!stepKeys.includes(args.stepKey)) {
+		// Only genuine pre-Review steps can be saved. This rejects REVIEW_STEP_KEY
+		// (which is never a real answer step and, if ever accepted, could push the
+		// completed-count to "done" with a real step still missing) and any
+		// unknown key.
+		const owned = stepOwnedKeys[args.stepKey]
+		if (owned === undefined || !preReviewStepKeys(application.formType).includes(args.stepKey)) {
 			throw new Error(`Unknown step "${args.stepKey}" for this application`)
 		}
 
 		const draft = await getDraftForApplication(ctx, application._id)
+		// The saved step is authoritative for the keys it owns: clear them first,
+		// then apply the incoming slice, so a field the user cleared (an omitted
+		// optional) is actually removed rather than retaining its stale prior value
+		// under a shallow merge.
+		const mergedPersonFacts: Record<string, unknown> = { ...draft.answers.personFacts }
+		const mergedForm: Record<string, unknown> = { ...draft.answers.form }
+		for (const key of owned.personFacts) delete mergedPersonFacts[key]
+		for (const key of owned.form) delete mergedForm[key]
 		const merged = {
-			personFacts: { ...draft.answers.personFacts, ...(args.stepData.personFacts ?? {}) },
-			form: { ...draft.answers.form, ...(args.stepData.form ?? {}) },
+			personFacts: { ...mergedPersonFacts, ...(args.stepData.personFacts ?? {}) },
+			form: { ...mergedForm, ...(args.stepData.form ?? {}) },
 		}
 		// Semantic validation against the single-source shape (strips unknown
 		// keys, enforces formats the storage validator can't, e.g. A-Number).
@@ -187,7 +200,17 @@ export const saveApplicationStep = mutation({
 		}
 
 		const now = Date.now()
-		const stepCompletion = { ...draft.stepCompletion, [args.stepKey]: true }
+		// Mark the step complete only when its OWNED required fields are actually
+		// present and valid in the persisted draft — server-enforced, not a
+		// client-supplied boolean. A partial/forged save persists its data but
+		// cannot flip the step (or unlock Review) until the data is real.
+		const stepComplete = isStepComplete(
+			application.formType,
+			application.applicationKind,
+			args.stepKey,
+			parsed.data,
+		)
+		const stepCompletion = { ...draft.stepCompletion, [args.stepKey]: stepComplete }
 		await ctx.db.patch('applicationDrafts', draft._id, {
 			answers: parsed.data,
 			stepCompletion,

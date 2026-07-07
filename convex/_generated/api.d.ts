@@ -23,6 +23,7 @@ import type * as model_ownerData from "../model/ownerData.js";
 import type * as navigator from "../navigator.js";
 import type * as shared_applicationShapes from "../shared/applicationShapes.js";
 import type * as shared_interviewSteps from "../shared/interviewSteps.js";
+import type * as shared_interviewValidation from "../shared/interviewValidation.js";
 import type * as shared_navigator from "../shared/navigator.js";
 
 import type {
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   navigator: typeof navigator;
   "shared/applicationShapes": typeof shared_applicationShapes;
   "shared/interviewSteps": typeof shared_interviewSteps;
+  "shared/interviewValidation": typeof shared_interviewValidation;
   "shared/navigator": typeof shared_navigator;
 }>;
 
