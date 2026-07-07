@@ -4,9 +4,9 @@
 
 ```yaml
 status: in_progress
-current_milestone: M3
-next_task: M3-T2
-last_completed: M3-T1
+current_milestone: M4
+next_task: M4-T1
+last_completed: M3-T2
 blockers: []
 updated_at: 2026-07-06
 ```
@@ -118,11 +118,11 @@ Forms. Keep the interface quiet, mobile-first, and task-oriented.
   - Done when: Owner-scoped case creation and updates pass validation and authorization tests.
   - Evidence: New `convex/cases.ts` (backend only; the Cases UI is M3-T2). `createCase` normalizes the receipt (strip whitespace, uppercase) then validates it against `^[A-Z]{3}\d{10}$`, enforces per-owner uniqueness (via the `by_ownerId_and_receiptNumber` index), optionally links an application it re-checks is owner-owned (`getOwnedApplication`), and seeds a one-entry status timeline (default `caseReceived`). `addStatusUpdate` appends a `{status, occurredAt, note}` entry and advances the current status, with an optional `occurredAt` so an owner can backdate an update. `listCases`/`getCase` are owner-scoped; every mutation/query goes through `requireOwnerId` and re-checks `ownerId` on every id (`getOwnedCase`). Shared receipt helpers (`RECEIPT_NUMBER_RE`, `normalizeReceiptNumber`, `isValidReceiptNumber`) live in `convex/shared/applicationShapes.ts` so the M3-T2 UI validates identically. Tests: `convex/cases.test.ts` — 13: valid creation + one-entry timeline, case/whitespace normalization, five malformed-receipt rejections, per-owner duplicate rejected while the same receipt is allowed for a different owner (owner-scoped uniqueness), owned-application link accepted + foreign application rejected, status update (append + advance) + backdating, full owner isolation (Bob can't read/update Alice's case and sees an empty list), and auth-required. Verified: `tsc` ✓, ESLint ✓, **232/232 vitest** ✓, deployed to Convex. Backend-only milestone — no simulator surface until M3-T2.
 
-- [ ] **M3-T2 Case experience**
-  - Status: NOT_STARTED
+- [x] **M3-T2 Case experience**
+  - Status: DONE
   - Build case list/detail screens, official USCIS status links, RFE emphasis, and filed-application handoff.
   - Done when: A user can create, inspect, and update a case from the simulator.
-  - Evidence: Not recorded.
+  - Evidence: Full Cases-tab UI wiring the M3-T1 backend, built with `heroui-native` per the UI rules. `src/screens/cases/`: `cases.data.ts` (hooks over `listCases`/`getCase`/`createCase`/`addStatusUpdate` + `useLinkableApplications`; `statusTone` maps RFE→attention, late-stage→positive, else neutral; `formatCaseDate`; the official `egov.uscis.gov` URL); `cases.screen.tsx` (list of case cards — receipt (tabular) + tone-colored status chip + "Updated {date}" — with a loading/empty state whose "Add a case" action opens the create modal); `cases.new.tsx` (create modal — receipt `TextField` with client validation via the shared `isValidReceiptNumber`/`normalizeReceiptNumber`, an optional **filed-application link** picker listing the owner's applications, and inline field errors); `cases.detail.tsx` (receipt + current status, a **Request-for-Evidence warning `Alert`** shown only when the current status is RFE, a "Check the official status on USCIS" link card, a reverse-chronological **status timeline** with tone-colored dots and the latest entry emphasized, and an inline "Add a status update" flow — status chips + optional note → `addStatusUpdate`). Routes: `(tabs)/cases/[caseId].tsx` (detail, native Stack header) and `(modal)/new-case.tsx` (create); the Cases tab gains a `+` toolbar action. Verified: `tsc` ✓ (typed routes regenerated for the two new routes), ESLint ✓, **232/232 vitest** ✓ (no regressions; the case *logic* is covered by M3-T1's 13 backend tests, so this UI milestone adds no unit tests). Driven end-to-end in the iOS simulator (Maestro): tapped "Add a case" → entered `EAC1234567890` → "Track this case" → the card appeared in the list ("Case received"); opened the detail (receipt, status chip, USCIS link, timeline); tapped "Add a status update" → chose "Request for Evidence" → "Save update" → the status flipped to RFE, the **RFE warning banner appeared**, and the timeline grew to two reverse-chronological entries with the RFE entry emphasized (gold dot). Screenshots captured. **create → inspect → update** all confirmed in-sim.
 
 - [ ] **M4-T1 Forum backend**
   - Status: NOT_STARTED
