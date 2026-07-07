@@ -129,9 +129,11 @@ export const getRecommendation = action({
 				output_config: { format: FACTS_FORMAT },
 				messages,
 			})
-		} catch {
+		} catch (error) {
 			// The call never produced a (billed) response — refund and surface a
-			// generic error without leaking Anthropic internals.
+			// generic error without leaking Anthropic internals. Log the underlying
+			// cause server-side only (never returned to the client).
+			console.error('[navigator] Anthropic extraction failed:', error)
 			await ctx.runMutation(internal.assistantQuota.refundDailyMessage, {})
 			throw new Error('The assistant is temporarily unavailable. Please try again.')
 		}
