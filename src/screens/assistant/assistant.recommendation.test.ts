@@ -61,20 +61,44 @@ describe('describeRecommendation — needsClarification', () => {
 describe('describeRecommendation — outOfScope', () => {
 	const reasons = ['unsupportedForm', 'unsupportedSituation', 'legalAdvice'] as const
 
-	test.each(reasons)('%s renders plain text with an attorney referral', (reason) => {
+	test.each(reasons)('%s keeps the attorney referral', (reason) => {
 		const content = describeRecommendation({ type: 'outOfScope', reason })
 		expect(content.kind).toBe('text')
 		if (content.kind !== 'text') return
 		expect(content.text.length).toBeGreaterThan(0)
 		expect(content.text).toMatch(/attorney|accredited representative/i)
-		// An out-of-scope answer must never offer a shortcut back into a form.
-		expect(content.suggestions).toBeUndefined()
+	})
+
+	// Regression: out-of-scope answers used to dead-end the conversation with no
+	// way forward, which read as "the assistant is broken". Every out-of-scope
+	// reply must now offer supported next steps — the safety boundary lives in
+	// the server classifier, not in hiding the supported paths.
+	test.each(reasons)('%s offers a way forward into the supported flows', (reason) => {
+		const content = describeRecommendation({ type: 'outOfScope', reason })
+		if (content.kind !== 'text') throw new Error('expected text')
+		expect(content.suggestions).toBeDefined()
+		expect(content.suggestions!.length).toBeGreaterThanOrEqual(2)
+		for (const reply of content.suggestions!) {
+			// Each chip carries a complete, declarative supported situation — never
+			// a question that would bounce back to legal advice.
+			expect(reply.message).toMatch(/renew|replace|first time|applying/i)
+			expect(reply.message).not.toMatch(/\?/)
+		}
 	})
 
 	test('legal-advice copy explicitly declines to advise', () => {
 		const content = describeRecommendation({ type: 'outOfScope', reason: 'legalAdvice' })
 		if (content.kind !== 'text') throw new Error('expected text')
 		expect(content.text).toMatch(/can’t give legal advice|cannot give legal advice/i)
+	})
+
+	test('first-green-card dead end offers only card-holder paths', () => {
+		const content = describeRecommendation({ type: 'outOfScope', reason: 'unsupportedSituation' })
+		if (content.kind !== 'text') throw new Error('expected text')
+		expect(content.suggestions?.map((s) => s.label)).toEqual([
+			'Renew my green card',
+			'Replace my green card',
+		])
 	})
 })
 

@@ -48,6 +48,21 @@ export const OPENING_REPLIES: SuggestedReply[] = [
 	},
 ]
 
+/** Green-card-only follow-ups for the "first green card via I-90" dead end —
+ * the two I-90 situations the product does support. */
+const GREEN_CARD_REPLIES: SuggestedReply[] = [
+	{
+		id: 'gc-renewal',
+		label: 'Renew my green card',
+		message: 'I need to renew my green card.',
+	},
+	{
+		id: 'gc-replacement',
+		label: 'Replace my green card',
+		message: 'I need to replace my lost, stolen, or damaged green card.',
+	},
+]
+
 /** Human-readable form label used in the recommendation card, e.g. "Form I-765". */
 export function formLabel(formType: FormType): string {
 	return formType === 'i765' ? 'Form I-765' : 'Form I-90'
@@ -69,16 +84,25 @@ export function situationTitle(formType: FormType, applicationKind: ApplicationK
 	return `${CREDENTIAL_NOUN[formType]} ${KIND_SUFFIX[applicationKind]}`
 }
 
-const OUT_OF_SCOPE_COPY: Record<
-	Extract<AssistantRecommendation, { type: 'outOfScope' }>['reason'],
-	string
-> = {
+type OutOfScopeReason = Extract<AssistantRecommendation, { type: 'outOfScope' }>['reason']
+
+// Out-of-scope replies keep the safety boundary (no legal advice, no other
+// forms) but never dead-end: each one says what the assistant CAN do next and
+// offers tappable paths back into the supported flows.
+const OUT_OF_SCOPE_COPY: Record<OutOfScopeReason, string> = {
 	unsupportedForm:
-		'Right now I can only help with work permits (Form I-765) and green cards (Form I-90). For other USCIS matters, a qualified immigration attorney or an accredited representative can guide you.',
+		'Right now I can only help with work permits (Form I-765) and green cards (Form I-90). For other USCIS matters, a qualified immigration attorney or an accredited representative can guide you. If one of these fits your situation, I can help right away:',
 	unsupportedSituation:
-		'A first green card isn’t requested with Form I-90 — that form only renews or replaces a card you already have. If you’re applying for a green card for the first time, an immigration attorney can point you to the right process.',
+		'A first green card isn’t requested with Form I-90 — that form only renews or replaces a card you already have. If you’re applying for a green card for the first time, an immigration attorney can point you to the right process. If you already have a card, I can help with these:',
 	legalAdvice:
-		'I can share general information about the process, but I can’t give legal advice or predict how a case will turn out. For questions about eligibility, categories, or a specific decision, please talk with a qualified immigration attorney or an accredited representative.',
+		'I can share general information about the process, but I can’t give legal advice or predict how a case will turn out. For questions about eligibility, categories, or a specific decision, please talk with a qualified immigration attorney or an accredited representative. If you’d like, I can still help you prepare the paperwork itself:',
+}
+
+/** The way forward offered with each out-of-scope reply. */
+const OUT_OF_SCOPE_SUGGESTIONS: Record<OutOfScopeReason, SuggestedReply[]> = {
+	unsupportedForm: OPENING_REPLIES,
+	unsupportedSituation: GREEN_CARD_REPLIES,
+	legalAdvice: OPENING_REPLIES,
 }
 
 /**
@@ -110,7 +134,11 @@ export function describeRecommendation(rec: AssistantRecommendation): AssistantC
 						suggestions: SITUATION_REPLIES,
 					}
 		case 'outOfScope':
-			return { kind: 'text', text: OUT_OF_SCOPE_COPY[rec.reason] }
+			return {
+				kind: 'text',
+				text: OUT_OF_SCOPE_COPY[rec.reason],
+				suggestions: OUT_OF_SCOPE_SUGGESTIONS[rec.reason],
+			}
 		default: {
 			const _exhaustive: never = rec
 			return _exhaustive
