@@ -14,6 +14,7 @@ import type * as applications from "../applications.js";
 import type * as assistant from "../assistant.js";
 import type * as assistantQuota from "../assistantQuota.js";
 import type * as auth from "../auth.js";
+import type * as cases from "../cases.js";
 import type * as dev_seed from "../dev/seed.js";
 import type * as documents from "../documents.js";
 import type * as home from "../home.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   assistant: typeof assistant;
   assistantQuota: typeof assistantQuota;
   auth: typeof auth;
+  cases: typeof cases;
   "dev/seed": typeof dev_seed;
   documents: typeof documents;
   home: typeof home;

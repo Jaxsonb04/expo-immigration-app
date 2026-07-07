@@ -112,6 +112,20 @@ export type CaseStatus = (typeof caseStatuses)[number]
 
 export const terminalCaseStatuses: readonly CaseStatus[] = ['approved', 'cardMailed', 'cardDelivered']
 
+// A USCIS receipt number is 3 letters (service-center code, e.g. EAC/WAC/LIN/
+// SRC/MSC/IOE) followed by 10 digits (ADR-0008). Shared so the case backend and
+// the M3 case UI validate identically.
+export const RECEIPT_NUMBER_RE = /^[A-Z]{3}\d{10}$/
+
+/** Trim, strip inner whitespace, and uppercase so a pasted receipt validates. */
+export function normalizeReceiptNumber(raw: string): string {
+	return raw.replace(/\s/g, '').toUpperCase()
+}
+
+export function isValidReceiptNumber(value: string): boolean {
+	return RECEIPT_NUMBER_RE.test(value)
+}
+
 export const entitlementStatuses = ['active', 'revoked'] as const
 export const entitlementSources = ['revenuecat', 'devStub'] as const
 
