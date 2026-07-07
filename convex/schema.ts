@@ -15,11 +15,15 @@ import {
 	personFactsShape,
 	requirementStatuses,
 } from './shared/applicationShapes'
+import { moderationStatuses, reportReasons, reportStatuses, reportTargetTypes } from './shared/community'
 
-// Seven app-owned tables (REARCHITECTURE.md "Resolved Decisions", 2026-07-01).
-// Every table is scoped by a server-derived ownerId (convex/lib/auth.ts);
-// ownerIds are never accepted from clients. Better Auth owns identity in its
-// own component namespace — there is no user-profile table here.
+// Seven app-owned tables (REARCHITECTURE.md "Resolved Decisions", 2026-07-01)
+// plus the M4 community-forum tables. Every table is scoped by a server-derived
+// ownerId (convex/lib/auth.ts); ownerIds are never accepted from clients. Better
+// Auth owns identity in its own component namespace — there is no user-profile
+// table here. Forum authorship is pseudonymous: the real ownerId is stored for
+// authorization only and is NEVER returned by a public read (convex/community.ts
+// sanitizes to a denormalized handle).
 
 const formType = literals(...formTypes)
 const applicationKind = literals(...applicationKinds)
@@ -27,6 +31,10 @@ const applicationStatus = literals(...applicationStatuses)
 const requirementStatus = literals(...requirementStatuses)
 const caseStatus = literals(...caseStatuses)
 const documentType = literals(...documentTypes)
+const moderationStatus = literals(...moderationStatuses)
+const reportReason = literals(...reportReasons)
+const reportStatus = literals(...reportStatuses)
+const reportTargetType = literals(...reportTargetTypes)
 
 export default defineSchema({
 	// People managed by the owner. The account holder is a lazily created row
@@ -165,4 +173,68 @@ export default defineSchema({
 		count: v.number(),
 		updatedAt: v.number(),
 	}).index('by_ownerId_and_day', ['ownerId', 'day']),
+
+	// M4 community forum. Pseudonymous: one profile per owner maps a real
+	// ownerId to a public `handle`. handle is unique and immutable in v1.
+	communityProfiles: defineTable({
+		ownerId: v.string(),
+		handle: v.string(),
+		createdAt: v.number(),
+	})
+		.index('by_ownerId', ['ownerId'])
+		.index('by_handle', ['handle']),
+
+	// Forum posts. `authorOwnerId` is private (authorization + moderation only);
+	// `authorHandle` is the denormalized public pseudonym so a public read never
+	// has to touch communityProfiles. commentCount tracks VISIBLE comments;
+	// reportCount is moderator-only and excluded from public reads. The
+	// moderation-status index powers the bounded public feed (visible, newest
+	// activity first).
+	forumPosts: defineTable({
+		authorOwnerId: v.string(),
+		authorHandle: v.string(),
+		title: v.string(),
+		body: v.string(),
+		moderationStatus,
+		commentCount: v.number(),
+		reportCount: v.number(),
+		lastActivityAt: v.number(),
+		createdAt: v.number(),
+		updatedAt: v.number(),
+	})
+		.index('by_moderationStatus_and_lastActivityAt', ['moderationStatus', 'lastActivityAt'])
+		.index('by_author', ['authorOwnerId']),
+
+	// Forum comments. Same pseudonymity model as posts. The compound index lets
+	// a public read page a post's VISIBLE comments oldest-first in one bounded
+	// scan.
+	forumComments: defineTable({
+		postId: v.id('forumPosts'),
+		authorOwnerId: v.string(),
+		authorHandle: v.string(),
+		body: v.string(),
+		moderationStatus,
+		reportCount: v.number(),
+		createdAt: v.number(),
+		updatedAt: v.number(),
+	})
+		.index('by_postId_and_moderationStatus_and_createdAt', ['postId', 'moderationStatus', 'createdAt'])
+		.index('by_author', ['authorOwnerId']),
+
+	// Forum reports. `reporterOwnerId` is private and never surfaced. `targetKey`
+	// (`p:<id>`/`c:<id>`) is the single dedupe/lookup key spanning both target
+	// tables — at most one report per (reporter, target). by_status powers the
+	// M4-T3 moderator queue.
+	forumReports: defineTable({
+		reporterOwnerId: v.string(),
+		targetType: reportTargetType,
+		targetKey: v.string(),
+		reason: reportReason,
+		note: v.optional(v.string()),
+		status: reportStatus,
+		createdAt: v.number(),
+	})
+		.index('by_reporter_and_targetKey', ['reporterOwnerId', 'targetKey'])
+		.index('by_targetKey', ['targetKey'])
+		.index('by_status_and_createdAt', ['status', 'createdAt']),
 })

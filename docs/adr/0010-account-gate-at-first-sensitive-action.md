@@ -23,3 +23,25 @@ Gate at Review (ADR-0009 — more accumulated effort, but later identity capture
 ## Amended (2026-07-01)
 
 Re-checked for the ground-up rebuild: the contextual gate at the first sensitive action **survives unchanged** (document upload, obtaining the Filing Package, push reminders). "Start filing" entry copy and the silent anonymous session stay. During the **walkthrough phase**, the gate UI exists but is non-blocking (stubbed) and RevenueCat/IAP is not installed; enforcement lands in the PII/security and IAP phases. Language: Filing → Application per CONTEXT.md.
+
+## Amended (2026-07-06) — the community forum duplicates the gate on the server
+
+The community forum (M4) is a **public write surface**. Unlike document upload
+or filing — private, single-owner actions where the client `requireAccount()`
+gate is sufficient — forum posts, comments, and reports are visible to everyone,
+so a client-only gate is bypassable by any direct Convex call and would let an
+anonymous session inject public content. The forum therefore **duplicates the
+account gate on the server**: every forum write (`convex/community.ts`) goes
+through `requireCredentialedOwnerId` (`convex/lib/auth.ts`), which requires an
+authenticated, **non-anonymous** owner.
+
+This does not change the model for the existing private actions (their client
+gate stays). The server check is deliberately isolated — `requireOwnerId`'s
+identity derivation plus a *separate* `isAnonymous` assertion — so the
+identity/ownership path never depends on the claim: a missing or false
+`isAnonymous` can only ever ALLOW a write, never wrongly block a real account.
+Reading `isAnonymous` server-side is possible because the Better Auth `convex()`
+plugin's default `definePayload` spreads the user record (including
+`isAnonymous`) into the JWT that surfaces on the Convex identity — the same
+mechanism that surfaces `sessionId`. The M4-T2 client gate mirrors this for UX
+(the in-place upgrade sheet), but the server is the authoritative boundary.
