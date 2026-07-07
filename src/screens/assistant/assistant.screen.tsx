@@ -1,6 +1,7 @@
+import { useRouter } from 'expo-router'
 import { Typography } from 'heroui-native'
 import { useRef } from 'react'
-import { Alert, ScrollView, View } from 'react-native'
+import { ScrollView, View } from 'react-native'
 import { KeyboardStickyView } from 'react-native-keyboard-controller'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
@@ -9,7 +10,7 @@ import { styledIcon } from '@/components/styled-icon'
 import { Composer } from './assistant.composer'
 import { useAssistantChat } from './assistant.data'
 import { Message } from './assistant.message'
-import { OPENING_REPLIES, situationTitle } from './assistant.recommendation'
+import { OPENING_REPLIES } from './assistant.recommendation'
 import type { AssistantContent, ChatTurn } from './assistant.types'
 
 const InfoIcon = styledIcon({ family: 'lucide', name: 'info' })
@@ -58,20 +59,23 @@ type RecommendationContent = Extract<AssistantContent, { kind: 'recommendation' 
 /**
  * M1-T3 safe-navigator chat. Navigator-first: every message runs the
  * deterministic `getRecommendation` action once; the transcript is
- * device-session-only. "Start this form" is wired in M1-T4.
+ * device-session-only. "Start this form" hands off to the create-application
+ * flow (M1-T4) with the recommended form + kind preselected.
  */
 export function AssistantScreen() {
 	const insets = useSafeAreaInsets()
+	const router = useRouter()
 	const { turns, usage, isSending, canSend, outOfMessages, send, retry } = useAssistantChat()
 	const scrollRef = useRef<ScrollView>(null)
 	const viewportHeight = useRef(0)
 
 	function handleStart(content: RecommendationContent) {
-		// M1-T4 replaces this with the real application-creation handoff.
-		Alert.alert(
-			'Start this form',
-			`Opening ${situationTitle(content.formType, content.applicationKind)} (${content.formLabel}) will arrive in the next update.`,
-		)
+		// M1-T4: open the existing create-application modal with the deterministic
+		// recommendation preselected. The user still confirms and submits there.
+		router.push({
+			pathname: '/new-application',
+			params: { formType: content.formType, applicationKind: content.applicationKind },
+		})
 	}
 
 	const isEmpty = turns.length === 0

@@ -1,6 +1,7 @@
 import { BodyScrollView } from '@/components/core'
 import { useAppForm, type RadioGroupFieldOption } from '@/components/form'
 import { situationLabel } from '@/lib/application-labels'
+import { useLocalSearchParams } from 'expo-router'
 import { Spinner } from 'heroui-native'
 import { Alert, View } from 'react-native'
 import { NewApplication } from './new-application'
@@ -8,6 +9,7 @@ import {
 	NEW_DEPENDENT_CHOICE,
 	SELF_CHOICE,
 	situationKey,
+	situationKeyFromParams,
 	supportedSituations,
 	useNewApplicationSubmit,
 } from './new-application.data'
@@ -16,8 +18,15 @@ import { newApplicationFormOptions } from './new-application.form'
 export function NewApplicationScreen() {
 	const { applicants, selfApplicant, dependents, submit } = useNewApplicationSubmit()
 
+	// M1-T4: the assistant's "Start this form" handoff deep-links here with the
+	// recommended form/kind. Preselect the situation only if the params name a
+	// supported combo; the user still confirms the applicant and submits.
+	const params = useLocalSearchParams<{ formType?: string; applicationKind?: string }>()
+	const presetSituationKey = situationKeyFromParams(params.formType, params.applicationKind)
+
 	const form = useAppForm({
 		...newApplicationFormOptions,
+		defaultValues: { ...newApplicationFormOptions.defaultValues, situationKey: presetSituationKey },
 		onSubmit: async ({ value }) => {
 			try {
 				await submit(value)

@@ -1,29 +1,15 @@
 import { api } from '@convex/_generated/api'
 import type { Id } from '@convex/_generated/dataModel'
-import type { ApplicationKind, FormType } from '@convex/shared/applicationShapes'
-import { supportedSituations } from '@convex/shared/applicationShapes'
 import { useMutation, useQuery } from 'convex/react'
 import { useRouter } from 'expo-router'
 import type { NewApplicationValues } from './new-application.form'
+import { NEW_DEPENDENT_CHOICE, parseSituationKey, SELF_CHOICE } from './new-application.situations'
 
-export type Situation = { formType: FormType; applicationKind: ApplicationKind }
-
-/** Radio value for "Myself" — the self applicant row may not exist yet (decision 3). */
-export const SELF_CHOICE = 'self'
-/** Radio value for "Someone else" — creates a dependent applicant on submit. */
-export const NEW_DEPENDENT_CHOICE = 'new'
-
-export function situationKey(situation: Situation): string {
-	return `${situation.formType}:${situation.applicationKind}`
-}
-
-export function parseSituationKey(key: string): Situation {
-	const found = supportedSituations.find((s) => situationKey(s) === key)
-	if (found === undefined) throw new Error('Choose what you need to do')
-	return found
-}
-
-export { supportedSituations }
+// Pure situation helpers (situationKey, parseSituationKey, situationKeyFromParams,
+// the choice constants, supportedSituations) live in new-application.situations.ts
+// and are re-exported here so existing importers keep their './new-application.data'
+// import path.
+export * from './new-application.situations'
 
 export function useNewApplicationSubmit() {
 	const router = useRouter()
