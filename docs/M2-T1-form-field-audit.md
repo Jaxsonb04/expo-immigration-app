@@ -145,3 +145,14 @@ currently fileable end-to-end; identity/address/DOB are solid across all.
 - SSN & biometrics raise data-sensitivity questions — confirm the privacy/storage
   policy (ADR needed) before collecting.
 - Signature strategy: typed vs. wet-sign-on-print for the print-ready package.
+
+---
+
+**Update 2026-07-07:** Part 2 **Item 2** (renewal/replacement reason,
+`P2_checkbox2[*]`) is now MAPPED — see `src/screens/applications/journey-hub/pdf/pdf.i90-map.ts`
+(renewal→2f/[1]; lost/stolen→2a/[5]; damaged→2c/[7]; error→2d/[4];
+nameChange→2e/[0]), with exactly-one-box regression tests in `pdf.fill.test.ts`.
+The "highest-priority gap" language above is historical. Part 2 **Item 1**
+(status: LPR / commuter / conditional) remains deliberately unmapped — the
+interview does not collect status, and defaulting to 1.a would mis-file
+commuter/conditional residents (see TODO(M2-T2) in the map).

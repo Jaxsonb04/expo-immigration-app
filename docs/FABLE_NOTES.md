@@ -98,3 +98,21 @@ Gotchas learned:
   with ReduceMotionEnabled=1 on the sim (instant render, no crash).
 - Icons rationalized to Lucide only; removed 5 unused
   @react-native-vector-icons families (packages + app.json plugins).
+
+## M5-T2 news fallback ladder — rung taken (2026-07-07)
+
+Rung 1 (official RSS) shipped: `https://www.uscis.gov/news/rss-feed/59144`
+serves clean RSS 2.0 with a browser User-Agent (default agents get 403 /
+Drupal antibot on HTML pages, but the RSS endpoint is clean). No newsroom
+scraping or static link-out needed. Every cached URL is prefix-validated
+against `https://www.uscis.gov/` twice (parse + write).
+
+## Driving the credentialed auth flow in the sim (2026-07-07)
+
+The upgrade-sheet auth form is portal-rendered and invisible to Maestro's
+element tree. Working recipe: create accounts via Better Auth's public HTTP
+`sign-up/email` on `impressive-fish-50.convex.site`, mint JWTs from
+`/api/auth/convex/token` for seeding via `convex.cloud/api/mutation`, then
+sign into the APP through the regular sign-in screen (keychain reset →
+Welcome → pbcopy+Paste per field → Sign in), which Maestro CAN drive. This
+unlocked the full live moderation round-trip (hide/restore/block/unblock).
