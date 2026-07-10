@@ -1,3 +1,4 @@
+import { useAccountSession } from '@/components/account'
 import { BodyScrollView } from '@/components/core'
 import { authClient } from '@/lib/auth-client'
 import { useMyBlocks, useUnblockAuthor } from '@/screens/community/community.data'
@@ -41,9 +42,7 @@ function useProviderLabel(isCredentialed: boolean): string | null {
 /** Provider + sign-out for converted accounts; hidden for temp sessions
  * (signing a temp session out would strand its data behind no credentials). */
 function SignInSection() {
-	const { data } = authClient.useSession()
-	const user = data?.user
-	const isCredentialed = Boolean(user) && !user?.isAnonymous
+	const { isCredentialed } = useAccountSession()
 	const providerLabel = useProviderLabel(isCredentialed)
 	if (!isCredentialed) return null
 	return (

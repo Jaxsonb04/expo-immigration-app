@@ -1,3 +1,4 @@
+import { useAccountSession } from '@/components/account'
 import { authClient } from '@/lib/auth-client'
 import { api } from '@convex/_generated/api'
 import { useMutation, useQuery } from 'convex/react'
@@ -119,9 +120,7 @@ export function AccountDetailsScreen() {
 
 function DetailsForm({ initial }: { initial: Draft }) {
 	const updateSelfProfile = useMutation(api.applicants.updateSelfProfile)
-	const { data } = authClient.useSession()
-	const user = data?.user
-	const isCredentialed = Boolean(user) && !user?.isAnonymous
+	const { user, isCredentialed } = useAccountSession()
 	const [draft, setDraft] = useState<Draft>(initial)
 	const [dirty, setDirty] = useState(false)
 	const [saving, setSaving] = useState(false)

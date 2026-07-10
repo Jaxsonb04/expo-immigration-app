@@ -165,3 +165,20 @@ community rows (requireCredentialedOwnerId), so the remap only touches the
 filing-side tables. Fresh-context verifier passed all sections (commit
 6e5342d); if CONVEX_SITE_URL ever changes (custom domain), pre-change anon
 data would be orphaned (never mis-deleted) — remember at migration time.
+
+## Maestro on iOS 26.5: hideKeyboard dismisses formSheets (2026-07-10)
+
+**Summary:** during M7-T3 sign-in QA, `hideKeyboard` intermittently performed
+a swipe that DISMISSED the `formSheet` sign-in screen; subsequent taps landed
+on the Welcome screen underneath (one hit the Google button, which opened an
+ASWebAuthenticationSession dialog and made email sign-in look broken). Email
+sign-in itself works and transitions in-place — no app bug.
+
+- Recipe that works: never call `hideKeyboard` inside a sheet. Target fields
+  by placeholder text (`longPressOn: "you@example.com"`, `longPressOn:
+  "••••••••"` — the password placeholder is literally eight U+2022 bullets)
+  then `tapOn: "Paste"`, then tap the submit button by its exact label.
+- Percent-point taps inside sheets are unreliable while the keyboard is up
+  (layout shifts); prefer text selectors.
+- iOS "Save Password?" prompt appears after a successful credential sign-in —
+  dismiss with `tapOn: "Not Now"` before asserting anything else.

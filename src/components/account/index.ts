@@ -7,6 +7,7 @@
 // session hook stay internal to the module.
 export { AccountGateProvider } from './account.context'
 export { useRequireAccount } from './account.require-account'
+export { useAccountSession } from './account.session'
 export { TempAccountCard, TempAccountDeletionBanner } from './account.temp-banner'
 export { useViewer } from './account.viewer'
 export { UpgradeScreen } from './upgrade'

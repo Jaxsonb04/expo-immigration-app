@@ -5,7 +5,7 @@
 ```yaml
 status: in_progress
 current_milestone: M7
-next_task: M7-T3
+next_task: M7-T4
 last_completed: M6-T8
 blockers: []
 updated_at: 2026-07-10
@@ -224,11 +224,11 @@ task-oriented.
   - Done when: The bubble shows on Forms and Cases only, opens the assistant sheet, and the full chat flow (recommendation, quota, retry) works from the sheet in the simulator.
   - Evidence: New `core/ask-bubble.tsx` — terracotta pill (sparkles + "Ask", a11y label "Ask the assistant") anchored `bottom: insets.bottom + 12`, right 20 (native tabs already fold the tab bar into the safe-area inset — measured ≈82pt; the first build double-counted and floated too high, fixed and re-verified). Motion: one-time spring settle-in + slow 3.4s breathe, transform/opacity only, both skipped under Reduce Motion. Mounted on the Forms and Cases tab roots only. New `(modal)/assistant.tsx` presents the untouched `AssistantScreen` under the new shared `core/modal-header.tsx` (title + X close, safe-area top padding — the M7-T7 primitive, built here first). `AssistantNews` removed from the assistant (lands in Forum, M7-T6); navigator/quota/composer untouched. Sim-verified (iPhone 17): bubble sits just above the tab bar on Forms and Cases; tap → full-height sheet with header + X; tapping "Renew my work permit" produced the real recommendation card (Maestro asserted "Start this form" visible — a live billed navigator call from the sheet); Close dismisses back to the tab. Screenshots m7_s2_forms_v2 / m7_s2_sheet / m7_s2_sheet_reco / m7_s2_cases_v2. Gates: ESLint 0 errors, tsc ✓, 385/385 vitest ✓.
 
-- [ ] **M7-T3 Account tab + name propagation**
-  - Status: NOT_STARTED
+- [x] **M7-T3 Account tab + name propagation**
+  - Status: DONE
   - Rebuild Account as a clean identity preview plus grouped, progressively-disclosed sections; move delete-account, blocked-in-community, and dev tools into a Settings sub-screen; Save writes the applicants self-row AND the Better Auth `user.name` so greetings, avatar initials, and personalization update everywhere.
   - Done when: Editing the name round-trips (greeting + avatar reflect it on Forms and in the assistant, and persist across a relaunch); fresh-context verifier passes identity/PII/ownership review; simulator screenshots light + dark.
-  - Evidence:
+  - Evidence: New `src/screens/account/` replaces `src/screens/profile/`: root = identity preview (initials avatar, "Welcome back, {first}", email; temp → "Temporary account" + convert card) over two ListGroup groups (Personal details / Documents; Settings) — non-scrolling via BodyScrollView `scrollEnabled={false}` (the automatic content inset is what clears the transparent large-title header; a plain View overlapped it, fixed and re-verified). Detail routes `(tabs)/account/{details,documents,settings}`. Settings sub-screen = provider+sign-out (credentialed only — temp sessions get no sign-out, it would strand their data), Blocked in Forum, delete-account cascade, dev tools. **The name-sync bug is fixed:** `account.details.tsx` Save writes `applicants.updateSelfProfile` then `authClient.updateUser({ name })` (verified against the installed better-auth `/update-user` endpoint typing), gated on credentialed + non-empty + changed; errors surface and keep the form dirty. Sim round-trip (iPhone 17, account m7-name-sync@example.com): baseline "Welcome back, Sync"/ST → edited to Renata Alvarez → Save → Account instantly shows "Welcome back, Renata" + RA initials; Ask sheet greets "Hi Renata!" (Maestro-asserted); terminate+relaunch → "Welcome back, Renata" persists (Maestro-asserted); server-side `user.name = "Renata Alvarez"` confirmed over HTTP. Dark-mode screenshot captured. **Fresh-context verifier: overall PASS** (name-propagation correctness incl. divergence analysis, requireOwnerId isolation, temp-session gating, PII scan zero console hits, settings-relocation fidelity vs HEAD~1, zero stale `screens/profile`/`(modal)/account` refs) — 4 LOW findings, none blocking; the DRY one (inline isCredentialed) applied: both screens now use the canonical `useAccountSession()`. QA byproduct: email sign-in works and transitions in-place — the "login broken" scare was Maestro's `hideKeyboard` dismissing the formSheet + a stray tap opening the Google ASWeb flow (recipe in docs/FABLE_NOTES.md). Gates: ESLint 0 errors, tsc ✓, 385/385 vitest ✓.
 
 - [ ] **M7-T4 Forms one-screen hub**
   - Status: NOT_STARTED
