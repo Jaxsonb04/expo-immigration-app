@@ -1,4 +1,4 @@
-import { BodyScrollView, ScreenEmpty, ScreenLoading } from '@/components/core'
+import { BodyScrollView, CommunityHero, ScreenEmpty, ScreenLoading } from '@/components/core'
 import { StyledLucideIcon } from '@/components/styled-icon'
 import { router } from 'expo-router'
 import { Avatar, Button, Surface, Typography } from 'heroui-native'
@@ -61,9 +61,21 @@ export function CommunityScreen() {
 	if (results.length === 0) {
 		return (
 			<ScreenEmpty
+				visual={<CommunityHero width={180} />}
 				title="No posts yet"
 				description="Ask a question or share your experience with USCIS renewals. Posts here are peer support, not legal advice."
 				action={{ label: 'Start a post', onPress: () => router.push('/new-post') }}
+				footer={
+					<Pressable
+						accessibilityRole="link"
+						accessibilityLabel="Read the community rules"
+						onPress={() => router.push('/community-rules')}
+					>
+						<Typography.Paragraph color="muted" className="text-center text-xs font-medium underline">
+							Community rules
+						</Typography.Paragraph>
+					</Pressable>
+				}
 			/>
 		)
 	}

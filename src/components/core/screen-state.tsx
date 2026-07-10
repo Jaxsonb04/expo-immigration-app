@@ -42,16 +42,20 @@ export function ScreenLoading({ label }: { label?: string }) {
 
 type ScreenEmptyProps = {
 	icon?: StyledIconComponent
+	/** Rich header graphic (M6-T8 animated empty-state heroes); wins over icon. */
+	visual?: ReactNode
 	title: string
 	description?: string
 	action?: { label: string; onPress: () => void }
+	/** Extra content under the action (e.g. a secondary link). */
+	footer?: ReactNode
 }
 
 /** Empty state: no data yet, optionally with a single primary action. */
-export function ScreenEmpty({ icon, title, description, action }: ScreenEmptyProps) {
+export function ScreenEmpty({ icon, visual, title, description, action, footer }: ScreenEmptyProps) {
 	return (
 		<StateShell>
-			{icon ? <StateIcon icon={icon} /> : null}
+			{visual ?? (icon ? <StateIcon icon={icon} /> : null)}
 			<View className="gap-2">
 				<Typography.Heading className="text-center text-xl font-semibold">{title}</Typography.Heading>
 				{description ? (
@@ -65,6 +69,7 @@ export function ScreenEmpty({ icon, title, description, action }: ScreenEmptyPro
 					<Button.Label>{action.label}</Button.Label>
 				</Button>
 			) : null}
+			{footer ?? null}
 		</StateShell>
 	)
 }

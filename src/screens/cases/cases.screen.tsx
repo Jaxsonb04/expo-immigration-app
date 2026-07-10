@@ -1,4 +1,4 @@
-import { BodyScrollView, ScreenEmpty, ScreenLoading } from '@/components/core'
+import { BodyScrollView, CaseTrackingHero, ScreenEmpty, ScreenLoading, SectionHeading } from '@/components/core'
 import { caseStatusLabels } from '@/lib/application-labels'
 import { router } from 'expo-router'
 import { Chip, Surface, Typography } from 'heroui-native'
@@ -38,8 +38,10 @@ function CaseRow({ item }: { item: CaseSummary }) {
 }
 
 /**
- * Cases tab (M3-T2): receipt-number tracking with status timelines. Reads the
- * owner's cases (M3-T1 backend); tapping a card opens its detail + timeline.
+ * Cases tab (M3-T2, reshaped in M6-T7): receipt-number tracking with status
+ * timelines, split into Active and Previous — a delivered card is a finished
+ * journey, and finished journeys shouldn't crowd the ones still moving.
+ * Tapping a card opens its detail + timeline.
  */
 export function CasesScreen() {
 	const cases = useCases()
@@ -49,6 +51,7 @@ export function CasesScreen() {
 	if (cases.length === 0) {
 		return (
 			<ScreenEmpty
+				visual={<CaseTrackingHero width={140} />}
 				title="No cases to track yet"
 				description="Once you’ve filed with USCIS, add your receipt number here to follow each case’s status and timeline."
 				action={{ label: 'Add a case', onPress: () => router.push('/new-case') }}
@@ -56,11 +59,25 @@ export function CasesScreen() {
 		)
 	}
 
+	const active = cases.filter((item) => item.status !== 'cardDelivered')
+	const previous = cases.filter((item) => item.status === 'cardDelivered')
+
 	return (
 		<BodyScrollView contentContainerClassName="gap-3 py-4">
-			{cases.map((item) => (
+			{active.length > 0 && previous.length > 0 && (
+				<SectionHeading title="Active" count={active.length} />
+			)}
+			{active.map((item) => (
 				<CaseRow key={item._id} item={item} />
 			))}
+			{previous.length > 0 && (
+				<View className="gap-3 pt-3">
+					<SectionHeading title="Previous" count={previous.length} />
+					{previous.map((item) => (
+						<CaseRow key={item._id} item={item} />
+					))}
+				</View>
+			)}
 		</BodyScrollView>
 	)
 }
