@@ -5,7 +5,7 @@
 ```yaml
 status: in_progress
 current_milestone: M7
-next_task: M7-T6
+next_task: M7-T7
 last_completed: M6-T8
 blockers: []
 updated_at: 2026-07-10
@@ -242,11 +242,11 @@ task-oriented.
   - Done when: Each intro shows once, animates out, never returns across a relaunch, carries over on account link, and is erased by the deletion cascade; no intro scrolls.
   - Evidence: `convex/preferences.ts` allowlist extended to `{forms,cases,forum,account}IntroDismissed` (deployed to dev; carryover-on-link and cascade-erasure ride the existing ownerPreferences mechanics test-pinned in M6). New `core/tab-intro.tsx`: a full-surface overlay above the live tab — hero slot + Fraunces title + body + feature rows + a single "Got it" — that FadeOuts into the tab beneath (staggered FadeInDown entrance; both ReduceMotion.System). It renders only for a real `false` (loading shows the tab, no flash), and is **height-adaptive**: under 750pt (iPhone SE class) the hero scales 0.8 and feature details drop so every intro is a true one-screen page — no intro scrolls on SE or iPhone 17 (the first pass overflowed on 17 and was compacted: 28px title, smaller heroes, tighter rhythm). New `core/account-hero.tsx` (identity circle + drifting detail/shield satellites) joins the three existing heroes, same idle-loop/reduced-motion idiom. All four tab routes mount their TabIntro with tab-specific premium copy; the old `home.intro.tsx` (and its data-dependent branch in HomeScreen) is deleted. Sim-verified on iPhone 17 + SE: each intro appears once, Got it fades it into the live tab, terminate+relaunch keeps dismissed intros gone while undismissed ones remain (per-key isolation observed: Cases stayed dismissed while Forms still showed), and dev "Reset to empty" (the cascade) brought all four back — witnessed live. Screenshots: forms/cases/forum/account intros (i17), compact forms intro (SE), post-dismissal tabs. Gates: ESLint 0 errors, tsc ✓, 385/385 vitest ✓.
 
-- [ ] **M7-T6 Forum tab: news + relabel**
-  - Status: NOT_STARTED
+- [x] **M7-T6 Forum tab: news + relabel**
+  - Status: DONE
   - Move USCIS news out of the assistant into the Forum tab with the official-source treatment intact (cron/cache unchanged); label the surface Forum consistently; the Forum root fits one screen with the feed owning its own scroll region.
   - Done when: News renders in Forum with source attribution and link-outs; the assistant sheet no longer shows news; no page-level scroll forced by tab chrome + news.
-  - Evidence:
+  - Evidence: `assistant.news.tsx` re-homed as `community/community.news.tsx` (`UscisNews`) — same official-source treatment ("Latest from USCIS" + "Official · uscis.gov" badge, expo-web-browser link-outs, staleness note, newsroom fallback; cron/cache in convex/news.ts untouched) — capped at three items so the peer feed stays within reach. CommunityScreen leads with the news card in both states: above the feed, and above the empty-state block (news is visible even before the first post exists). Forum labeling made consistent: rules screen heading + link text now "Forum rules"; composer agreement line matches; Settings already said "Blocked in Forum". Assistant sheet carries no news (removed in M7-T2). Sim-verified (iPhone 17): Forum shows the official card with 3 real cached USCIS items + link-out icons above the forum content; the feed owns the only scroll region. Gates: ESLint 0 errors, tsc ✓, 385/385 vitest ✓.'
 
 - [ ] **M7-T7 Modal headers + spacing pass**
   - Status: NOT_STARTED

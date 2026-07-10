@@ -3,7 +3,7 @@ import { styledIcon, type StyledIconComponent } from '@/components/styled-icon'
 import { Surface, Typography } from 'heroui-native'
 import { View } from 'react-native'
 
-// M4-T3 community rules: a short, static covenant. Linked from the feed header
+// M4-T3 forum rules: a short, static covenant. Linked from the feed header
 // and the composer ("By posting you agree to the community rules"), and it is
 // what a moderator enforces with hide/restore.
 
@@ -66,9 +66,9 @@ export function CommunityRulesScreen() {
 	return (
 		<BodyScrollView contentContainerClassName="gap-5 py-5">
 			<View className="gap-1">
-				<Typography.Heading>Community rules</Typography.Heading>
+				<Typography.Heading>Forum rules</Typography.Heading>
 				<Typography.Paragraph color="muted" className="leading-relaxed">
-					A few ground rules keep this a safe place to compare notes on USCIS renewals.
+					A few ground rules keep the forum a safe place to compare notes on USCIS renewals.
 				</Typography.Paragraph>
 			</View>
 			<View className="gap-2.5">

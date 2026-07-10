@@ -11,6 +11,7 @@ import {
 	usePosts,
 	type ForumPost,
 } from './community.data'
+import { UscisNews } from './community.news'
 
 function PostRow({ post, now }: { post: ForumPost; now: number }) {
 	return (
@@ -60,39 +61,47 @@ export function CommunityScreen() {
 
 	if (results.length === 0) {
 		return (
-			<ScreenEmpty
-				visual={<CommunityHero width={180} />}
-				title="No posts yet"
-				description="Ask a question or share your experience with USCIS renewals. Posts here are peer support, not legal advice."
-				action={{ label: 'Start a post', onPress: () => router.push('/new-post') }}
-				footer={
-					<Pressable
-						accessibilityRole="link"
-						accessibilityLabel="Read the community rules"
-						onPress={() => router.push('/community-rules')}
-					>
-						<Typography.Paragraph color="muted" className="text-center text-xs font-medium underline">
-							Community rules
-						</Typography.Paragraph>
-					</Pressable>
-				}
-			/>
+			<BodyScrollView contentContainerClassName="gap-3 py-4">
+				{/* M7-T6: official USCIS news lives in Forum now — visible even
+				    before the first post exists. */}
+				<UscisNews />
+				<ScreenEmpty
+					visual={<CommunityHero width={150} />}
+					title="No posts yet"
+					description="Ask a question or share your experience with USCIS renewals. Posts here are peer support, not legal advice."
+					action={{ label: 'Start a post', onPress: () => router.push('/new-post') }}
+					footer={
+						<Pressable
+							accessibilityRole="link"
+							accessibilityLabel="Read the forum rules"
+							onPress={() => router.push('/community-rules')}
+						>
+							<Typography.Paragraph color="muted" className="text-center text-xs font-medium underline">
+								Forum rules
+							</Typography.Paragraph>
+						</Pressable>
+					}
+				/>
+			</BodyScrollView>
 		)
 	}
 
 	return (
 		<BodyScrollView contentContainerClassName="gap-3 py-4">
-			<View className="gap-0.5 px-1">
+			{/* M7-T6: official news leads the tab, capped at three items so the
+			    peer feed stays within reach. */}
+			<UscisNews />
+			<View className="gap-0.5 px-1 pt-1">
 				<Typography.Paragraph color="muted" className="text-center text-xs leading-relaxed">
 					Peer support from others going through USCIS renewals — not legal advice.
 				</Typography.Paragraph>
 				<Pressable
 					accessibilityRole="link"
-					accessibilityLabel="Read the community rules"
+					accessibilityLabel="Read the forum rules"
 					onPress={() => router.push('/community-rules')}
 				>
 					<Typography.Paragraph color="muted" className="text-center text-xs font-medium underline">
-						Community rules
+						Forum rules
 					</Typography.Paragraph>
 				</Pressable>
 			</View>

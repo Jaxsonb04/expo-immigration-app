@@ -7,19 +7,19 @@ import { Pressable, View } from 'react-native'
 
 import { styledIcon } from '@/components/styled-icon'
 
-import { formatRelativeTime } from '../community/community.format'
+import { formatRelativeTime } from './community.format'
 
 const NewspaperIcon = styledIcon({ family: 'lucide', name: 'newspaper' })
 const ExternalLinkIcon = styledIcon({ family: 'lucide', name: 'external-link' })
 const BadgeCheckIcon = styledIcon({ family: 'lucide', name: 'badge-check' })
 
-// M5-T2: compact official-news section shown under the greeting while the
-// transcript is empty. Everything rendered here comes from the server-side
+// M5-T2, re-homed to the Forum tab in M7-T6: compact official-news section
+// above the peer feed. Everything rendered here comes from the server-side
 // cache in convex/news.ts, which only ever stores https://www.uscis.gov/
 // links — this component adds no other sources.
 
 const NEWSROOM_URL = 'https://www.uscis.gov/newsroom'
-const MAX_VISIBLE_ITEMS = 5
+const MAX_VISIBLE_ITEMS = 3
 
 function openOfficialLink(url: string) {
 	void WebBrowser.openBrowserAsync(url)
@@ -41,12 +41,13 @@ function NewsroomLinkRow() {
 }
 
 /**
- * "Latest from USCIS" — up to five cached official items with source links and
- * timestamps. Loading renders nothing (no spinner under the greeting); an
- * empty cache renders the newsroom link-out; a stale cache keeps showing the
- * last-good items with an "Updated … · may be out of date" note.
+ * "Latest from USCIS" — up to three cached official items with source links
+ * and timestamps, capped so the peer feed below stays within reach. Loading
+ * renders nothing; an empty cache renders the newsroom link-out; a stale
+ * cache keeps showing the last-good items with an "Updated … · may be out of
+ * date" note.
  */
-export function AssistantNews() {
+export function UscisNews() {
 	const news = useQuery(api.news.latestNews, {})
 	// Snapshotted once per mount, like the community screens — relative times
 	// here are day-granularity, so drift within a session is invisible.
