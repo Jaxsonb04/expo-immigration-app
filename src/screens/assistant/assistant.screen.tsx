@@ -124,7 +124,13 @@ export function AssistantScreen() {
 				))}
 			</ScrollView>
 
-			<KeyboardStickyView>
+			{/* The row's own bottom padding clears the home indicator when the
+			    keyboard is closed. KeyboardStickyView only ever translates by the
+			    keyboard's height, so without this offset that same safe-area
+			    padding survives as dead space between the composer and the
+			    keyboard once it's open — the offset cancels it out exactly, and
+			    interpolates smoothly with the keyboard's own open/close motion. */}
+			<KeyboardStickyView offset={{ opened: insets.bottom }}>
 				<View
 					className="gap-2 border-t border-separator bg-background px-5 pt-2.5"
 					style={{ paddingBottom: insets.bottom + 8 }}
