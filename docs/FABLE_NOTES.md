@@ -225,3 +225,27 @@ Welcome CTA now signs out best-effort and retries once, self-healing.
 
 Pro DatePicker: `presentation` must be set to the SAME value on BOTH
 `DatePicker.Select` and `DatePicker.Content` or it throws at render.
+
+## Anonymous sign-in after account deletion dead-ends on Welcome (M7 fix)
+
+Symptom: delete the account → back on Welcome → tap "Start filing" → the
+server creates the anonymous user and session (visible in Convex logs /
+betterAuth user table), but the app never leaves Welcome. Every further tap
+mints another orphan anonymous user (the previous session is killed by the
+self-heal signOut, then a new user is created).
+
+Root cause: the anonymous client plugin notifies `$sessionSignal` as part of
+the `/sign-in/anonymous` call, which makes better-auth refetch `/get-session`
+— but under the Expo client the secure-store cookie write can land *after*
+that refetch, so the session store refetches with no cookie, stays null, and
+`useConvexAuth().isAuthenticated` never flips. A manual
+`authClient.getSession()` moments later returns the session fine, and a cold
+relaunch enters the app — only the live store is stale.
+
+Fix (src/app/welcome.tsx): after a successful `signIn.anonymous()`, call
+`authClient.$store.notify()` once the call has settled — the
+refetch then runs with the stored cookie and the root guard flips. Verified
+twice with Maestro: delete account → one tap → Forms surface.
+
+Note: orphan anonymous users from this bug are swept by the existing
+`cleanupTempAccounts` cron, so no manual cleanup was needed.

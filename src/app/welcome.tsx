@@ -47,10 +47,16 @@ export default function WelcomeScreen() {
 			}
 			if (error) {
 				Alert.alert("Couldn't start", error.message ?? 'Please try again in a moment.')
+				return
 			}
-			// On success the Convex auth state flips to authenticated and the
-			// protected route in the root layout redirects into the tabs — there is
-			// no manual navigation to do here.
+			// On success the session store update flips `useConvexAuth` to
+			// authenticated and the root layout's protected route swaps in the
+			// tabs — no manual navigation. The anonymous plugin's own session
+			// signal can fire before the Expo secure-store cookie write lands,
+			// which left `useSession` stuck signed-out after an account deletion
+			// (every further tap minted another orphan anonymous user). Re-notify
+			// after the call settles so the refetch runs with the stored cookie.
+			authClient.$store.notify('$sessionSignal')
 		} catch (err) {
 			Alert.alert('Something went wrong', err instanceof Error ? err.message : 'Please try again.')
 		} finally {
