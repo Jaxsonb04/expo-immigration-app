@@ -196,3 +196,116 @@ export async function deleteOwnerData(ctx: MutationCtx, ownerId: string): Promis
 	// non-personal aggregate and may drift down by the deleted reports; the
 	// M4-T3 moderation view recomputes it from forumReports.by_targetKey.
 }
+
+/**
+ * Move every app-owned row from one owner to another (M6-T3): the data-
+ * carryover half of Better Auth anonymous account linking. `fromOwnerId` is
+ * always an anonymous session's owner, so only the filing-side tables can hold
+ * rows — every community write goes through `requireCredentialedOwnerId`, so an
+ * anonymous owner can never own forum posts/comments/blocks/reports/profiles
+ * and those tables are intentionally not touched here.
+ *
+ * The target account may already have data (linking into an EXISTING account),
+ * so the move merges rather than blindly patching where per-owner invariants
+ * exist:
+ * - applicants: at most one `isSelf` row per owner — moving isSelf rows are
+ *   demoted when the target already has one (their applications keep working;
+ *   applicantId references are row-stable).
+ * - cases: receiptNumber is unique per owner — a moving case whose receipt the
+ *   target already tracks is dropped (same real-world case).
+ * - assistantUsage: one row per (owner, day) — same-day counts are summed so
+ *   the daily quota can't be reset by converting.
+ */
+export async function reassignOwnerData(
+	ctx: MutationCtx,
+	fromOwnerId: string,
+	toOwnerId: string,
+): Promise<void> {
+	if (fromOwnerId === toOwnerId) return
+
+	const targetHasSelf =
+		(await ctx.db
+			.query('applicants')
+			.withIndex('by_ownerId', (q) => q.eq('ownerId', toOwnerId))
+			.collect()).some((row) => row.isSelf)
+	for (;;) {
+		const rows = await ctx.db
+			.query('applicants')
+			.withIndex('by_ownerId', (q) => q.eq('ownerId', fromOwnerId))
+			.take(DELETE_BATCH)
+		if (rows.length === 0) break
+		for (const row of rows) {
+			await ctx.db.patch('applicants', row._id, {
+				ownerId: toOwnerId,
+				...(row.isSelf && targetHasSelf ? { isSelf: false } : {}),
+			})
+		}
+	}
+
+	for (const table of ['applicationDrafts', 'documents', 'entitlements'] as const) {
+		for (;;) {
+			const rows = await ctx.db
+				.query(table)
+				.withIndex('by_ownerId', (q) => q.eq('ownerId', fromOwnerId))
+				.take(DELETE_BATCH)
+			if (rows.length === 0) break
+			for (const row of rows) await ctx.db.patch(table, row._id, { ownerId: toOwnerId })
+		}
+	}
+
+	// These two index owner + status; the ownerId prefix alone is a valid range.
+	for (const table of ['applications', 'applicationDocuments'] as const) {
+		for (;;) {
+			const rows = await ctx.db
+				.query(table)
+				.withIndex('by_ownerId_and_status', (q) => q.eq('ownerId', fromOwnerId))
+				.take(DELETE_BATCH)
+			if (rows.length === 0) break
+			for (const row of rows) await ctx.db.patch(table, row._id, { ownerId: toOwnerId })
+		}
+	}
+
+	for (;;) {
+		const rows = await ctx.db
+			.query('cases')
+			.withIndex('by_ownerId_and_receiptNumber', (q) => q.eq('ownerId', fromOwnerId))
+			.take(DELETE_BATCH)
+		if (rows.length === 0) break
+		for (const row of rows) {
+			const existing = await ctx.db
+				.query('cases')
+				.withIndex('by_ownerId_and_receiptNumber', (q) =>
+					q.eq('ownerId', toOwnerId).eq('receiptNumber', row.receiptNumber),
+				)
+				.unique()
+			if (existing !== null) {
+				await ctx.db.delete('cases', row._id)
+			} else {
+				await ctx.db.patch('cases', row._id, { ownerId: toOwnerId })
+			}
+		}
+	}
+
+	for (;;) {
+		const rows = await ctx.db
+			.query('assistantUsage')
+			.withIndex('by_ownerId_and_day', (q) => q.eq('ownerId', fromOwnerId))
+			.take(DELETE_BATCH)
+		if (rows.length === 0) break
+		for (const row of rows) {
+			const existing = await ctx.db
+				.query('assistantUsage')
+				.withIndex('by_ownerId_and_day', (q) => q.eq('ownerId', toOwnerId).eq('day', row.day))
+				.unique()
+			if (existing !== null) {
+				await ctx.db.patch('assistantUsage', existing._id, {
+					count: existing.count + row.count,
+					updatedAt: Date.now(),
+				})
+				await ctx.db.delete('assistantUsage', row._id)
+			} else {
+				await ctx.db.patch('assistantUsage', row._id, { ownerId: toOwnerId })
+			}
+		}
+	}
+}

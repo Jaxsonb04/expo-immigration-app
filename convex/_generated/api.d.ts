@@ -35,6 +35,8 @@ import type * as shared_interviewSteps from "../shared/interviewSteps.js";
 import type * as shared_interviewValidation from "../shared/interviewValidation.js";
 import type * as shared_navigator from "../shared/navigator.js";
 import type * as shared_news from "../shared/news.js";
+import type * as shared_tempAccounts from "../shared/tempAccounts.js";
+import type * as tempAccounts from "../tempAccounts.js";
 
 import type {
   ApiFromModules,
@@ -70,6 +72,8 @@ declare const fullApi: ApiFromModules<{
   "shared/interviewValidation": typeof shared_interviewValidation;
   "shared/navigator": typeof shared_navigator;
   "shared/news": typeof shared_news;
+  "shared/tempAccounts": typeof shared_tempAccounts;
+  tempAccounts: typeof tempAccounts;
 }>;
 
 /**

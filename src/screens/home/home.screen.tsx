@@ -1,3 +1,4 @@
+import { TempAccountDeletionBanner } from '@/components/account'
 import { BodyScrollView } from '@/components/core'
 import { Spinner } from 'heroui-native'
 import { View } from 'react-native'
@@ -35,6 +36,9 @@ export function HomeScreen() {
 			{/* One consistent section rhythm: each block is a group, `gap-8` on the
 			    scroll body owns the space between them. */}
 			<BodyScrollView contentContainerClassName="gap-8">
+				{/* M6-T4: only renders for a temp session in its final 24 hours. */}
+				<TempAccountDeletionBanner />
+
 				<View className="gap-1 pt-3">
 					<Summary.TodayLabel />
 					<Summary.Headline />

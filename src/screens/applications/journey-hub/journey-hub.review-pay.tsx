@@ -1,3 +1,4 @@
+import { useRequireAccount } from '@/components/account'
 import { SectionHeading } from '@/components/core'
 import { FEE_DISCLAIMER, FILING_FEE_AS_OF, OFFICIAL_LINKS, filingInfoFor } from '@/lib/filing-info'
 import { Button, Surface, Typography } from 'heroui-native'
@@ -65,6 +66,7 @@ function FilingInstructions({ formType }: { formType: RenderDraftArgs['formType'
 export function ReviewPay() {
 	const { application, draft } = useJourneyHub()
 	const interviewDone = useInterviewDone()
+	const requireAccount = useRequireAccount()
 	const [previewBusy, setPreviewBusy] = useState(false)
 	const [packageBusy, setPackageBusy] = useState(false)
 	const isDraft = application.status === 'draft'
@@ -125,9 +127,20 @@ export function ReviewPay() {
 
 					<Button
 						isDisabled={!interviewDone || packageBusy || previewBusy}
-						onPress={() =>
-							runExport(openFilingPackage, setPackageBusy, 'Could not build filing package')
-						}
+						onPress={async () => {
+							// M6-T3 conversion gate: exporting the filing is the moment a
+							// temporary session must become a real account. The upgrade
+							// carries every answer, document, and case over (Better Auth
+							// anonymous linking → convex/auth.ts onLinkAccount), and the
+							// export resumes right here on success.
+							const ok = await requireAccount({
+								title: 'Create an account to export your filing',
+								description:
+									'Create an account or continue with Google to export your filing. Everything you’ve entered comes with you.',
+							})
+							if (!ok) return
+							await runExport(openFilingPackage, setPackageBusy, 'Could not build filing package')
+						}}
 					>
 						<Button.Label>
 							{packageBusy ? 'Preparing package…' : 'Get filing package (clean PDF)'}

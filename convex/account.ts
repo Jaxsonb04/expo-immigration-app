@@ -1,6 +1,7 @@
-import { mutation } from './_generated/server'
+import { v } from 'convex/values'
+import { internalMutation, mutation } from './_generated/server'
 import { requireOwnerId } from './lib/auth'
-import { deleteOwnerData } from './model/ownerData'
+import { deleteOwnerData, reassignOwnerData } from './model/ownerData'
 
 /**
  * Delete every app-owned row and stored file for the calling account.
@@ -15,6 +16,35 @@ export const deleteAccountData = mutation({
 	handler: async (ctx) => {
 		const ownerId = await requireOwnerId(ctx)
 		await deleteOwnerData(ctx, ownerId)
+		return null
+	},
+})
+
+/**
+ * Data carryover for Better Auth anonymous account linking (M6-T3). Called
+ * only from the server-side `onLinkAccount` hook in convex/auth.ts — never
+ * from a client — with owner ids the hook derives from the two Better Auth
+ * user records. Moves the anonymous session's applications, answers,
+ * documents, cases, and usage to the permanent account (merge rules in
+ * `reassignOwnerData`).
+ */
+export const reassignAccountData = internalMutation({
+	args: { fromOwnerId: v.string(), toOwnerId: v.string() },
+	handler: async (ctx, args) => {
+		await reassignOwnerData(ctx, args.fromOwnerId, args.toOwnerId)
+		return null
+	},
+})
+
+/**
+ * Cascade for the temp-account cleanup cron (M6-T4): same erasure as
+ * `deleteAccountData`, but for an owner id supplied by the internal caller
+ * (the cron has no session for the account it is deleting).
+ */
+export const purgeOwnerData = internalMutation({
+	args: { ownerId: v.string() },
+	handler: async (ctx, args) => {
+		await deleteOwnerData(ctx, args.ownerId)
 		return null
 	},
 })

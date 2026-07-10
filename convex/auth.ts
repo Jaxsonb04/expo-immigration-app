@@ -3,7 +3,7 @@ import { createClient, type GenericCtx } from '@convex-dev/better-auth'
 import { convex } from '@convex-dev/better-auth/plugins'
 import { betterAuth, type BetterAuthOptions } from 'better-auth/minimal'
 import { anonymous } from 'better-auth/plugins'
-import { components } from './_generated/api'
+import { components, internal } from './_generated/api'
 import { DataModel } from './_generated/dataModel'
 import { internalAction, query } from './_generated/server'
 import authConfig from './auth.config'
@@ -51,7 +51,30 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
 		socialProviders,
 		plugins: [
 			expo(),
-			anonymous(),
+			anonymous({
+				// M6-T3 data carryover: when an anonymous "Start filing" session
+				// creates (or signs into) a permanent account, move every app-owned
+				// row to the new owner id BEFORE the plugin deletes the anonymous
+				// user. Owner ids are `${CONVEX_SITE_URL}|${betterAuthUserId}` — the
+				// same tokenIdentifier convex/lib/auth.ts derives for every write.
+				// A failure here aborts the link (the anonymous session survives and
+				// the user can retry) — that is strictly better than completing a
+				// link that silently orphans their filing.
+				onLinkAccount: async ({ anonymousUser, newUser }) => {
+					const siteUrl = env.CONVEX_SITE_URL
+					if (!siteUrl) throw new Error('CONVEX_SITE_URL is not set; cannot carry data over')
+					const fromId = anonymousUser.user.id
+					const toId = newUser.user.id
+					if (!fromId || !toId || fromId === toId) return
+					if (!('runMutation' in ctx)) {
+						throw new Error('Account linking ran outside an action context; data not moved')
+					}
+					await ctx.runMutation(internal.account.reassignAccountData, {
+						fromOwnerId: `${siteUrl}|${fromId}`,
+						toOwnerId: `${siteUrl}|${toId}`,
+					})
+				},
+			}),
 			convex({ authConfig }),
 		],
 	})
