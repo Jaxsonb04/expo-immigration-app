@@ -32,7 +32,19 @@ export default function WelcomeScreen() {
 	async function handleStartFiling(): Promise<void> {
 		setPending(true)
 		try {
-			const { error } = await authClient.signIn.anonymous()
+			let { error } = await authClient.signIn.anonymous()
+			if (error) {
+				// A half-cleared session (e.g. right after deleting an account) makes
+				// the anonymous plugin refuse to sign in again ("anonymous users
+				// cannot sign in again anonymously"). Clear whatever session is left
+				// and retry once — this screen only ever shows signed-out users.
+				try {
+					await authClient.signOut()
+				} catch {
+					// Best effort — the retry below reports the real failure.
+				}
+				;({ error } = await authClient.signIn.anonymous())
+			}
 			if (error) {
 				Alert.alert("Couldn't start", error.message ?? 'Please try again in a moment.')
 			}

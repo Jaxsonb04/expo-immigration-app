@@ -54,25 +54,33 @@ export const useLayoutStyle = () => {
 	} as ExtendedStackNavigationOptions
 }
 
+/**
+ * Tab bar appearance (M7 redesign): on iOS the bar is the system chrome
+ * material — a real glass pill with a firm edge, so content scrolling
+ * beneath it is masked by the material instead of showing through
+ * (`disableTransparentOnScrollEdge`), and it minimizes out of the way on
+ * scroll (iOS 26). Selection carries the single terracotta accent; resting
+ * items stay muted so the bar reads quiet.
+ */
 export const useTabLayoutStyle = () => {
-	const [
-		themeColorMuted,
-		themeColorBackground,
-		themeColorAccent,
-		themeColorAccentForeground,
-		themeColorForeground,
-	] = useThemeColor(['surface', 'background', 'accent', 'accent-foreground', 'foreground'])
+	const [themeColorSurface, themeColorAccent, themeColorAccentForeground, themeColorMuted] =
+		useThemeColor(['surface', 'accent', 'accent-foreground', 'muted'])
 	return {
 		tabBarStyle: {
+			blurEffect: 'systemChromeMaterial',
+			disableTransparentOnScrollEdge: true,
+			minimizeBehavior: 'onScrollDown',
+			// iOS keeps the pure material (no paint over the blur); Android gets
+			// an opaque surface bar.
 			backgroundColor: Platform.select({
-				default: themeColorMuted,
-				ios: themeColorBackground,
+				default: themeColorSurface,
+				ios: undefined,
 			}),
 			tintColor: themeColorAccent,
-			indicatorColor: themeColorAccent,
+			indicatorColor: colorKit.setAlpha(themeColorAccent, 0.16).rgb().string(),
 			labelStyle: {
 				default: {
-					color: themeColorForeground,
+					color: themeColorMuted,
 				},
 				fontFamily: 'Inter_600SemiBold',
 				selected: {
@@ -80,12 +88,13 @@ export const useTabLayoutStyle = () => {
 				},
 			},
 			iconColor: {
+				default: themeColorMuted,
 				selected: Platform.select({
 					default: themeColorAccentForeground,
 					ios: themeColorAccent,
 				}),
 			},
-			rippleColor: colorKit.setAlpha(themeColorAccentForeground, 0.4).rgb().string(),
+			rippleColor: colorKit.setAlpha(themeColorMuted, 0.16).rgb().string(),
 			sidebarAdaptable: true,
 		} satisfies NativeTabsProps,
 	}

@@ -1,8 +1,10 @@
 import { StyledLucideIcon } from '@/components/styled-icon'
+import { TabBarContext } from '@/hooks/use-tab-bar'
 import { api } from '@convex/_generated/api'
 import { useMutation, useQuery } from 'convex/react'
+import { useFocusEffect } from 'expo-router'
 import { Button, Typography } from 'heroui-native'
-import { useState, type ComponentProps, type ReactNode } from 'react'
+import { use, useCallback, useState, type ComponentProps, type ReactNode } from 'react'
 import { Text, useWindowDimensions, View } from 'react-native'
 import Animated, { FadeInDown, FadeOut, ReduceMotion } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -74,10 +76,25 @@ export function TabIntro({ prefKey, hero, title, body, features }: TabIntroProps
 	const dismissed = useQuery(api.preferences.getPreference, { key: prefKey })
 	const setPreference = useMutation(api.preferences.setPreference)
 	const [acknowledged, setAcknowledged] = useState(false)
+	const { setIsTabBarHidden } = use(TabBarContext)
 
 	// undefined = still loading: render nothing rather than flashing the intro
 	// at a returning owner. The overlay only ever appears for a real `false`.
-	if (dismissed !== false || acknowledged) return null
+	const visible = dismissed === false && !acknowledged
+
+	// The intro owns the whole surface: the tab bar steps out of the way while
+	// it shows and returns when it dismisses or the tab blurs. Focus-scoped —
+	// native tabs mount every tab screen eagerly, so a plain effect from a
+	// background tab's intro would hide the bar for the whole app.
+	useFocusEffect(
+		useCallback(() => {
+			if (!visible) return
+			setIsTabBarHidden(true)
+			return () => setIsTabBarHidden(false)
+		}, [visible, setIsTabBarHidden]),
+	)
+
+	if (!visible) return null
 
 	function dismiss() {
 		setAcknowledged(true)
@@ -121,9 +138,11 @@ export function TabIntro({ prefKey, hero, title, body, features }: TabIntroProps
 				))}
 			</Animated.View>
 
-			<View className="grow" />
+			{/* min-h keeps real air between the last feature row and the button
+			    even when the content runs tall. */}
+			<View className="min-h-6 grow" />
 
-			<Animated.View entering={rise(3)}>
+			<Animated.View entering={rise(3)} className="pb-2">
 				<Button onPress={dismiss}>
 					<Button.Label>Got it</Button.Label>
 				</Button>

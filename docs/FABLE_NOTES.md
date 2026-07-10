@@ -203,3 +203,25 @@ Driving a second simulator: install the same dev-client .app
 (`simctl get_app_container booted <bundle> app` → `simctl install <udid>`),
 launch, tap the Metro server row in the dev-client launcher; Maestro targets
 it with `--device <udid>`; `simctl pbcopy <udid>` for paste-based text entry.
+
+## Native tabs mount every tab screen eagerly (2026-07-10)
+
+**Summary:** an effect in a screen inside expo-router NativeTabs runs even
+when that tab has never been visited — all tab screens mount at startup. The
+TabIntro overlay hid the tab bar (`hidden` prop on NativeTabs via
+TabBarContext) from a BACKGROUND tab, killing the bar app-wide. Anything
+side-effectful that should apply only while a tab is showing must use
+`useFocusEffect`, not `useEffect`.
+
+Also: the empty-state "grow + justify-center" inside an inset-adjusted
+BodyScrollView sized content to the full frame and pushed the CTA below the
+tab bar. Full-surface states (intros, empty states) now use plain Views with
+explicit `insets.top + 96` / `insets.bottom + 12` padding — deterministic on
+every device.
+
+Better Auth: `signIn.anonymous()` refuses when a session survives
+half-signed-out ("anonymous users cannot sign in again anonymously") — the
+Welcome CTA now signs out best-effort and retries once, self-healing.
+
+Pro DatePicker: `presentation` must be set to the SAME value on BOTH
+`DatePicker.Select` and `DatePicker.Content` or it throws at render.

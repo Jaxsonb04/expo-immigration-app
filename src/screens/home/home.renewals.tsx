@@ -6,7 +6,8 @@ import { api } from '@convex/_generated/api'
 import { renewalStateFor, type RenewalKind, type RenewalState } from '@convex/shared/renewals'
 import { useMutation, useQuery } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
-import { Button, Input, Label, TextField, Typography } from 'heroui-native'
+import { Button, Label, Typography } from 'heroui-native'
+import { Calendar, DatePicker, type DatePickerOption } from 'heroui-native-pro'
 import { useState } from 'react'
 import { Alert, Pressable, View } from 'react-native'
 
@@ -95,12 +96,19 @@ type DateMeaning = 'expiry' | 'filed'
 /** Inline manual entry (M6-T6 decision 6): log an existing card's expiry or a
  * prior filing date without uploading anything. Also rendered by the empty
  * dashboard so the manual path exists before any other data does. */
-export function AddRenewalEntry() {
+export function AddRenewalEntry({ onOpenChange }: { onOpenChange?: (open: boolean) => void }) {
 	const addRenewalEntry = useMutation(api.renewals.addRenewalEntry)
-	const [open, setOpen] = useState(false)
+	const [open, setOpenState] = useState(false)
+	function setOpen(next: boolean) {
+		setOpenState(next)
+		onOpenChange?.(next)
+	}
 	const [kind, setKind] = useState<RenewalKind>('ead')
 	const [meaning, setMeaning] = useState<DateMeaning>('expiry')
-	const [date, setDate] = useState('')
+	// The Pro DatePicker option carries the ISO date in `value` — exactly the
+	// YYYY-MM-DD shape convex/renewals.ts validates, so hand-typed strings
+	// (and their "Enter dates as YYYY-MM-DD" rejections) are gone (M7 fix).
+	const [date, setDate] = useState<DatePickerOption | undefined>(undefined)
 	const [busy, setBusy] = useState(false)
 
 	if (!open) {
@@ -112,14 +120,15 @@ export function AddRenewalEntry() {
 	}
 
 	async function save() {
+		if (date === undefined) return
 		setBusy(true)
 		try {
 			await addRenewalEntry({
 				kind,
-				...(meaning === 'expiry' ? { expiryDate: date.trim() } : { filedAt: date.trim() }),
+				...(meaning === 'expiry' ? { expiryDate: date.value } : { filedAt: date.value }),
 			})
 			setOpen(false)
-			setDate('')
+			setDate(undefined)
 		} catch (error) {
 			Alert.alert(
 				"Couldn't add the date",
@@ -152,19 +161,44 @@ export function AddRenewalEntry() {
 				{toggle(meaning === 'expiry', 'Card expiry date', () => setMeaning('expiry'))}
 				{toggle(meaning === 'filed', 'Date I filed', () => setMeaning('filed'))}
 			</View>
-			<TextField>
+			<DatePicker value={date} onValueChange={setDate}>
 				<Label>{meaning === 'expiry' ? 'Expiry date' : 'Filing date'}</Label>
-				<Input
-					value={date}
-					onChangeText={setDate}
-					placeholder="YYYY-MM-DD"
-					keyboardType="numbers-and-punctuation"
-					autoCorrect={false}
-					maxLength={10}
-				/>
-			</TextField>
+				<DatePicker.Select presentation="dialog">
+					<DatePicker.Trigger>
+						<DatePicker.Value />
+						<DatePicker.TriggerIndicator />
+					</DatePicker.Trigger>
+					<DatePicker.Portal>
+						<DatePicker.Overlay />
+						<DatePicker.Content presentation="dialog">
+							<DatePicker.Calendar>
+								<Calendar.Header>
+									{/* Year jumping matters here: expiry dates sit years out. */}
+									<Calendar.YearPickerTrigger>
+										<Calendar.YearPickerTriggerHeading />
+										<Calendar.YearPickerTriggerIndicator />
+									</Calendar.YearPickerTrigger>
+									<Calendar.NavButton slot="previous" />
+									<Calendar.NavButton slot="next" />
+								</Calendar.Header>
+								<Calendar.Grid>
+									<Calendar.GridHeader>{(day) => <Calendar.HeaderCell day={day} />}</Calendar.GridHeader>
+									<Calendar.GridBody>{(gridDate) => <Calendar.Cell date={gridDate} />}</Calendar.GridBody>
+								</Calendar.Grid>
+								<Calendar.YearPickerGrid>
+									<Calendar.YearPickerGridBody>
+										{({ year, isSelected }) => (
+											<Calendar.YearPickerCell year={year} isSelected={isSelected} />
+										)}
+									</Calendar.YearPickerGridBody>
+								</Calendar.YearPickerGrid>
+							</DatePicker.Calendar>
+						</DatePicker.Content>
+					</DatePicker.Portal>
+				</DatePicker.Select>
+			</DatePicker>
 			<View className="flex-row gap-2">
-				<Button size="sm" isDisabled={busy || date.trim().length < 10} onPress={() => void save()}>
+				<Button size="sm" isDisabled={busy || date === undefined} onPress={() => void save()}>
 					<Button.Label>{busy ? 'Adding…' : 'Add'}</Button.Label>
 				</Button>
 				<Button size="sm" variant="ghost" isDisabled={busy} onPress={() => setOpen(false)}>

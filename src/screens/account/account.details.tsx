@@ -3,10 +3,12 @@ import { authClient } from '@/lib/auth-client'
 import { api } from '@convex/_generated/api'
 import { useMutation, useQuery } from 'convex/react'
 import { Button, Input, Label, Spinner, TextField, Typography } from 'heroui-native'
+import { Calendar, DatePicker, type DatePickerOption } from 'heroui-native-pro'
 import { useState } from 'react'
 import { Alert, View } from 'react-native'
 
 import { BodyScrollView } from '@/components/core'
+import { formatIsoDate } from '@/lib/application-labels'
 
 type Draft = {
 	givenName: string
@@ -71,6 +73,56 @@ function profileFrom(draft: Draft) {
 				}
 			: {}),
 	}
+}
+
+/** Date of birth via the Pro DatePicker (M7 fix): calendar + year picker
+ * instead of hand-typing an ISO string; the option's `value` is already the
+ * YYYY-MM-DD shape the shared applicant shape validates. */
+function DateOfBirthField(props: { value: string; onChange: (value: string) => void }) {
+	const selected: DatePickerOption | undefined = props.value
+		? { value: props.value, label: formatIsoDate(props.value) }
+		: undefined
+	return (
+		<DatePicker
+			value={selected}
+			onValueChange={(option) => props.onChange(option?.value ?? '')}
+		>
+			<Label>Date of birth</Label>
+			<DatePicker.Select presentation="dialog">
+				<DatePicker.Trigger>
+					<DatePicker.Value />
+					<DatePicker.TriggerIndicator />
+				</DatePicker.Trigger>
+				<DatePicker.Portal>
+					<DatePicker.Overlay />
+					<DatePicker.Content presentation="dialog">
+						<DatePicker.Calendar>
+							<Calendar.Header>
+								{/* Year jumping matters: birth years sit decades back. */}
+								<Calendar.YearPickerTrigger>
+									<Calendar.YearPickerTriggerHeading />
+									<Calendar.YearPickerTriggerIndicator />
+								</Calendar.YearPickerTrigger>
+								<Calendar.NavButton slot="previous" />
+								<Calendar.NavButton slot="next" />
+							</Calendar.Header>
+							<Calendar.Grid>
+								<Calendar.GridHeader>{(day) => <Calendar.HeaderCell day={day} />}</Calendar.GridHeader>
+								<Calendar.GridBody>{(gridDate) => <Calendar.Cell date={gridDate} />}</Calendar.GridBody>
+							</Calendar.Grid>
+							<Calendar.YearPickerGrid>
+								<Calendar.YearPickerGridBody>
+									{({ year, isSelected }) => (
+										<Calendar.YearPickerCell year={year} isSelected={isSelected} />
+									)}
+								</Calendar.YearPickerGridBody>
+							</Calendar.YearPickerGrid>
+						</DatePicker.Calendar>
+					</DatePicker.Content>
+				</DatePicker.Portal>
+			</DatePicker.Select>
+		</DatePicker>
+	)
 }
 
 function Field(props: {
@@ -170,7 +222,7 @@ function DetailsForm({ initial }: { initial: Draft }) {
 			<Field label="First (given) name" value={draft.givenName} onChangeText={set('givenName')} autoCapitalize="words" />
 			<Field label="Middle name" value={draft.middleName} onChangeText={set('middleName')} autoCapitalize="words" />
 			<Field label="Family (last) name" value={draft.familyName} onChangeText={set('familyName')} autoCapitalize="words" />
-			<Field label="Date of birth" value={draft.dateOfBirth} onChangeText={set('dateOfBirth')} placeholder="YYYY-MM-DD" keyboardType="number-pad" maxLength={10} />
+			<DateOfBirthField value={draft.dateOfBirth} onChange={set('dateOfBirth')} />
 			<Field label="Country of birth" value={draft.countryOfBirth} onChangeText={set('countryOfBirth')} autoCapitalize="words" />
 			<Field label="A-Number (if you have one)" value={draft.aNumber} onChangeText={set('aNumber')} placeholder="7–9 digits" keyboardType="number-pad" maxLength={9} />
 
