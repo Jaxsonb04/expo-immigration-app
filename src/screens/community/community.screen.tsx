@@ -77,11 +77,11 @@ export function CommunityScreen() {
 				</Typography.Paragraph>
 				<Pressable
 					accessibilityRole="link"
-					accessibilityLabel="Read the forum rules"
+					accessibilityLabel="Read the community rules"
 					onPress={() => router.push('/community-rules')}
 				>
 					<Typography.Paragraph color="muted" className="text-center text-xs font-medium underline">
-						Forum rules
+						Community rules
 					</Typography.Paragraph>
 				</Pressable>
 			</View>

@@ -2,6 +2,7 @@ import { api } from '@convex/_generated/api'
 import { useQuery } from 'convex/react'
 import * as WebBrowser from 'expo-web-browser'
 import { Surface, Typography } from 'heroui-native'
+import { Badge, Widget } from 'heroui-native-pro'
 import { useState } from 'react'
 import { Pressable, View } from 'react-native'
 
@@ -11,12 +12,12 @@ import { formatRelativeTime } from './community.format'
 
 const NewspaperIcon = styledIcon({ family: 'lucide', name: 'newspaper' })
 const ExternalLinkIcon = styledIcon({ family: 'lucide', name: 'external-link' })
-const BadgeCheckIcon = styledIcon({ family: 'lucide', name: 'badge-check' })
 
-// M5-T2, re-homed to the Forum tab in M7-T6: compact official-news section
-// above the peer feed. Everything rendered here comes from the server-side
-// cache in convex/news.ts, which only ever stores https://www.uscis.gov/
-// links — this component adds no other sources.
+// M5-T2, re-homed to the Community tab in M7-T6 and restyled with the Pro
+// Widget in the Community rebrand: a compact official-news briefing above the
+// peer feed. Everything rendered here comes from the server-side cache in
+// convex/news.ts, which only ever stores https://www.uscis.gov/ links — this
+// component adds no other sources.
 
 const NEWSROOM_URL = 'https://www.uscis.gov/newsroom'
 const MAX_VISIBLE_ITEMS = 3
@@ -41,15 +42,15 @@ function NewsroomLinkRow() {
 }
 
 /**
- * "Latest from USCIS" — up to three cached official items with source links
- * and timestamps, capped so the peer feed below stays within reach. Loading
- * renders nothing; an empty cache renders the newsroom link-out; a stale
- * cache keeps showing the last-good items with an "Updated … · may be out of
- * date" note.
+ * "Latest from USCIS" — up to three cached official items, presented as a Pro
+ * `Widget`: the source and an "Official" trust badge in the header, the
+ * headlines in the Widget's elevated content card, and any staleness in the
+ * footer. Loading renders nothing; an empty cache renders the newsroom
+ * link-out.
  *
- * `maxItems` lets the caller trim the list further — the empty Forum shows it
- * as a fixed, non-scrolling header, so on short devices it drops to two items
- * to leave room for the "Start a post" prompt below it.
+ * `maxItems` lets the caller trim the list — the empty Community screen shows
+ * it as a fixed, non-scrolling header, so on short devices it drops to two
+ * items to leave room for the "Start a post" prompt below it.
  */
 export function UscisNews({ maxItems = MAX_VISIBLE_ITEMS }: { maxItems?: number } = {}) {
 	const news = useQuery(api.news.latestNews, {})
@@ -59,41 +60,53 @@ export function UscisNews({ maxItems = MAX_VISIBLE_ITEMS }: { maxItems?: number 
 	if (news === undefined) return null
 	if (news.items.length === 0) return <NewsroomLinkRow />
 
+	const items = news.items.slice(0, Math.max(1, maxItems))
+
 	return (
-		<Surface variant="secondary" className="rounded-2xl px-4 pb-1 pt-4">
-			<View className="flex-row items-center justify-between pb-1.5">
-				<Typography.Paragraph className="font-medium">Latest from USCIS</Typography.Paragraph>
-				<View className="flex-row items-center gap-1">
-					<BadgeCheckIcon size={12} className="text-muted" />
-					<Typography.Paragraph color="muted" className="text-xs">
-						Official · uscis.gov
-					</Typography.Paragraph>
+		<Widget>
+			<Widget.Header>
+				<View className="gap-0.5">
+					<Widget.Title className="text-base">Latest from USCIS</Widget.Title>
+					<Widget.Description className="text-xs">Direct from uscis.gov</Widget.Description>
 				</View>
-			</View>
-			{news.items.slice(0, Math.max(1, maxItems)).map((item) => (
-				<Pressable
-					key={item.url}
-					accessibilityRole="link"
-					onPress={() => openOfficialLink(item.url)}
-				>
-					<View className="flex-row items-center gap-3 border-t border-separator py-2.5">
-						<View className="flex-1 gap-0.5">
-							<Typography.Paragraph numberOfLines={2} className="text-sm leading-snug">
-								{item.title}
-							</Typography.Paragraph>
-							<Typography.Paragraph color="muted" className="text-xs">
-								{formatRelativeTime(item.publishedAt, now)}
-							</Typography.Paragraph>
+				<Badge variant="soft" color="success" size="sm">
+					Official
+				</Badge>
+			</Widget.Header>
+			<Widget.Content className="overflow-hidden p-0">
+				{items.map((item, index) => (
+					<Pressable
+						key={item.url}
+						accessibilityRole="link"
+						onPress={() => openOfficialLink(item.url)}
+						className="active:opacity-70"
+					>
+						<View
+							className={`flex-row items-center gap-3 px-3.5 py-3 ${index > 0 ? 'border-t border-separator' : ''}`}
+						>
+							<View className="flex-1 gap-0.5">
+								<Typography.Paragraph
+									numberOfLines={2}
+									className="text-sm font-medium leading-snug"
+								>
+									{item.title}
+								</Typography.Paragraph>
+								<Typography.Paragraph color="muted" className="text-xs">
+									{formatRelativeTime(item.publishedAt, now)}
+								</Typography.Paragraph>
+							</View>
+							<ExternalLinkIcon size={14} className="text-muted" />
 						</View>
-						<ExternalLinkIcon size={13} className="text-muted" />
-					</View>
-				</Pressable>
-			))}
+					</Pressable>
+				))}
+			</Widget.Content>
 			{news.isStale && news.fetchedAt !== null ? (
-				<Typography.Paragraph color="muted" className="border-t border-separator py-2 text-xs">
-					Updated {formatRelativeTime(news.fetchedAt, now)} · may be out of date
-				</Typography.Paragraph>
+				<Widget.Footer>
+					<Widget.Description className="text-xs">
+						Updated {formatRelativeTime(news.fetchedAt, now)} · may be out of date
+					</Widget.Description>
+				</Widget.Footer>
 			) : null}
-		</Surface>
+		</Widget>
 	)
 }

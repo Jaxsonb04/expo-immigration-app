@@ -7,7 +7,7 @@ import { View } from 'react-native'
 export default function CommunityRulesRoute() {
 	return (
 		<View className="flex-1 bg-background">
-			<ModalHeader title="Forum rules" />
+			<ModalHeader title="Community rules" />
 			<CommunityRulesScreen />
 		</View>
 	)
