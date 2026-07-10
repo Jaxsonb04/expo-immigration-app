@@ -3,10 +3,10 @@
 ## Project Status
 
 ```yaml
-status: in_progress
+status: complete
 current_milestone: M7
-next_task: M7-T7
-last_completed: M6-T8
+next_task: none
+last_completed: M7-T7
 blockers: []
 updated_at: 2026-07-10
 ```
@@ -248,11 +248,11 @@ task-oriented.
   - Done when: News renders in Forum with source attribution and link-outs; the assistant sheet no longer shows news; no page-level scroll forced by tab chrome + news.
   - Evidence: `assistant.news.tsx` re-homed as `community/community.news.tsx` (`UscisNews`) — same official-source treatment ("Latest from USCIS" + "Official · uscis.gov" badge, expo-web-browser link-outs, staleness note, newsroom fallback; cron/cache in convex/news.ts untouched) — capped at three items so the peer feed stays within reach. CommunityScreen leads with the news card in both states: above the feed, and above the empty-state block (news is visible even before the first post exists). Forum labeling made consistent: rules screen heading + link text now "Forum rules"; composer agreement line matches; Settings already said "Blocked in Forum". Assistant sheet carries no news (removed in M7-T2). Sim-verified (iPhone 17): Forum shows the official card with 3 real cached USCIS items + link-out icons above the forum content; the feed owns the only scroll region. Gates: ESLint 0 errors, tsc ✓, 385/385 vitest ✓.'
 
-- [ ] **M7-T7 Modal headers + spacing pass**
-  - Status: NOT_STARTED
+- [x] **M7-T7 Modal headers + spacing pass** DONE
+  - Status: DONE
   - Consistent modal/popup header with a close (X) and/or back affordance and correct top safe-area padding across every modal route (new-application, new-case, new-post, community-rules, moderation, upgrade, interview, assistant sheet); app-wide spacing sweep in both themes.
   - Done when: No modal requires scrolling to dismiss; top padding is correct on every modal (community-rules is the canonical fix); spacing reads intentional in light and dark simulator screenshots.
-  - Evidence:
+  - Evidence: All six modal routes now wrap their screens in the shared `core/modal-header.tsx` (title + X close, `paddingTop: max(insets.top, 16)`, built in M7-T2): new-application → "Start an application", new-case → "Track a case", new-post → "Start a post", community-rules → "Forum rules", moderation → "Moderation queue", upgrade → "Create your account"; duplicate in-screen `Typography.Heading`s stripped (new-application.header, cases.new, community.new, community.rules) so each modal has exactly one title. Interview keeps its own close+progress header (already correct). Sim-verified (iPhone 17) by deep-linking every route (`immigrationrenewalhelp://…`) after tap-path selectors proved flaky (the rules link exposes accessibilityLabel "Read the forum rules", not its text): community-rules, new-case, new-post, new-application, upgrade all show the header title + X with correct top padding and dismiss without scrolling — screenshots m7_s7_rules_light/newcase_light/newpost_light/newapp_light/upgrade_light + dark passes m7_s7_rules_dark/newpost_dark/upgrade_dark (warm dark ground, terracotta CTA, consistent header). Forum tab icon restored to person.2.fill/groups per user preference (label stays "Forum"). Gates: ESLint 0 errors (2 pre-existing warnings), tsc ✓, 385/385 vitest ✓.
 
 ## Interfaces
 

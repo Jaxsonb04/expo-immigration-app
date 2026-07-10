@@ -73,7 +73,6 @@ export function NewCaseScreen() {
 	return (
 		<BodyScrollView contentContainerClassName="gap-6 py-5">
 			<View className="gap-1">
-				<Typography.Heading>Track a case</Typography.Heading>
 				<Typography.Paragraph color="muted">
 					Add the USCIS receipt number from your filing notice to follow its status and timeline.
 				</Typography.Paragraph>

@@ -249,3 +249,13 @@ twice with Maestro: delete account → one tap → Forms surface.
 
 Note: orphan anonymous users from this bug are swept by the existing
 `cleanupTempAccounts` cron, so no manual cleanup was needed.
+
+## Verifying modal routes: deep links beat tap paths (M7-T7)
+
+A Pressable with an `accessibilityLabel` replaces its child text in the iOS
+accessibility tree — Maestro `tapOn: "Forum rules"` fails even when the link
+is visibly on screen (the node is "Read the forum rules"). For modal-route
+verification skip selector archaeology entirely: `openLink:
+immigrationrenewalhelp://<route>` (or `xcrun simctl openurl`) opens each
+modal deterministically, then `tapOn: "Close"` hits the shared ModalHeader X
+(a11y label "Close"). Verified all six M7 modals this way in light and dark.

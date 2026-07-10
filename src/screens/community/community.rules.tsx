@@ -66,7 +66,6 @@ export function CommunityRulesScreen() {
 	return (
 		<BodyScrollView contentContainerClassName="gap-5 py-5">
 			<View className="gap-1">
-				<Typography.Heading>Forum rules</Typography.Heading>
 				<Typography.Paragraph color="muted" className="leading-relaxed">
 					A few ground rules keep the forum a safe place to compare notes on USCIS renewals.
 				</Typography.Paragraph>

@@ -24,7 +24,7 @@ export default function TabsLayout() {
 					<NativeTabs.Trigger.Label>Cases</NativeTabs.Trigger.Label>
 				</NativeTabs.Trigger>
 				<NativeTabs.Trigger name="community">
-					<NativeTabs.Trigger.Icon sf="bubble.left.and.bubble.right.fill" md="forum" />
+					<NativeTabs.Trigger.Icon sf="person.2.fill" md="groups" />
 					<NativeTabs.Trigger.Label>Forum</NativeTabs.Trigger.Label>
 				</NativeTabs.Trigger>
 				<NativeTabs.Trigger name="account">

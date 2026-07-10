@@ -43,7 +43,6 @@ export function NewPostScreen() {
 	return (
 		<BodyScrollView contentContainerClassName="gap-6 py-5">
 			<View className="gap-1">
-				<Typography.Heading>Start a post</Typography.Heading>
 				<Typography.Paragraph color="muted">
 					Ask a question or share your experience. Please don’t include personal details like your
 					A-Number or address — this is a public, peer-support space, not legal advice.
