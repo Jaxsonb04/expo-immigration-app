@@ -18,7 +18,7 @@ export default function AssistantTab() {
 			<Stack.Toolbar placement="right">
 				<Stack.Toolbar.Button
 					icon="person.fill"
-					accessibilityLabel="Account"
+					accessibilityLabel="Profile"
 					onPress={() => router.push('/account')}
 				/>
 			</Stack.Toolbar>

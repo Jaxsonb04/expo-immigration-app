@@ -32,7 +32,7 @@ export default function CommunityTab() {
 				/>
 				<Stack.Toolbar.Button
 					icon="person.fill"
-					accessibilityLabel="Account"
+					accessibilityLabel="Profile"
 					onPress={() => router.push('/account')}
 				/>
 			</Stack.Toolbar>

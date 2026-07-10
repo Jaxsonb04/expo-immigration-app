@@ -23,7 +23,7 @@ export default function CasesTab() {
 				/>
 				<Stack.Toolbar.Button
 					icon="person.fill"
-					accessibilityLabel="Account"
+					accessibilityLabel="Profile"
 					onPress={() => router.push('/account')}
 				/>
 			</Stack.Toolbar>

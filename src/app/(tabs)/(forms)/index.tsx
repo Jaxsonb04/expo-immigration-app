@@ -30,7 +30,7 @@ export default function FormsTab() {
 				/>
 				<Stack.Toolbar.Button
 					icon="person.fill"
-					accessibilityLabel="Account"
+					accessibilityLabel="Profile"
 					onPress={() => router.push('/account')}
 				/>
 			</Stack.Toolbar>
