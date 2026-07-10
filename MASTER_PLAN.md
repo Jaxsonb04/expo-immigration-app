@@ -3,12 +3,12 @@
 ## Project Status
 
 ```yaml
-status: complete
-current_milestone: M6
-next_task: none
+status: in_progress
+current_milestone: M7
+next_task: M7-T1
 last_completed: M6-T8
 blockers: []
-updated_at: 2026-07-09
+updated_at: 2026-07-10
 ```
 
 ## Summary
@@ -29,17 +29,19 @@ new agent reads the Project Status header and begins only at `next_task`.
 
 ## Layout
 
-Use four primary tabs, in this order:
+Use four primary tabs, in this order (M7 restructure):
 
-- **Forms:** Default tab. Dismissible intro, then a compact dashboard of drafts, completed filings, and upcoming renewals; the new-form flow.
+- **Forms:** Default tab. Compact one-screen hub of drafts, completed filings, and upcoming renewals with "See all" detail screens; the new-form flow.
 - **Cases:** Receipt-number tracking and status timelines, active and previous.
-- **AI Assistant:** Claude chat, reminders, and USCIS news.
-- **Community:** Forum posts and discussions.
+- **Forum:** Community posts and discussions, plus official USCIS news.
+- **Account:** Identity preview, editable personal details, document vault, and a Settings sub-screen (sign-out, delete, moderation state, dev tools).
 
-Profile is a full-screen page reached from the header avatar (identity details,
-document vault, account/conversion) — not a fifth tab. Document Vault and
-settings remain accessible from header actions and Forms. Keep the interface
-quiet, mobile-first, and task-oriented.
+The assistant is not a tab: it is a persistent floating "Ask" bubble anchored
+bottom-right above the tab bar on the Forms and Cases surfaces, opening the
+assistant as a full-height sheet. Every tab shows a one-time intro page on
+first visit, persisted per owner. No primary tab scrolls at its root; long
+lists live one level deeper. Keep the interface quiet, mobile-first, and
+task-oriented.
 
 ## UI Development Rules
 
@@ -209,6 +211,48 @@ quiet, mobile-first, and task-oriented.
   - Three distinct calm animated empty states on the filing-stack-hero motion primitives (Forms: filing cards; Cases: tracking motif; Community: conversation motif), transform/opacity only and reduced-motion safe; app-wide pass adding genuinely useful content to bare screens.
   - Done when: Each tab's empty state is visually distinct and reduced-motion safe; bare screens carry useful content; light + dark simulator screenshots captured.
   - Evidence: Two new siblings of `FilingStackHero` in src/components/core — `CaseTrackingHero` (a receipt notice floating above a three-stop status timeline, an envelope gliding between stops) and `CommunityHero` (paired pseudonymous avatars with drifting chat bubbles, an accent typing-dots moment) — both built on the same `useIdleLoop` ping-pong primitive at deliberately different periods, transform/opacity only, theme tokens only, and gated on `useReducedMotion` exactly like the verified filing-stack hero (loops never start; static resting pose). `ScreenEmpty` gained `visual` + `footer` slots; Cases and Community use the heroes (Community keeps its rules link in the empty state), Forms uses the filing stack. Not-so-empty pass: Forms carries renewals + the manual-date path even when empty, Profile carries documents + details, Cases carries timelines, the assistant already carries news + suggested paths; the Community empty state links the rules. Sim screenshots light + dark for all three empty states. Commits 3a3dcac + 8296b07.
+
+- [ ] **M7-T1 Navigation restructure**
+  - Status: NOT_STARTED
+  - Reorder tabs to Forms · Cases · Forum · Account; relabel Community → Forum; move the Profile modal to a real Account tab; remove the Assistant tab and the now-redundant header avatar buttons; update the Layout section and regenerate typed routes.
+  - Done when: All four tabs navigate on-device with no route conflicts and a single `/` index; the assistant is unreachable as a tab; lint/typecheck/tests green.
+  - Evidence:
+
+- [ ] **M7-T2 Assistant bubble**
+  - Status: NOT_STARTED
+  - Persistent floating "Ask" bubble bottom-right above the tab bar on Forms and Cases, opening the existing assistant surface as a full-height sheet with a clear close affordance; reduced-motion-safe entrance; navigator/quota/error-retry logic re-homed unchanged.
+  - Done when: The bubble shows on Forms and Cases only, opens the assistant sheet, and the full chat flow (recommendation, quota, retry) works from the sheet in the simulator.
+  - Evidence:
+
+- [ ] **M7-T3 Account tab + name propagation**
+  - Status: NOT_STARTED
+  - Rebuild Account as a clean identity preview plus grouped, progressively-disclosed sections; move delete-account, blocked-in-community, and dev tools into a Settings sub-screen; Save writes the applicants self-row AND the Better Auth `user.name` so greetings, avatar initials, and personalization update everywhere.
+  - Done when: Editing the name round-trips (greeting + avatar reflect it on Forms and in the assistant, and persist across a relaunch); fresh-context verifier passes identity/PII/ownership review; simulator screenshots light + dark.
+  - Evidence:
+
+- [ ] **M7-T4 Forms one-screen hub**
+  - Status: NOT_STARTED
+  - Reshape Forms into a compact non-scrolling hub (next renewal deadline, in-progress drafts, attention items) with "See all" detail screens for the full drafts/completed/renewals lists; premium copy with no "free" messaging.
+  - Done when: The Forms root does not scroll on iPhone SE (375×667) and iPhone 17; all lists remain reachable via "See all"; M6 renewals + manual-entry logic intact; lint/typecheck/tests green.
+  - Evidence:
+
+- [ ] **M7-T5 Per-tab one-time intros**
+  - Status: NOT_STARTED
+  - Forms, Cases, Forum, and Account each show a one-time intro on first visit ending in a single OK button that animates seamlessly into the tab; dismissal persisted per owner via the `ownerPreferences` allowlist; the Forms intro fits one screen with premium copy.
+  - Done when: Each intro shows once, animates out, never returns across a relaunch, carries over on account link, and is erased by the deletion cascade; no intro scrolls.
+  - Evidence:
+
+- [ ] **M7-T6 Forum tab: news + relabel**
+  - Status: NOT_STARTED
+  - Move USCIS news out of the assistant into the Forum tab with the official-source treatment intact (cron/cache unchanged); label the surface Forum consistently; the Forum root fits one screen with the feed owning its own scroll region.
+  - Done when: News renders in Forum with source attribution and link-outs; the assistant sheet no longer shows news; no page-level scroll forced by tab chrome + news.
+  - Evidence:
+
+- [ ] **M7-T7 Modal headers + spacing pass**
+  - Status: NOT_STARTED
+  - Consistent modal/popup header with a close (X) and/or back affordance and correct top safe-area padding across every modal route (new-application, new-case, new-post, community-rules, moderation, upgrade, interview, assistant sheet); app-wide spacing sweep in both themes.
+  - Done when: No modal requires scrolling to dismiss; top padding is correct on every modal (community-rules is the canonical fix); spacing reads intentional in light and dark simulator screenshots.
+  - Evidence:
 
 ## Interfaces
 
