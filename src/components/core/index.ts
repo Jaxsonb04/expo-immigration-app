@@ -1,10 +1,12 @@
 // Public surface of the core UI module — shared, domain-agnostic building blocks.
 export * from './animated-blur-view'
+export { AskBubble } from './ask-bubble'
 export * from './blur-backdrop-overlay'
 export { BodyScrollView } from './body-scroll-view'
 export * from './bottom-sheet-blur-overlay'
 export { CaseTrackingHero } from './case-tracking-hero'
 export { CommunityHero } from './community-hero'
 export { FilingStackHero } from './filing-stack-hero'
+export { ModalHeader } from './modal-header'
 export { ScreenEmpty, ScreenError, ScreenLoading } from './screen-state'
 export { SectionHeading } from './section-heading'

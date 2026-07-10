@@ -1,6 +1,8 @@
+import { AskBubble } from '@/components/core'
 import { HomeScreen } from '@/screens/home'
 import { router, Stack } from 'expo-router'
 import { useThemeColor } from 'heroui-native'
+import { View } from 'react-native'
 
 // The Forms tab is the applications surface and the app's default tab — its
 // route group `(forms)` holds the index route `/` (MASTER_PLAN Layout, M6-T1).
@@ -30,7 +32,10 @@ export default function FormsTab() {
 				/>
 			</Stack.Toolbar>
 
-			<HomeScreen />
+			<View className="flex-1">
+				<HomeScreen />
+				<AskBubble />
+			</View>
 		</>
 	)
 }

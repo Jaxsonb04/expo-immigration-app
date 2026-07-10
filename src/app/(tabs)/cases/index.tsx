@@ -1,6 +1,8 @@
+import { AskBubble } from '@/components/core'
 import { CasesScreen } from '@/screens/cases'
 import { router, Stack } from 'expo-router'
 import { useThemeColor } from 'heroui-native'
+import { View } from 'react-native'
 
 export default function CasesTab() {
 	const themeColorForeground = useThemeColor('foreground')
@@ -23,7 +25,10 @@ export default function CasesTab() {
 				/>
 			</Stack.Toolbar>
 
-			<CasesScreen />
+			<View className="flex-1">
+				<CasesScreen />
+				<AskBubble />
+			</View>
 		</>
 	)
 }
