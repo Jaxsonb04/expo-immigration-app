@@ -1,5 +1,5 @@
+import { FilingStackHero } from '@/components/core'
 import { authClient } from '@/lib/auth-client'
-import { Image } from 'expo-image'
 import { useRouter } from 'expo-router'
 import { Button } from 'heroui-native'
 import { useState } from 'react'
@@ -13,10 +13,11 @@ import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated'
  * straight into the tabs. Returning users push the dedicated sign-in screen.
  *
  * This screen is the design system's proving ground: warm paper ground,
- * Fraunces display type, one terracotta accent, generous whitespace. The
- * entrance is a single staggered fade/rise (transform + opacity only), and
- * `ReduceMotion.System` collapses it to an instant appearance when the user
- * has Reduce Motion enabled.
+ * Fraunces display type, one terracotta accent, generous whitespace. The hero
+ * is a code-drawn stack of filing cards with a calm, continuous idle (see
+ * `FilingStackHero`); the surrounding content enters as a single staggered
+ * fade/rise (transform + opacity only), and `ReduceMotion.System` collapses
+ * every animation to an instant appearance when Reduce Motion is enabled.
  */
 
 const rise = (order: number) =>
@@ -47,14 +48,10 @@ export default function WelcomeScreen() {
 
 	return (
 		<View className="flex-1 bg-background">
-			{/* Remi greets from the paper ground itself — no tinted box. */}
+			{/* The filing stack floats on the paper ground itself — no tinted box. */}
 			<View className="flex-1 items-center justify-end pt-safe">
 				<Animated.View entering={rise(0)}>
-					<Image
-						source={require('@/assets/images/remi-mascots/waving.png')}
-						style={{ aspectRatio: 1, width: 176 }}
-						contentFit="contain"
-					/>
+					<FilingStackHero width={168} />
 				</Animated.View>
 			</View>
 

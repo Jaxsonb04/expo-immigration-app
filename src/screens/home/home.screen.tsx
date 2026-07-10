@@ -32,29 +32,31 @@ export function HomeScreen() {
 
 	return (
 		<DashboardProvider dashboard={dashboard}>
-			<BodyScrollView>
-				<View className="gap-1 py-5">
+			{/* One consistent section rhythm: each block is a group, `gap-8` on the
+			    scroll body owns the space between them. */}
+			<BodyScrollView contentContainerClassName="gap-8">
+				<View className="gap-1 pt-3">
 					<Summary.TodayLabel />
 					<Summary.Headline />
 				</View>
 
-				<View className="gap-2">
+				<View className="gap-3">
 					<ActiveApplications.Heading />
 					<ActiveApplications.Rail />
 				</View>
 
 				{dashboard.attentionItems.length > 0 && (
-					<>
+					<View className="gap-1">
 						<Attention.Heading />
 						<Attention.List />
-					</>
+					</View>
 				)}
 
 				{dashboard.recentActivity.length > 0 && (
-					<>
+					<View className="gap-1">
 						<Activity.Heading />
 						<Activity.List />
-					</>
+					</View>
 				)}
 
 				<StartApplicationButton variant="secondary" />

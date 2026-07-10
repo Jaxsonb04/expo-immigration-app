@@ -7,11 +7,14 @@ import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 
 type Mode = 'sign-in' | 'sign-up'
 
-// Constrain to providers that both heroui-native-pro renders an icon for and
-// Better Auth supports as social providers.
-type SocialProvider = Extract<SocialAuthButtonProvider, 'google' | 'apple' | 'github'>
+// Google is the only social provider wired up for now; Apple is planned next.
+// GitHub is intentionally excluded — a developer identity provider makes no
+// sense for this app's audience (immigrants filing USCIS paperwork). Keep this
+// list to providers heroui-native-pro renders an icon for and Better Auth
+// supports.
+type SocialProvider = Extract<SocialAuthButtonProvider, 'google' | 'apple'>
 
-const SOCIAL_PROVIDERS: SocialProvider[] = ['google', 'apple', 'github']
+const SOCIAL_PROVIDERS: SocialProvider[] = ['google']
 
 /**
  * Dedicated sign-in screen for returning users, pushed from the Welcome screen
@@ -72,29 +75,32 @@ export default function SignInScreen() {
 
 	return (
 		<KeyboardAwareScrollView
-			contentContainerClassName="p-5 gap-3"
+			contentContainerClassName="p-5 gap-4"
 			keyboardDismissMode="on-drag"
 			keyboardShouldPersistTaps="handled"
 			contentInsetAdjustmentBehavior="automatic"
 		>
-			<View>
+			<View className="gap-1 pt-1">
 				<Text className="font-display text-title text-foreground">
-
+					{isSignUp ? 'Create your account' : 'Welcome back'}
 				</Text>
-				<Typography.Paragraph color="muted">
+				<Typography.Paragraph color="muted" className="text-[15px]">
 					{isSignUp
-						? 'Sign up to start tracking your immigration journey.'
-						: 'Sign in to continue your immigration journey.'}
+						? 'Save your progress and file with confidence.'
+						: 'Sign in to pick up right where you left off.'}
 				</Typography.Paragraph>
 			</View>
-			{SOCIAL_PROVIDERS.map((provider) => (
-				<SocialAuthButton
-					key={provider}
-					provider={provider}
-					isDisabled={pending}
-					onPress={() => handleSocialAuth(provider)}
-				/>
-			))}
+
+			<View className="gap-3">
+				{SOCIAL_PROVIDERS.map((provider) => (
+					<SocialAuthButton
+						key={provider}
+						provider={provider}
+						isDisabled={pending}
+						onPress={() => handleSocialAuth(provider)}
+					/>
+				))}
+			</View>
 
 			<View className="flex-row items-center gap-4">
 				<Separator className="flex-1" />

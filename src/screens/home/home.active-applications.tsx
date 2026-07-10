@@ -40,7 +40,9 @@ function Card(props: { application: ActiveApplication }) {
 
 /**
  * Horizontal card rail. Breaks out of the screen's horizontal padding
- * (-mx-5) so cards can bleed to the edge while staying aligned at rest.
+ * (-mx-5) so cards can bleed to the edge while staying aligned at rest. The
+ * scroll body owns the space to the next section, so the rail keeps only a
+ * hair of bottom padding for card elevation.
  */
 function Rail() {
 	const { activeApplications } = useDashboard()
@@ -49,7 +51,7 @@ function Rail() {
 			horizontal
 			showsHorizontalScrollIndicator={false}
 			className="-mx-5"
-			contentContainerClassName="gap-3 px-5 pb-5"
+			contentContainerClassName="gap-3 px-5 pb-2"
 		>
 			{activeApplications.map((application) => (
 				<Card key={application._id} application={application} />
