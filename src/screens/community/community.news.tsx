@@ -46,8 +46,12 @@ function NewsroomLinkRow() {
  * renders nothing; an empty cache renders the newsroom link-out; a stale
  * cache keeps showing the last-good items with an "Updated … · may be out of
  * date" note.
+ *
+ * `maxItems` lets the caller trim the list further — the empty Forum shows it
+ * as a fixed, non-scrolling header, so on short devices it drops to two items
+ * to leave room for the "Start a post" prompt below it.
  */
-export function UscisNews() {
+export function UscisNews({ maxItems = MAX_VISIBLE_ITEMS }: { maxItems?: number } = {}) {
 	const news = useQuery(api.news.latestNews, {})
 	// Snapshotted once per mount, like the community screens — relative times
 	// here are day-granularity, so drift within a session is invisible.
@@ -66,7 +70,7 @@ export function UscisNews() {
 					</Typography.Paragraph>
 				</View>
 			</View>
-			{news.items.slice(0, MAX_VISIBLE_ITEMS).map((item) => (
+			{news.items.slice(0, Math.max(1, maxItems)).map((item) => (
 				<Pressable
 					key={item.url}
 					accessibilityRole="link"

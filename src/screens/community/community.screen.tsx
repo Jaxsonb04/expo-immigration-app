@@ -1,4 +1,4 @@
-import { BodyScrollView, CommunityHero, ScreenEmpty, ScreenLoading } from '@/components/core'
+import { BodyScrollView, ScreenLoading } from '@/components/core'
 import { StyledLucideIcon } from '@/components/styled-icon'
 import { router } from 'expo-router'
 import { Avatar, Button, Surface, Typography } from 'heroui-native'
@@ -11,6 +11,7 @@ import {
 	usePosts,
 	type ForumPost,
 } from './community.data'
+import { CommunityEmpty } from './community.empty'
 import { UscisNews } from './community.news'
 
 function PostRow({ post, now }: { post: ForumPost; now: number }) {
@@ -59,31 +60,10 @@ export function CommunityScreen() {
 
 	if (status === 'LoadingFirstPage') return <ScreenLoading />
 
+	// M7-T6: official USCIS news lives in Forum even before the first post —
+	// CommunityEmpty leads with it, then a one-screen "start a post" prompt.
 	if (results.length === 0) {
-		return (
-			<BodyScrollView contentContainerClassName="gap-3 py-4">
-				{/* M7-T6: official USCIS news lives in Forum now — visible even
-				    before the first post exists. */}
-				<UscisNews />
-				<ScreenEmpty
-					visual={<CommunityHero width={150} />}
-					title="No posts yet"
-					description="Ask a question or share your experience with USCIS renewals. Posts here are peer support, not legal advice."
-					action={{ label: 'Start a post', onPress: () => router.push('/new-post') }}
-					footer={
-						<Pressable
-							accessibilityRole="link"
-							accessibilityLabel="Read the forum rules"
-							onPress={() => router.push('/community-rules')}
-						>
-							<Typography.Paragraph color="muted" className="text-center text-xs font-medium underline">
-								Forum rules
-							</Typography.Paragraph>
-						</Pressable>
-					}
-				/>
-			</BodyScrollView>
-		)
+		return <CommunityEmpty />
 	}
 
 	return (
