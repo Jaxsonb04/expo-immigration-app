@@ -7,7 +7,13 @@ import { requireOwnerId } from './lib/auth'
 // clients can't grow unbounded junk rows; add new literals as features need
 // them. Stored server-side so flags survive reinstalls and carry over when an
 // anonymous session converts (model/ownerData.ts moves them on link).
-const preferenceKey = literals('formsIntroDismissed')
+// M7-T5 added the per-tab intro flags (one one-time intro per primary tab).
+const preferenceKey = literals(
+	'formsIntroDismissed',
+	'casesIntroDismissed',
+	'forumIntroDismissed',
+	'accountIntroDismissed',
+)
 
 export const getPreference = query({
 	args: { key: preferenceKey },

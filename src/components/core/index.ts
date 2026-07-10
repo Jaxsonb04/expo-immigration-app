@@ -1,4 +1,5 @@
 // Public surface of the core UI module — shared, domain-agnostic building blocks.
+export { AccountHero } from './account-hero'
 export * from './animated-blur-view'
 export { AskBubble } from './ask-bubble'
 export * from './blur-backdrop-overlay'
@@ -10,3 +11,4 @@ export { FilingStackHero } from './filing-stack-hero'
 export { ModalHeader } from './modal-header'
 export { ScreenEmpty, ScreenError, ScreenLoading } from './screen-state'
 export { SectionHeading } from './section-heading'
+export { TabIntro, type TabIntroFeature } from './tab-intro'

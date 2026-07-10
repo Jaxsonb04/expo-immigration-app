@@ -5,7 +5,7 @@
 ```yaml
 status: in_progress
 current_milestone: M7
-next_task: M7-T5
+next_task: M7-T6
 last_completed: M6-T8
 blockers: []
 updated_at: 2026-07-10
@@ -236,11 +236,11 @@ task-oriented.
   - Done when: The Forms root does not scroll on iPhone SE (375×667) and iPhone 17; all lists remain reachable via "See all"; M6 renewals + manual-entry logic intact; lint/typecheck/tests green.
   - Evidence: `home.hub.tsx` (designed against the heroui-pro-design-taste profile after the first ListGroup draft was rejected as settings-page-flat): hierarchy over uniformity — a featured **Next renewal** card leads with a Fraunces display figure ("90 / days to expiry"; danger/warning tones for expired/today; date figures for window-opens/awaiting-card; the zero-renewals case pitches the manual-entry path "Know your window."), then a two-up bento of stat tiles (drafts count + first-draft step line; attention count in warning with the first item's line), then a quiet completed row (deliberately not a card), then the single accent CTA. Each block pushes its full list: new `(tabs)/(forms)/{renewals,drafts,attention,completed}` routes rendering `home.detail-screens.tsx` — thin wrappers re-homing the untouched M6 section components (Renewals incl. AddRenewalEntry manual path, ActiveApplications.Card full-width, Attention.List, Completed). Layout gotchas fixed en route (recorded in FABLE_NOTES): `bounces={false}`/`scrollEnabled={false}` on a fitting ScrollView make iOS clamp offset to 0 and skip the automatic large-title inset — one-screen roots keep native scrolling enabled and simply fit; `h-full` on flex tiles resolves circularly and stretched them to the tab bar (use flex-1 + items-stretch). Premium copy sweep app-wide: removed "Completely free" (intro badge), "Everything is free…" (new-application header), "— free, edits included" (review-pay), all five "free account" gate strings, and the upgrade recap's "free" — zero user-facing "free" marketing remains (fee-accuracy copy in filing-info.ts untouched). Sim-verified: hub fits one screen on iPhone 17 AND iPhone SE 3rd gen (dev client installed on a booted SE sim; the first SE pass caught a real overflow → headline compacted to text-xl/leading-8, rhythm tightened); renewals detail screen live-verified on SE (3 merged sources + add affordance + Back); light + dark screenshots. Gates: ESLint 0 errors, tsc ✓, 385/385 vitest ✓.
 
-- [ ] **M7-T5 Per-tab one-time intros**
-  - Status: NOT_STARTED
+- [x] **M7-T5 Per-tab one-time intros**
+  - Status: DONE
   - Forms, Cases, Forum, and Account each show a one-time intro on first visit ending in a single OK button that animates seamlessly into the tab; dismissal persisted per owner via the `ownerPreferences` allowlist; the Forms intro fits one screen with premium copy.
   - Done when: Each intro shows once, animates out, never returns across a relaunch, carries over on account link, and is erased by the deletion cascade; no intro scrolls.
-  - Evidence:
+  - Evidence: `convex/preferences.ts` allowlist extended to `{forms,cases,forum,account}IntroDismissed` (deployed to dev; carryover-on-link and cascade-erasure ride the existing ownerPreferences mechanics test-pinned in M6). New `core/tab-intro.tsx`: a full-surface overlay above the live tab — hero slot + Fraunces title + body + feature rows + a single "Got it" — that FadeOuts into the tab beneath (staggered FadeInDown entrance; both ReduceMotion.System). It renders only for a real `false` (loading shows the tab, no flash), and is **height-adaptive**: under 750pt (iPhone SE class) the hero scales 0.8 and feature details drop so every intro is a true one-screen page — no intro scrolls on SE or iPhone 17 (the first pass overflowed on 17 and was compacted: 28px title, smaller heroes, tighter rhythm). New `core/account-hero.tsx` (identity circle + drifting detail/shield satellites) joins the three existing heroes, same idle-loop/reduced-motion idiom. All four tab routes mount their TabIntro with tab-specific premium copy; the old `home.intro.tsx` (and its data-dependent branch in HomeScreen) is deleted. Sim-verified on iPhone 17 + SE: each intro appears once, Got it fades it into the live tab, terminate+relaunch keeps dismissed intros gone while undismissed ones remain (per-key isolation observed: Cases stayed dismissed while Forms still showed), and dev "Reset to empty" (the cascade) brought all four back — witnessed live. Screenshots: forms/cases/forum/account intros (i17), compact forms intro (SE), post-dismissal tabs. Gates: ESLint 0 errors, tsc ✓, 385/385 vitest ✓.
 
 - [ ] **M7-T6 Forum tab: news + relabel**
   - Status: NOT_STARTED

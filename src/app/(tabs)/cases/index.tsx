@@ -1,4 +1,4 @@
-import { AskBubble } from '@/components/core'
+import { AskBubble, CaseTrackingHero, TabIntro } from '@/components/core'
 import { CasesScreen } from '@/screens/cases'
 import { router, Stack } from 'expo-router'
 import { useThemeColor } from 'heroui-native'
@@ -28,6 +28,29 @@ export default function CasesTab() {
 			<View className="flex-1">
 				<CasesScreen />
 				<AskBubble />
+				<TabIntro
+					prefKey="casesIntroDismissed"
+					hero={<CaseTrackingHero width={108} />}
+					title={'Follow every case,\nstart to card.'}
+					body="Once you’ve filed with USCIS, add your receipt number and watch each case move."
+					features={[
+						{
+							icon: 'ticket',
+							title: 'Track by receipt number',
+							detail: 'Add the number from your USCIS notice — one case per filing.',
+						},
+						{
+							icon: 'route',
+							title: 'A clear status timeline',
+							detail: 'From received to biometrics to decision, every step in order.',
+						},
+						{
+							icon: 'link',
+							title: 'Linked to your filings',
+							detail: 'Connect a case to the application you prepared here.',
+						},
+					]}
+				/>
 			</View>
 		</>
 	)
