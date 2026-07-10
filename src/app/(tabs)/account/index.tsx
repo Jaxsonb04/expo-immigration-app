@@ -2,9 +2,9 @@ import { ProfileScreen } from '@/screens/profile'
 import { Stack } from 'expo-router'
 import { useThemeColor } from 'heroui-native'
 
-/** Full-screen Profile page off the header avatar (M6-T5, MASTER_PLAN Layout).
- * The route stays `/account` so every existing header button keeps working. */
-export default function ProfileRoute() {
+/** The Account tab (M7-T1, MASTER_PLAN Layout) — identity, personal details,
+ * documents, and settings. Replaces the old header-avatar Profile modal. */
+export default function AccountTab() {
 	const themeColorForeground = useThemeColor('foreground')
 	return (
 		<>
@@ -15,7 +15,7 @@ export default function ProfileRoute() {
 					color: themeColorForeground,
 				}}
 			>
-				Profile
+				Account
 			</Stack.Title>
 
 			<ProfileScreen />

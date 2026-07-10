@@ -5,7 +5,7 @@
 ```yaml
 status: in_progress
 current_milestone: M7
-next_task: M7-T1
+next_task: M7-T2
 last_completed: M6-T8
 blockers: []
 updated_at: 2026-07-10
@@ -212,11 +212,11 @@ task-oriented.
   - Done when: Each tab's empty state is visually distinct and reduced-motion safe; bare screens carry useful content; light + dark simulator screenshots captured.
   - Evidence: Two new siblings of `FilingStackHero` in src/components/core — `CaseTrackingHero` (a receipt notice floating above a three-stop status timeline, an envelope gliding between stops) and `CommunityHero` (paired pseudonymous avatars with drifting chat bubbles, an accent typing-dots moment) — both built on the same `useIdleLoop` ping-pong primitive at deliberately different periods, transform/opacity only, theme tokens only, and gated on `useReducedMotion` exactly like the verified filing-stack hero (loops never start; static resting pose). `ScreenEmpty` gained `visual` + `footer` slots; Cases and Community use the heroes (Community keeps its rules link in the empty state), Forms uses the filing stack. Not-so-empty pass: Forms carries renewals + the manual-date path even when empty, Profile carries documents + details, Cases carries timelines, the assistant already carries news + suggested paths; the Community empty state links the rules. Sim screenshots light + dark for all three empty states. Commits 3a3dcac + 8296b07.
 
-- [ ] **M7-T1 Navigation restructure**
-  - Status: NOT_STARTED
+- [x] **M7-T1 Navigation restructure**
+  - Status: DONE
   - Reorder tabs to Forms · Cases · Forum · Account; relabel Community → Forum; move the Profile modal to a real Account tab; remove the Assistant tab and the now-redundant header avatar buttons; update the Layout section and regenerate typed routes.
   - Done when: All four tabs navigate on-device with no route conflicts and a single `/` index; the assistant is unreachable as a tab; lint/typecheck/tests green.
-  - Evidence:
+  - Evidence: `(tabs)/_layout.tsx` now declares Forms `(forms)` · Cases · Forum (route group stays `community`, SF `bubble.left.and.bubble.right.fill`) · Account (`person.crop.circle.fill`); `(tabs)/assistant/` and `(modal)/account/` deleted; new `(tabs)/account/` renders the existing ProfileScreen (content rebuild is M7-T3). All five header avatar buttons removed (Forms, Documents, Cases, Community, Assistant) — `/account` is now the tab itself; Forms keeps the vault action, Cases keeps +, Forum keeps moderation/+. Typed routes regenerated via a brief `expo start`: `/account` maps to `(tabs)/account`, no assistant routes, single `/` index. Sim-verified on iPhone 17 (dev client + fresh Metro): tab bar shows Forms·Cases·Forum·Account, each tab opens with correct large title and toolbar (screenshots m7_s1_launch/cases/forum/account). Gates: ESLint 0 errors, tsc ✓, 385/385 vitest ✓.
 
 - [ ] **M7-T2 Assistant bubble**
   - Status: NOT_STARTED

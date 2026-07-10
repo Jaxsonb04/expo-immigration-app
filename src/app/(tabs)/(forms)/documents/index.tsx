@@ -1,5 +1,5 @@
 import { DocumentsScreen } from '@/screens/documents'
-import { router, Stack } from 'expo-router'
+import { Stack } from 'expo-router'
 import { useThemeColor } from 'heroui-native'
 
 export default function DocumentsTab() {
@@ -15,13 +15,6 @@ export default function DocumentsTab() {
 			>
 				Documents
 			</Stack.Title>
-			<Stack.Toolbar placement="right">
-				<Stack.Toolbar.Button
-					icon="person.fill"
-					accessibilityLabel="Profile"
-					onPress={() => router.push('/account')}
-				/>
-			</Stack.Toolbar>
 
 			<DocumentsScreen />
 		</>

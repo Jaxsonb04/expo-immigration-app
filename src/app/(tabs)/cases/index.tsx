@@ -21,11 +21,6 @@ export default function CasesTab() {
 					accessibilityLabel="New case"
 					onPress={() => router.push('/new-case')}
 				/>
-				<Stack.Toolbar.Button
-					icon="person.fill"
-					accessibilityLabel="Profile"
-					onPress={() => router.push('/account')}
-				/>
 			</Stack.Toolbar>
 
 			<CasesScreen />

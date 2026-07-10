@@ -28,11 +28,6 @@ export default function FormsTab() {
 					accessibilityLabel="Document vault"
 					onPress={() => router.push('/documents')}
 				/>
-				<Stack.Toolbar.Button
-					icon="person.fill"
-					accessibilityLabel="Profile"
-					onPress={() => router.push('/account')}
-				/>
 			</Stack.Toolbar>
 
 			<HomeScreen />

@@ -3,7 +3,9 @@ import { useIsModerator } from '@/screens/community/community.data'
 import { router, Stack } from 'expo-router'
 import { useThemeColor } from 'heroui-native'
 
-export default function CommunityTab() {
+// Labeled Forum (M7-T1); the route group stays `community` so existing
+// route refs and per-owner data paths are untouched.
+export default function ForumTab() {
 	const themeColorForeground = useThemeColor('foreground')
 	const isModerator = useIsModerator()
 	return (
@@ -15,7 +17,7 @@ export default function CommunityTab() {
 					color: themeColorForeground,
 				}}
 			>
-				Community
+				Forum
 			</Stack.Title>
 			<Stack.Toolbar placement="right">
 				{isModerator === true ? (
@@ -29,11 +31,6 @@ export default function CommunityTab() {
 					icon="plus"
 					accessibilityLabel="New post"
 					onPress={() => router.push('/new-post')}
-				/>
-				<Stack.Toolbar.Button
-					icon="person.fill"
-					accessibilityLabel="Profile"
-					onPress={() => router.push('/account')}
 				/>
 			</Stack.Toolbar>
 
