@@ -1,9 +1,11 @@
-import { SectionHeading } from '@/components/core'
+import { authClient } from '@/lib/auth-client'
 import { api } from '@convex/_generated/api'
 import { useMutation, useQuery } from 'convex/react'
 import { Button, Input, Label, Spinner, TextField, Typography } from 'heroui-native'
 import { useState } from 'react'
 import { Alert, View } from 'react-native'
+
+import { BodyScrollView } from '@/components/core'
 
 type Draft = {
 	givenName: string
@@ -96,11 +98,12 @@ function Field(props: {
 }
 
 /**
- * Editable identity details (M6-T5), backed by the owner's SELF applicant row
- * (convex/applicants.ts) — the exact record filings prefill from, so anything
- * saved here shows up in the next interview.
+ * Editable identity details (M6-T5, re-homed to the Account tab in M7-T3),
+ * backed by the owner's SELF applicant row (convex/applicants.ts) — the exact
+ * record filings prefill from, so anything saved here shows up in the next
+ * interview.
  */
-export function ProfileDetails() {
+export function AccountDetailsScreen() {
 	const self = useSelfApplicant()
 	if (self === undefined) {
 		return (
@@ -116,6 +119,9 @@ export function ProfileDetails() {
 
 function DetailsForm({ initial }: { initial: Draft }) {
 	const updateSelfProfile = useMutation(api.applicants.updateSelfProfile)
+	const { data } = authClient.useSession()
+	const user = data?.user
+	const isCredentialed = Boolean(user) && !user?.isAnonymous
 	const [draft, setDraft] = useState<Draft>(initial)
 	const [dirty, setDirty] = useState(false)
 	const [saving, setSaving] = useState(false)
@@ -134,6 +140,17 @@ function DetailsForm({ initial }: { initial: Draft }) {
 				profile,
 				...(fullName.length > 0 ? { displayName: fullName } : {}),
 			})
+			// M7-T3 name propagation: useViewer() — the greeting/avatar spine —
+			// reads the Better Auth user record, not the applicants row, so Save
+			// must also update user.name or the app keeps greeting the old name.
+			// Anonymous sessions are skipped: they never render a name, and a
+			// later sign-up brings its own.
+			if (isCredentialed && fullName.length > 0 && fullName !== user?.name) {
+				const { error } = await authClient.updateUser({ name: fullName })
+				if (error) {
+					throw new Error(error.message ?? "Your details saved, but the name didn't update")
+				}
+			}
 			setDirty(false)
 		} catch (error) {
 			Alert.alert(
@@ -146,13 +163,10 @@ function DetailsForm({ initial }: { initial: Draft }) {
 	}
 
 	return (
-		<View className="gap-4">
-			<View className="gap-1">
-				<SectionHeading title="Your details" />
-				<Typography.Paragraph color="muted" className="text-sm">
-					You’re the applicant on your own filings — these details prefill every form you start.
-				</Typography.Paragraph>
-			</View>
+		<BodyScrollView contentContainerClassName="gap-4 px-5 pt-4 pb-8">
+			<Typography.Paragraph color="muted" className="text-sm">
+				You’re the applicant on your own filings — these details prefill every form you start.
+			</Typography.Paragraph>
 
 			<Field label="First (given) name" value={draft.givenName} onChangeText={set('givenName')} autoCapitalize="words" />
 			<Field label="Middle name" value={draft.middleName} onChangeText={set('middleName')} autoCapitalize="words" />
@@ -182,6 +196,6 @@ function DetailsForm({ initial }: { initial: Draft }) {
 			<Button isDisabled={!dirty || saving} onPress={() => void save()}>
 				<Button.Label>{saving ? 'Saving…' : 'Save details'}</Button.Label>
 			</Button>
-		</View>
+		</BodyScrollView>
 	)
 }
