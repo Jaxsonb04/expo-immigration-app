@@ -1,3 +1,4 @@
+import { useViewer } from '@/components/account'
 import { Typography } from 'heroui-native'
 import { useDashboard } from './home.context'
 
@@ -12,11 +13,25 @@ function TodayLabel() {
 	)
 }
 
-/** Mockup direction: calm sentence with the two load-bearing counts bolded. */
+/** Mockup direction: calm sentence with the two load-bearing counts bolded.
+ * Converted accounts get a "Welcome back, <name>." lead-in (M6-T1 viewer
+ * spine); temp sessions see the neutral sentence only. */
 function Headline() {
 	const { summary } = useDashboard()
+	const { firstName } = useViewer()
 	return (
 		<Typography.Heading type="h3" className="leading-10">
+			{firstName ? (
+				<>
+					<Typography.Heading type="h3" className="text-muted">
+						Welcome back,{' '}
+					</Typography.Heading>
+					{`${firstName}.`}
+					<Typography.Heading type="h3" className="text-muted">
+						{' '}
+					</Typography.Heading>
+				</>
+			) : null}
 			<Typography.Heading type="h3" className="text-muted">
 				You have{' '}
 			</Typography.Heading>

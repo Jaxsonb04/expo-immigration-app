@@ -116,3 +116,22 @@ element tree. Working recipe: create accounts via Better Auth's public HTTP
 sign into the APP through the regular sign-in screen (keychain reset →
 Welcome → pbcopy+Paste per field → Sign in), which Maestro CAN drive. This
 unlocked the full live moderation round-trip (hide/restore/block/unblock).
+
+## Logo has a vector source now (2026-07-09)
+
+**Summary:** `assets/images/logo.svg` is the canonical Immifile monogram —
+recreated in M6-T2 because the logo previously existed only as exported PNGs.
+Future recolors are trivial: edit the SVG (or the color constants in
+`scripts/generate-logo-assets.mjs`) and run `node
+scripts/generate-logo-assets.mjs` to regenerate all five shipped PNGs (icon,
+adaptive-icon, favicon, splash-icon, splash-icon-dark) via `@resvg/resvg-js`
+(devDependency).
+
+- The stem is the Fraunces SemiBold dotless-i outline (IoU 0.991 against the
+  original mark — measured, not eyeballed); the dot is a circle in the ink
+  tone: light `#261D16` = oklch(24% 0.02 60), dark-splash `#E9E4DC`.
+- The five variants are one parameterized composition: same mark scaled about
+  (514, 511) at 1.0 / 0.713 / 0.629 with per-variant colors — measured from
+  the original PNGs so regenerated files are drop-in.
+- Gotcha: NEVER `npm install` in this repo — it prunes bun-installed packages
+  (76 removed before `bun install` restored them). Use `bun add` / `bun add -d`.

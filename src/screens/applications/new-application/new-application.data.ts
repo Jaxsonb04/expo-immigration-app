@@ -39,7 +39,7 @@ export function useNewApplicationSubmit() {
 
 		const applicationId = await createApplication({ applicantId, ...situation })
 		router.dismiss()
-		router.push(`/forms/application/${applicationId}`)
+		router.push(`/application/${applicationId}`)
 	}
 
 	return { applicants, selfApplicant, dependents, submit }

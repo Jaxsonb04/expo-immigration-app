@@ -5,6 +5,7 @@ import { ScrollView, View } from 'react-native'
 import { KeyboardStickyView } from 'react-native-keyboard-controller'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
+import { useViewer } from '@/components/account'
 import { styledIcon } from '@/components/styled-icon'
 
 import { Composer } from './assistant.composer'
@@ -16,15 +17,21 @@ import type { AssistantContent, ChatTurn } from './assistant.types'
 
 const InfoIcon = styledIcon({ family: 'lucide', name: 'info' })
 
-const GREETING =
-	'Hi! I can help you figure out which form to prepare — a work permit (Form I-765) or a green card (Form I-90). Tell me what you need, and I’ll point you to the right one. I share general information only, not legal advice.'
-
 /** The intro turn shown while the transcript is empty. Reuses the assistant
- * bubble + suggestion layout so first-run looks like a real message. */
-const GREETING_TURN: ChatTurn = {
-	id: 'greeting',
-	kind: 'assistant',
-	content: { kind: 'text', text: GREETING, suggestions: OPENING_REPLIES },
+ * bubble + suggestion layout so first-run looks like a real message. Greets by
+ * name only for converted accounts (M6-T1 viewer spine); anonymous sessions
+ * always get the neutral "Hi!". */
+function greetingTurn(firstName: string | null): ChatTurn {
+	const hi = firstName ? `Hi ${firstName}!` : 'Hi!'
+	return {
+		id: 'greeting',
+		kind: 'assistant',
+		content: {
+			kind: 'text',
+			text: `${hi} I can help you figure out which form to prepare — a work permit (Form I-765) or a green card (Form I-90). Tell me what you need, and I’ll point you to the right one. I share general information only, not legal advice.`,
+			suggestions: OPENING_REPLIES,
+		},
+	}
 }
 
 /** Always-visible reminder placed where the user acts (above the composer). */
@@ -67,6 +74,7 @@ export function AssistantScreen() {
 	const insets = useSafeAreaInsets()
 	const router = useRouter()
 	const { turns, usage, isSending, canSend, outOfMessages, send, retry } = useAssistantChat()
+	const { firstName } = useViewer()
 	const scrollRef = useRef<ScrollView>(null)
 	const viewportHeight = useRef(0)
 
@@ -80,7 +88,7 @@ export function AssistantScreen() {
 	}
 
 	const isEmpty = turns.length === 0
-	const visibleTurns = isEmpty ? [GREETING_TURN] : turns
+	const visibleTurns = isEmpty ? [greetingTurn(firstName)] : turns
 
 	return (
 		<View className="flex-1 bg-background">

@@ -19,7 +19,7 @@ function Item(props: { item: AttentionItem }) {
 		return (
 			<Pressable
 				accessibilityRole="button"
-				onPress={() => router.push('/forms/documents')}
+				onPress={() => router.push('/documents')}
 				className="flex-row items-center gap-3 py-2"
 			>
 				<StyledLucideIcon name="triangle-alert" size={20} className="text-danger" />
@@ -39,7 +39,7 @@ function Item(props: { item: AttentionItem }) {
 	return (
 		<Pressable
 			accessibilityRole="button"
-			onPress={() => router.push(`/forms/application/${item.applicationId}`)}
+			onPress={() => router.push(`/application/${item.applicationId}`)}
 			className="flex-row items-center gap-3 py-2"
 		>
 			<StyledLucideIcon name="file-plus" size={20} className="text-warning" />

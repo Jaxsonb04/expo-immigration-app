@@ -18,7 +18,7 @@ function Item(props: { slot: NeededSlot }) {
 	return (
 		<Pressable
 			accessibilityRole="button"
-			onPress={() => router.push(`/forms/application/${slot.applicationId}`)}
+			onPress={() => router.push(`/application/${slot.applicationId}`)}
 			className="flex-row items-center gap-3 py-2"
 		>
 			<StyledLucideIcon name="file-plus" size={20} className="text-warning" />

@@ -80,6 +80,7 @@
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",
+    "@resvg/resvg-js": "^2.6.2",
     "@types/react": "~19.2.15",
     "convex-test": "^0.0.54",
     "eslint": "^9.39.4",

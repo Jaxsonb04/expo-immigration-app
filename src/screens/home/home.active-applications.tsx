@@ -18,7 +18,7 @@ function Card(props: { application: ActiveApplication }) {
 	return (
 		<Pressable
 			accessibilityRole="button"
-			onPress={() => router.push(`/forms/application/${application._id}`)}
+			onPress={() => router.push(`/application/${application._id}`)}
 		>
 			<HeroCard className="w-64">
 				<HeroCard.Body className="gap-1">
