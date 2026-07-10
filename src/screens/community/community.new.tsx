@@ -25,8 +25,8 @@ export function NewPostScreen() {
 	async function submit() {
 		if (!canSubmit) return
 		const ok = await requireAccount({
-			title: 'Create a free account to post',
-			description: 'A free, recoverable account lets you post and get replies from others.',
+			title: 'Create an account to post',
+			description: 'An account lets you post and get replies from others.',
 		})
 		if (!ok) return
 		setBusy(true)

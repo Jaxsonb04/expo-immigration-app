@@ -121,11 +121,12 @@ function RowGroup({ label, rows }: { label: string; rows: Row[] }) {
  */
 export function AccountScreen() {
 	const { isTemp } = useViewer()
-	// BodyScrollView with scrolling disabled: the automatic content-inset is
-	// what clears the transparent large-title header; the root itself must
-	// never scroll (one-screen rule), so the gesture is off.
+	// One-screen root: content fits a single screen, so the surface never
+	// actually scrolls. Scrolling/bounce stay natively enabled — disabling
+	// them makes iOS skip the automatic large-title content inset (see the
+	// note in home.screen.tsx).
 	return (
-		<BodyScrollView scrollEnabled={false} bounces={false} contentContainerClassName="gap-6 pt-2">
+		<BodyScrollView contentContainerClassName="gap-6 pt-2">
 			<IdentityPreview />
 			{isTemp ? <TempAccountCard /> : null}
 			<RowGroup label="Your filing profile" rows={PROFILE_ROWS} />

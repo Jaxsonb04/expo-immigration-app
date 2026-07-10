@@ -26,7 +26,7 @@ export function ReportAction({ target }: { target: ReportTarget }) {
 	async function submit() {
 		if (reason === null) return
 		const ok = await requireAccount({
-			title: 'Create a free account to report',
+			title: 'Create an account to report',
 			description: 'Reporting helps keep the community safe and respectful.',
 		})
 		if (!ok) return

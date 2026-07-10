@@ -20,23 +20,23 @@ function Headline() {
 	const { summary } = useDashboard()
 	const { firstName } = useViewer()
 	return (
-		<Typography.Heading type="h3" className="leading-10">
+		<Typography.Heading type="h3" className="text-xl leading-8">
 			{firstName ? (
 				<>
-					<Typography.Heading type="h3" className="text-muted">
+					<Typography.Heading type="h3" className="text-xl leading-8 text-muted">
 						Welcome back,{' '}
 					</Typography.Heading>
 					{`${firstName}.`}
-					<Typography.Heading type="h3" className="text-muted">
+					<Typography.Heading type="h3" className="text-xl leading-8 text-muted">
 						{' '}
 					</Typography.Heading>
 				</>
 			) : null}
-			<Typography.Heading type="h3" className="text-muted">
+			<Typography.Heading type="h3" className="text-xl leading-8 text-muted">
 				You have{' '}
 			</Typography.Heading>
 			{`${summary.expiringDocumentsCount} ${summary.expiringDocumentsCount === 1 ? 'document' : 'documents'} expiring`}
-			<Typography.Heading type="h3" className="text-muted">
+			<Typography.Heading type="h3" className="text-xl leading-8 text-muted">
 				{' '}
 				and{' '}
 			</Typography.Heading>

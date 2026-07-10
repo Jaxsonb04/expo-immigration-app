@@ -105,7 +105,7 @@ export function ReviewPay() {
 		<View className="gap-3">
 			<SectionHeading title="Review & File" />
 			<Typography.Paragraph color="muted">
-				Preview your form, then download your clean, print-ready filing package — free, edits
+				Preview your form, then download your clean, print-ready filing package — edits
 				included. The USCIS filing fee is separate and paid to USCIS directly, never to this app.
 			</Typography.Paragraph>
 

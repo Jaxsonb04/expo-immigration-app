@@ -17,7 +17,7 @@ function Heading() {
 	return <SectionHeading title="In progress" count={drafts(activeApplications).length} />
 }
 
-function Card(props: { application: ActiveApplication }) {
+function Card(props: { application: ActiveApplication; className?: string }) {
 	const router = useRouter()
 	const { application } = props
 	const label = situationLabel(application.formType, application.applicationKind)
@@ -26,7 +26,7 @@ function Card(props: { application: ActiveApplication }) {
 			accessibilityRole="button"
 			onPress={() => router.push(`/application/${application._id}`)}
 		>
-			<HeroCard className="w-64">
+			<HeroCard className={props.className ?? 'w-64'}>
 				<HeroCard.Body className="gap-1">
 					<HeroCard.Title>{label.primary}</HeroCard.Title>
 					<HeroCard.Description>{application.applicantName}</HeroCard.Description>

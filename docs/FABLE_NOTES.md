@@ -182,3 +182,24 @@ sign-in itself works and transitions in-place — no app bug.
   (layout shifts); prefer text selectors.
 - iOS "Save Password?" prompt appears after a successful credential sign-in —
   dismiss with `tapOn: "Not Now"` before asserting anything else.
+
+## One-screen tab roots: iOS insets vs non-scrolling ScrollViews (2026-07-10)
+
+**Summary:** for the M7 "no primary tab scrolls" rule, do NOT disable
+scrolling. On iOS 26 native-stack transparent large-title headers, the
+content clears the header via `contentInsetAdjustmentBehavior="automatic"`,
+and that adjustment silently stops applying when the scroll view cannot rest
+at a negative offset: both `scrollEnabled={false}` and `bounces={false}`
+made the root render underneath the large title (content clamped to y=0).
+The working recipe is a plain BodyScrollView whose CONTENT fits one screen —
+a fitting page simply has nothing to scroll. Verify fit on an iPhone SE
+(667pt): the first pass overflowed there and only showed on-device.
+
+Also: `h-full` on a Card inside a flex-row tile resolves circularly in
+Uniwind/Yoga and stretched the tiles to the tab bar — use `flex-1` on the
+card + `items-stretch` on the row for equal-height tiles.
+
+Driving a second simulator: install the same dev-client .app
+(`simctl get_app_container booted <bundle> app` → `simctl install <udid>`),
+launch, tap the Metro server row in the dev-client launcher; Maestro targets
+it with `--device <udid>`; `simctl pbcopy <udid>` for paste-based text entry.

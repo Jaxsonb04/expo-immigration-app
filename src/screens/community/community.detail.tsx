@@ -67,8 +67,8 @@ function BlockAuthorAction({ handle }: { handle: string }) {
 
 	async function block() {
 		const ok = await requireAccount({
-			title: 'Create a free account to block',
-			description: 'A free account remembers who you\u2019ve blocked across devices.',
+			title: 'Create an account to block',
+			description: 'An account remembers who you\u2019ve blocked across devices.',
 		})
 		if (!ok) return
 		try {
@@ -134,8 +134,8 @@ function CommentComposer({ postId }: { postId: Id<'forumPosts'> }) {
 		const trimmed = body.trim()
 		if (trimmed.length === 0) return
 		const ok = await requireAccount({
-			title: 'Create a free account to comment',
-			description: 'Join the conversation with a free, recoverable account.',
+			title: 'Create an account to comment',
+			description: 'Join the conversation with an account that keeps your work safe.',
 		})
 		if (!ok) return
 		setBusy(true)

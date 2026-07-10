@@ -16,12 +16,16 @@ export function useRenewalItems(): RenewalItem[] | undefined {
 	return useQuery(api.renewals.listRenewalItems, {})
 }
 
-const KIND_LABELS: Record<RenewalKind, string> = {
+export const KIND_LABELS: Record<RenewalKind, string> = {
 	ead: 'Work permit (EAD)',
 	greenCard: 'Green card',
 }
 
-function stateCopy(state: RenewalState): { text: string; tone: 'danger' | 'warning' | 'muted' } {
+/** One-line copy + tone for a renewal state — shared with the M7-T4 hub row. */
+export function renewalStateCopy(state: RenewalState): {
+	text: string
+	tone: 'danger' | 'warning' | 'muted'
+} {
 	switch (state.status) {
 		case 'expired':
 			return {
@@ -61,7 +65,7 @@ function Row({ item, onRemove }: { item: RenewalItem; onRemove?: () => void }) {
 	const today = useToday()
 	const state = renewalStateFor(item, today)
 	if (state === null) return null
-	const copy = stateCopy(state)
+	const copy = renewalStateCopy(state)
 	return (
 		<View className="flex-row items-center gap-3 py-2">
 			{stateIcon(copy.tone)}

@@ -92,12 +92,6 @@ export function IntroDashboard() {
 				>
 					<Button.Label>Got it</Button.Label>
 				</Button>
-				<View className="flex-row items-center justify-center gap-1.5">
-					<StyledLucideIcon name="badge-check" size={14} className="text-muted" />
-					<Typography.Paragraph color="muted" className="text-sm">
-						Completely free
-					</Typography.Paragraph>
-				</View>
 			</Animated.View>
 		</BodyScrollView>
 	)

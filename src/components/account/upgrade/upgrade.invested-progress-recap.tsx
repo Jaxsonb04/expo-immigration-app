@@ -4,7 +4,7 @@ import type { InvestedProgress } from '../account.data'
 
 const DEFAULT_TITLE = 'Save your progress'
 const DEFAULT_DESCRIPTION =
-	'Create a free account to keep everything you’ve entered and pick up where you left off on any device.'
+	'Create an account to keep everything you’ve entered and pick up where you left off on any device.'
 
 /**
  * Small, props-driven recap of invested effort shown above the upgrade actions.
