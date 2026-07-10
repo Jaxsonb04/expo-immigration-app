@@ -3,12 +3,12 @@
 ## Project Status
 
 ```yaml
-status: complete
-current_milestone: M5
-next_task: none
+status: in_progress
+current_milestone: M6
+next_task: M6-T1
 last_completed: M5-T3
 blockers: []
-updated_at: 2026-07-07
+updated_at: 2026-07-09
 ```
 
 ## Summary
@@ -29,15 +29,17 @@ new agent reads the Project Status header and begins only at `next_task`.
 
 ## Layout
 
-Use four primary tabs:
+Use four primary tabs, in this order:
 
-- **Assistant:** Default screen containing Claude chat, reminders, and USCIS news.
-- **Forms:** Active applications, applicant profiles, saved documents, and the new-form flow.
-- **Cases:** Receipt-number tracking and status timelines.
+- **Forms:** Default tab. Dismissible intro, then a compact dashboard of drafts, completed filings, and upcoming renewals; the new-form flow.
+- **Cases:** Receipt-number tracking and status timelines, active and previous.
+- **AI Assistant:** Claude chat, reminders, and USCIS news.
 - **Community:** Forum posts and discussions.
 
-Document Vault, account, and settings remain accessible from header actions and
-Forms. Keep the interface quiet, mobile-first, and task-oriented.
+Profile is a full-screen page reached from the header avatar (identity details,
+document vault, account/conversion) — not a fifth tab. Document Vault and
+settings remain accessible from header actions and Forms. Keep the interface
+quiet, mobile-first, and task-oriented.
 
 ## UI Development Rules
 
@@ -159,6 +161,46 @@ Forms. Keep the interface quiet, mobile-first, and task-oriented.
   - Verify privacy, account deletion, accessibility, analytics, rate limits, disclaimers, and App Store readiness.
   - Done when: All release checks pass and remaining risks are explicitly documented.
   - Evidence: **Reframed per owner decision** — App Store submission work (store metadata, EAS submit, the App Privacy questionnaire) was explicitly deferred; this audit verified privacy, in-app account deletion, accessibility, rate limits, and disclaimers, with the full findings table + evidence (file:line for every item) in the new `docs/RELEASE_AUDIT.md`. **Privacy — all PASS:** no secrets in the client bundle (`grep sk-ant|apiKey` over `src/` → only `EXPO_PUBLIC_CONVEX_URL`/`_SITE_URL`); the Anthropic key lives only in the Convex deployment env (`convex.config.ts` → `assistant.ts:76`/`navigator.ts:111`); the only three non-test `console.*` calls log platform/API errors, never answers/drafts/documents; chat transcripts confirmed device-session-only (`assistant.data.ts`); community pseudonymity re-verified at the allowlist constructors (`toPublicPost`/`toPublicComment`); **zero analytics/tracker SDKs** in the app. **Account deletion — the audit's one real gap, FIXED:** `api.account.deleteAccountData` existed server-side but nothing in `src/` called it — there was no delete button. Added a Delete-account section to the Account modal (`src/app/(modal)/account/index.tsx`: destructive confirm Alert → full cascade → `authClient.signOut()`), reachable from every tab's person toolbar button. Cascade coverage verified table-by-table against `convex/schema.ts`: all 13 owner-keyed tables erased by `convex/model/ownerData.ts` — including `communityBlocks` in BOTH directions and `forumReports` filed and received — plus document storage blobs; `newsItems`/`newsMeta` are global caches, correctly untouched; coverage already pinned by the M4 erasure tests, so no cascade change was needed. FINDING (deferred with Better Auth hardening, per the `convex/account.ts` scope note): the Better Auth user row (email) survives — `user.deleteUser` must be enabled and chained before public release. **Accessibility — FIXED the gaps:** added `accessibilityLabel` to all nine icon-only `Stack.Toolbar.Button`s across the five tab headers ("Account" ×5, "New post", "New case", "Document vault", "Moderation queue") and to the reminders `Switch` ("Renewal reminders"); send/report/block/delete/close/help actions were already labeled; moderation-queue actions are text buttons; contrast + reduced-motion stand on the prior `docs/FABLE_NOTES.md` measurements. **Rate limits — PASS:** assistant 20/day quota + pre-billing refund intact (`assistantQuota.ts`, `assistant.ts:101-103`); community title/body/note caps (120/10k/500) + [1,50] page clamps + report dedupe + 200-block cap all enforced server-side; news cache ≤12 / reads ≤8 with double URL validation. FINDING (low): owner-scoped `documents.saveDocument` `label` and the draft-answer zod fields have `.min()` but no `.max()` — auth-gated self-DoS only, cheap hardening left documented. **Disclaimers — all PASS with file evidence:** assistant persistent bar + greeting, community feed/detail/rules/composer, review-pay fee provenance ("Paid directly to USCIS … never to this app" + uscis.gov/feecalculator, test-pinned `FEE_DISCLAIMER`), news "Official · uscis.gov". The **left-for-release-day list** (store track, `immigrationrenewalhelp://`→Immifile scheme/bundle rename, prod Convex env incl. `ANTHROPIC_API_KEY`/`MODERATOR_EMAILS`, Better Auth hardening, push entitlements if remote push ever ships, Sign in with Apple when social login ships, RevenueCat deletion for a future IAP phase) closes `docs/RELEASE_AUDIT.md`. Gates on the remote Mac: ESLint ✓, `tsc --noEmit` ✓, **358/358 vitest** ✓.
+
+- [ ] **M6-T1 Tab order + personalization spine**
+  - Status: NOT_STARTED
+  - Reorder tabs to Forms · Cases · Assistant · Community; add a single viewer hook returning `{ isTemp, firstName }` (name only for converted accounts) and wire it to the assistant greeting and Forms/Profile welcome moments; neutral copy for anonymous sessions.
+  - Done when: Tab order matches the Layout section on-device; a converted account sees its name in greetings, an anonymous session never does; lint/typecheck/tests green.
+
+- [ ] **M6-T2 Logo recolor from an owned vector source**
+  - Status: NOT_STARTED
+  - Recreate the "i" monogram as an SVG vector source in-repo; change the dot from light green to warm near-black (≈ the ink token, not pure #000); regenerate icon.png, adaptive-icon.png, favicon.png, splash-icon.png, splash-icon-dark.png and any in-app logo usage.
+  - Done when: All five assets plus in-app usages show the recolored dot, rendered from the committed vector source; noted in docs/FABLE_NOTES.md.
+
+- [ ] **M6-T3 Export/file conversion gate with data carryover**
+  - Status: NOT_STARTED
+  - Gate the journey-hub file/export step for anonymous sessions behind account creation (Google or email); Better Auth anonymous linking must carry applications, answers, documents, and cases to the real account.
+  - Done when: A temp user hitting export sees the conversion prompt and cannot export until converted; after linking, their prior work is verifiably intact; fresh-context verifier passes a security/ownership review.
+
+- [ ] **M6-T4 Temp-account 48h cleanup cron + in-app warnings**
+  - Status: NOT_STARTED
+  - Daily cron permanently deletes anonymous accounts created >48h ago that never converted, via the existing owner-data cascade; in-app banner warns temp users as the window approaches.
+  - Done when: Boundary tests pass (47h kept, 49h deleted, converted-then-idle kept); fresh-context verifier confirms the deletion query can never select a real or linked account; warning banner verified in the simulator.
+
+- [ ] **M6-T5 Profile screen off the header avatar**
+  - Status: NOT_STARTED
+  - Expand the account modal into a full Profile page: editable identity details (applicants-backed), the Document Vault as a reusable library with a select-from-existing-uploads seam for the filing pipeline, and an account section (temp convert card / provider + sign-out + delete).
+  - Done when: All three sections render real data with no placeholder rows; the document-reuse seam is callable from the filing flow; verified in the simulator light + dark.
+
+- [ ] **M6-T6 Forms dashboard: intro, drafts/completed, renewals**
+  - Status: NOT_STARTED
+  - Make the current intro dismissible and persisted per user; after acknowledgement show a compact dashboard: drafts, completed, and upcoming renewals sourced from completed filings plus manual expiry/filing-date entries with USCIS-cited filing-window guidance.
+  - Done when: Intro stays dismissed across restarts; dashboard fits roughly one screen; renewals show for both sources with a manual-entry affordance; empty state falls back to the animated filing-stack graphic.
+
+- [ ] **M6-T7 Cases tab: active + previous**
+  - Status: NOT_STARTED
+  - Show active and previous/closed cases as distinct scannable groups with status timelines.
+  - Done when: Both groups render compactly from convex/cases.ts data; verified in the simulator.
+
+- [ ] **M6-T8 Empty-state animations + not-so-empty pass**
+  - Status: NOT_STARTED
+  - Three distinct calm animated empty states on the filing-stack-hero motion primitives (Forms: filing cards; Cases: tracking motif; Community: conversation motif), transform/opacity only and reduced-motion safe; app-wide pass adding genuinely useful content to bare screens.
+  - Done when: Each tab's empty state is visually distinct and reduced-motion safe; bare screens carry useful content; light + dark simulator screenshots captured.
 
 ## Interfaces
 
