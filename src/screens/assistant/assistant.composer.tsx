@@ -1,5 +1,6 @@
 import { Button, InputGroup, Spinner, useThemeColor } from 'heroui-native'
 import { useState } from 'react'
+import { FadeIn, ReduceMotion } from 'react-native-reanimated'
 
 import { styledIcon } from '@/components/styled-icon'
 
@@ -16,7 +17,11 @@ type ComposerProps = {
 }
 
 /** The message input row: a growing multiline field with an inline send button
- * that turns into a spinner while a request is in flight. */
+ * that turns into a spinner while a request is in flight. The button is sized
+ * smaller than the input's own height (HeroUI's `sm` icon-only button is a
+ * 40pt circle inside a 44pt-tall pill — almost no clearance, so it visually
+ * collided with the pill's own rounded corners) so it reads as inset with a
+ * clean margin instead of wedged into the border. */
 export function Composer({ onSend, isSending, canSend, outOfMessages }: ComposerProps) {
 	const [value, setValue] = useState('')
 	const accentForeground = useThemeColor('accent-foreground')
@@ -47,11 +52,17 @@ export function Composer({ onSend, isSending, canSend, outOfMessages }: Composer
 					isDisabled={!canSubmit}
 					onPress={submit}
 					accessibilityLabel="Send message"
+					className="h-8 w-8"
+					hitSlop={8}
 				>
 					{isSending ? (
-						<Spinner size="sm" color={accentForeground} />
+						<Spinner
+							size="sm"
+							color={accentForeground}
+							entering={FadeIn.duration(150).reduceMotion(ReduceMotion.System)}
+						/>
 					) : (
-						<SendIcon size={17} className="text-accent-foreground" />
+						<SendIcon size={15} className="text-accent-foreground" />
 					)}
 				</Button>
 			</InputGroup.Suffix>
