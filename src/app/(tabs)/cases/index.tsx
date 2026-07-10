@@ -1,4 +1,4 @@
-import { AskBubble, CaseTrackingHero, TabIntro } from '@/components/core'
+import { CaseTrackingHero, TabIntro } from '@/components/core'
 import { CasesScreen } from '@/screens/cases'
 import { router, Stack } from 'expo-router'
 import { useThemeColor } from 'heroui-native'
@@ -27,7 +27,6 @@ export default function CasesTab() {
 
 			<View className="flex-1">
 				<CasesScreen />
-				<AskBubble />
 				<TabIntro
 					prefKey="casesIntroDismissed"
 					hero={<CaseTrackingHero width={108} />}

@@ -3,9 +3,10 @@ import { useTabLayoutStyle } from '@/hooks/use-layout-style'
 import { NativeTabs } from 'expo-router/unstable-native-tabs'
 import { useMemo, useState } from 'react'
 
-// Tab order is a product decision (MASTER_PLAN Layout, M7-T1): Forms is the
-// primary surface and holds the index route, so the app opens there. The
-// assistant is not a tab — it lives in the floating Ask bubble (M7-T2).
+// Tab order is a product decision (MASTER_PLAN Layout, M7-T1, revised post-M7):
+// Forms is the primary surface and holds the index route, so the app opens
+// there. The assistant sits between Cases and Forum — a floating bubble
+// crowded each surface it sat on, so it's back to being its own tab.
 export default function TabsLayout() {
 	const { tabBarStyle } = useTabLayoutStyle()
 	// Full-surface moments (the one-time tab intros) hide the bar entirely so
@@ -22,6 +23,10 @@ export default function TabsLayout() {
 				<NativeTabs.Trigger name="cases">
 					<NativeTabs.Trigger.Icon sf="tray.full.fill" md="inbox" />
 					<NativeTabs.Trigger.Label>Cases</NativeTabs.Trigger.Label>
+				</NativeTabs.Trigger>
+				<NativeTabs.Trigger name="assistant">
+					<NativeTabs.Trigger.Icon sf="sparkles" md="auto_awesome" />
+					<NativeTabs.Trigger.Label>Assistant</NativeTabs.Trigger.Label>
 				</NativeTabs.Trigger>
 				<NativeTabs.Trigger name="community">
 					<NativeTabs.Trigger.Icon sf="person.2.fill" md="groups" />

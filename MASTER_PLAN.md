@@ -29,19 +29,18 @@ new agent reads the Project Status header and begins only at `next_task`.
 
 ## Layout
 
-Use four primary tabs, in this order (M7 restructure):
+Use five primary tabs, in this order (M7 restructure, revised post-M7):
 
 - **Forms:** Default tab. Compact one-screen hub of drafts, completed filings, and upcoming renewals with "See all" detail screens; the new-form flow.
 - **Cases:** Receipt-number tracking and status timelines, active and previous.
+- **Assistant:** The safe navigator chat. M7 tried a floating "Ask" bubble anchored above the tab bar on Forms and Cases instead of a tab; it crowded both surfaces (reported directly by the user testing it), so the assistant is back to being its own tab, positioned between Cases and Forum.
 - **Forum:** Community posts and discussions, plus official USCIS news.
 - **Account:** Identity preview, editable personal details, document vault, and a Settings sub-screen (sign-out, delete, moderation state, dev tools).
 
-The assistant is not a tab: it is a persistent floating "Ask" bubble anchored
-bottom-right above the tab bar on the Forms and Cases surfaces, opening the
-assistant as a full-height sheet. Every tab shows a one-time intro page on
-first visit, persisted per owner. No primary tab scrolls at its root; long
-lists live one level deeper. Keep the interface quiet, mobile-first, and
-task-oriented.
+Every tab shows a one-time intro page on first visit, persisted per owner
+(the Assistant tab does not — it never had one, before or after M7). No
+primary tab scrolls at its root; long lists live one level deeper. Keep the
+interface quiet, mobile-first, and task-oriented.
 
 ## UI Development Rules
 
@@ -222,7 +221,13 @@ task-oriented.
   - Status: DONE
   - Persistent floating "Ask" bubble bottom-right above the tab bar on Forms and Cases, opening the existing assistant surface as a full-height sheet with a clear close affordance; reduced-motion-safe entrance; navigator/quota/error-retry logic re-homed unchanged.
   - Done when: The bubble shows on Forms and Cases only, opens the assistant sheet, and the full chat flow (recommendation, quota, retry) works from the sheet in the simulator.
-  - Evidence: New `core/ask-bubble.tsx` — terracotta pill (sparkles + "Ask", a11y label "Ask the assistant") anchored `bottom: insets.bottom + 12`, right 20 (native tabs already fold the tab bar into the safe-area inset — measured ≈82pt; the first build double-counted and floated too high, fixed and re-verified). Motion: one-time spring settle-in + slow 3.4s breathe, transform/opacity only, both skipped under Reduce Motion. Mounted on the Forms and Cases tab roots only. New `(modal)/assistant.tsx` presents the untouched `AssistantScreen` under the new shared `core/modal-header.tsx` (title + X close, safe-area top padding — the M7-T7 primitive, built here first). `AssistantNews` removed from the assistant (lands in Forum, M7-T6); navigator/quota/composer untouched. Sim-verified (iPhone 17): bubble sits just above the tab bar on Forms and Cases; tap → full-height sheet with header + X; tapping "Renew my work permit" produced the real recommendation card (Maestro asserted "Start this form" visible — a live billed navigator call from the sheet); Close dismisses back to the tab. Screenshots m7_s2_forms_v2 / m7_s2_sheet / m7_s2_sheet_reco / m7_s2_cases_v2. Gates: ESLint 0 errors, tsc ✓, 385/385 vitest ✓.
+  - Evidence: New `core/ask-bubble.tsx` — terracotta pill (sparkles + "Ask", a11y label "Ask the assistant") anchored `bottom: insets.bottom + 12`, right 20 (native tabs already fold the tab bar into the safe-area inset — measured ≈82pt; the first build double-counted and floated too high, fixed and re-verified). Motion: one-time spring settle-in + slow 3.4s breathe, transform/opacity only, both skipped under Reduce Motion. Mounted on the Forms and Cases tab roots only. New `(modal)/assistant.tsx` presents the untouched `AssistantScreen` under the new shared `core/modal-header.tsx` (title + X close, safe-area top padding — the M7-T7 primitive, built here first). `AssistantNews` removed from the assistant (lands in Forum, M7-T6); navigator/quota/composer untouched. Sim-verified (iPhone 17): bubble sits just above the tab bar on Forms and Cases; tap → full-height sheet with header + X; tapping "Renew my work permit" produced the real recommendation card (Maestro asserted "Start this form" visible — a live billed navigator call from the sheet); Close dismisses back to the tab. Screenshots m7_s2_forms_v2 / m7_s2_sheet / m7_s2_sheet_reco / m7_s2_cases_v2. Gates: ESLint 0 errors, tsc ✓, 385/385 vitest ✓. **Superseded post-M7:** the floating bubble crowded the Forms and Cases surfaces in real use (reported directly by the user), so the assistant moved back to its own tab — see M7-T2b below.
+
+- [x] **M7-T2b Assistant tab (bubble reverted)**
+  - Status: DONE
+  - Replace the floating "Ask" bubble with a dedicated Assistant tab, positioned between Cases and Forum in a five-tab bar. Same navigator/quota/retry surface, now reached like every other primary tab instead of an overlay.
+  - Done when: The tab bar shows Forms · Cases · Assistant · Forum · Account in that order; the assistant's large-title header, greeting, suggestion chips, and composer render correctly as a tab root; Forms and Cases show no floating control.
+  - Evidence: `(tabs)/_layout.tsx` gained a fifth `NativeTabs.Trigger name="assistant"` between `cases` and `community` (icon `sparkles`/`auto_awesome` — the same glyph pre-M7 used and the bubble reused, so the icon carries over). New `(tabs)/assistant/_layout.tsx` + `(tabs)/assistant/index.tsx` mount the untouched `AssistantScreen` directly under a `Stack.Title large` header, matching the Forms/Cases/Account tab pattern exactly (no toolbar action — Account is already its own tab, so the old pre-M7 "person.fill → account" shortcut button was dropped). Removed `<AskBubble />` from the Forms and Cases tab roots; deleted the now-dead `core/ask-bubble.tsx` and its export, and the now-dead `(modal)/assistant.tsx` sheet (nothing else pushed `/assistant`). MASTER_PLAN Layout section rewritten for five tabs. Typed routes regenerated (`npx expo start --port 8098`, backgrounded — no `timeout` binary on the remote Mac, killed after Metro finished the route scan). Sim-verified on both booted devices: iPhone 17 screenshot confirms the 5-tab bar (Forms · Cases · Assistant · Forum · Account) with no bubble on Forms or Cases, the empty-state CTA fully clear; tapping Assistant shows the large title, real greeting turn, four suggestion chips, composer, and quota ("20 of 20 left today"); iPhone SE screenshot confirms all five labels fit without truncation or crowding. Gates: ESLint 0 errors (2 pre-existing warnings), tsc ✓ (typed routes clean), 385/385 vitest ✓.
 
 - [x] **M7-T3 Account tab + name propagation**
   - Status: DONE

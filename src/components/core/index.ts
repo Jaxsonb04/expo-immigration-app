@@ -1,7 +1,6 @@
 // Public surface of the core UI module — shared, domain-agnostic building blocks.
 export { AccountHero } from './account-hero'
 export * from './animated-blur-view'
-export { AskBubble } from './ask-bubble'
 export * from './blur-backdrop-overlay'
 export { BodyScrollView } from './body-scroll-view'
 export * from './bottom-sheet-blur-overlay'
