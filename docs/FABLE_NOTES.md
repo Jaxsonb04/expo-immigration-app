@@ -135,3 +135,33 @@ adaptive-icon, favicon, splash-icon, splash-icon-dark) via `@resvg/resvg-js`
   the original PNGs so regenerated files are drop-in.
 - Gotcha: NEVER `npm install` in this repo — it prunes bun-installed packages
   (76 removed before `bun install` restored them). Use `bun add` / `bun add -d`.
+
+## Driving Better Auth over HTTP for live verification (2026-07-09)
+
+**Summary:** the fastest way to live-verify auth flows (anonymous linking,
+carryover, cleanup) is plain HTTP against the dev deployment + a
+ConvexHttpClient authed via `/api/auth/convex/token`. Gotchas that cost time:
+
+- Every state-changing Better Auth endpoint needs `Origin:
+  immigrationrenewalhelp://` (the app scheme in trustedOrigins) or it 403s
+  with MISSING_OR_NULL_ORIGIN. `sign-in/anonymous` happens to pass without it;
+  `sign-up/email` does not.
+- The betterAuth component's raw adapter functions (`npx convex run
+  --component betterAuth adapter:updateOne`) wrap args in `{ "input": ... }`,
+  and raw docs key by `_id` — a where-clause on `id` matches nothing (and
+  warns about a missing index). `createdAt` is stored as a number (ms).
+- Test scripts must live inside the project dir (not /tmp) so node resolves
+  the repo's `convex` package.
+
+## Temp-account lifecycle invariants (2026-07-09, M6-T3/T4)
+
+**Summary:** conversion carryover and the 48h cleanup share one identity fact:
+ownerId = `${CONVEX_SITE_URL}|${betterAuthUserId}` (= JWT `iss|sub` =
+tokenIdentifier). The cron re-verifies every candidate against
+`isExpiredTempAccount` (strictly >48h AND `isAnonymous === true`; unknown age
+= keep) immediately before deleting, and purges app data BEFORE auth rows so
+a crash retries instead of orphaning. Anonymous owners can never hold
+community rows (requireCredentialedOwnerId), so the remap only touches the
+filing-side tables. Fresh-context verifier passed all sections (commit
+6e5342d); if CONVEX_SITE_URL ever changes (custom domain), pre-change anon
+data would be orphaned (never mis-deleted) — remember at migration time.

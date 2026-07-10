@@ -5,10 +5,13 @@ import { useEffect, useRef, useState } from 'react'
 import { Alert, View } from 'react-native'
 import { useAccountSession } from '../account.session'
 
-// "Apple/Google/email" upgrade actions (ADR-0010). Constrained to providers
-// heroui-native-pro renders an icon for and Better Auth supports as socials.
+// Google + email upgrade actions (ADR-0010, decision 7 of the M6 brief):
+// Google is the only social provider shipped today. Apple is planned and
+// gated behind its env vars server-side — add it back here the day those are
+// set, so the sheet never shows a button that errors "provider not
+// configured" (this list must stay in sync with src/app/sign-in.tsx).
 type SocialProvider = Extract<SocialAuthButtonProvider, 'apple' | 'google'>
-const SOCIAL_PROVIDERS: SocialProvider[] = ['apple', 'google']
+const SOCIAL_PROVIDERS: SocialProvider[] = ['google']
 
 /**
  * The reusable upgrade form: social + email actions that convert the current

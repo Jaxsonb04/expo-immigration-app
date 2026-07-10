@@ -89,8 +89,9 @@ function Row({ item, onRemove }: { item: RenewalItem; onRemove?: () => void }) {
 type DateMeaning = 'expiry' | 'filed'
 
 /** Inline manual entry (M6-T6 decision 6): log an existing card's expiry or a
- * prior filing date without uploading anything. */
-function AddEntry() {
+ * prior filing date without uploading anything. Also rendered by the empty
+ * dashboard so the manual path exists before any other data does. */
+export function AddRenewalEntry() {
 	const addRenewalEntry = useMutation(api.renewals.addRenewalEntry)
 	const [open, setOpen] = useState(false)
 	const [kind, setKind] = useState<RenewalKind>('ead')
@@ -201,7 +202,7 @@ export function Renewals({ items }: { items: RenewalItem[] }) {
 					opens.
 				</Typography.Paragraph>
 			)}
-			<AddEntry />
+			<AddRenewalEntry />
 		</View>
 	)
 }

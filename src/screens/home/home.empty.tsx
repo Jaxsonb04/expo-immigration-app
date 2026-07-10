@@ -1,7 +1,9 @@
+import { TempAccountDeletionBanner } from '@/components/account'
 import { BodyScrollView, FilingStackHero } from '@/components/core'
 import { Typography } from 'heroui-native'
 import { Text, View } from 'react-native'
 import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated'
+import { AddRenewalEntry } from './home.renewals'
 import { StartApplicationButton } from './home.start-application-button'
 
 const rise = (order: number) =>
@@ -17,6 +19,9 @@ const rise = (order: number) =>
 export function EmptyDashboard() {
 	return (
 		<BodyScrollView contentContainerClassName="grow pt-4">
+			{/* M6-T4: a temp session in its final 24 hours is warned even here. */}
+			<TempAccountDeletionBanner />
+
 			<View className="grow items-center justify-center gap-6">
 				<Animated.View entering={rise(0)}>
 					<FilingStackHero width={148} />
@@ -32,8 +37,11 @@ export function EmptyDashboard() {
 				</Animated.View>
 			</View>
 
-			<Animated.View entering={rise(2)} className="pt-8 pb-2">
+			<Animated.View entering={rise(2)} className="gap-2 pt-8 pb-2">
 				<StartApplicationButton />
+				{/* The manual renewal path stays reachable with zero data (M6-T6):
+				    adding a date populates the dashboard's Upcoming renewals. */}
+				<AddRenewalEntry />
 			</Animated.View>
 		</BodyScrollView>
 	)
