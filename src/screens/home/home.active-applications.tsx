@@ -6,9 +6,15 @@ import { Pressable, ScrollView, View } from 'react-native'
 import { useDashboard } from './home.context'
 import type { ActiveApplication } from './home.data'
 
+// M6-T6: this section shows DRAFTS only — filed applications moved to the
+// Completed group (home.completed.tsx).
+function drafts(applications: ActiveApplication[]) {
+	return applications.filter((application) => application.status === 'draft')
+}
+
 function Heading() {
 	const { activeApplications } = useDashboard()
-	return <SectionHeading title="Active applications" count={activeApplications.length} />
+	return <SectionHeading title="In progress" count={drafts(activeApplications).length} />
 }
 
 function Card(props: { application: ActiveApplication }) {
@@ -53,7 +59,7 @@ function Rail() {
 			className="-mx-5"
 			contentContainerClassName="gap-3 px-5 pb-2"
 		>
-			{activeApplications.map((application) => (
+			{drafts(activeApplications).map((application) => (
 				<Card key={application._id} application={application} />
 			))}
 		</ScrollView>

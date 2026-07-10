@@ -1,20 +1,32 @@
 import { TempAccountDeletionBanner } from '@/components/account'
 import { BodyScrollView } from '@/components/core'
+import { api } from '@convex/_generated/api'
+import { useQuery } from 'convex/react'
 import { Spinner } from 'heroui-native'
 import { View } from 'react-native'
-import { Activity } from './home.activity'
 import { ActiveApplications } from './home.active-applications'
 import { Attention } from './home.attention'
+import { Completed } from './home.completed'
 import { DashboardProvider } from './home.context'
 import { useHomeDashboard } from './home.data'
 import { EmptyDashboard } from './home.empty'
+import { IntroDashboard } from './home.intro'
+import { Renewals, useRenewalItems } from './home.renewals'
 import { StartApplicationButton } from './home.start-application-button'
 import { Summary } from './home.summary'
 
+/**
+ * Forms tab (M6-T6): a first-run intro until acknowledged, then a compact
+ * dashboard — drafts, completed filings, upcoming renewals, attention items —
+ * targeted at a single screen. The old long-scroll layout (activity feed,
+ * always-on feature pitch) is gone.
+ */
 export function HomeScreen() {
 	const dashboard = useHomeDashboard()
+	const introDismissed = useQuery(api.preferences.getPreference, { key: 'formsIntroDismissed' })
+	const renewalItems = useRenewalItems()
 
-	if (dashboard === undefined) {
+	if (dashboard === undefined || introDismissed === undefined || renewalItems === undefined) {
 		return (
 			<View className="flex-1 items-center justify-center bg-background">
 				<Spinner />
@@ -22,12 +34,20 @@ export function HomeScreen() {
 		)
 	}
 
-	const isEmpty =
-		dashboard.activeApplications.length === 0 &&
-		dashboard.attentionItems.length === 0 &&
-		dashboard.recentActivity.length === 0
+	const drafts = dashboard.activeApplications.filter((a) => a.status === 'draft')
+	const completed = dashboard.activeApplications.filter((a) => a.status === 'filed')
+	const hasAnything =
+		drafts.length > 0 ||
+		completed.length > 0 ||
+		renewalItems.length > 0 ||
+		dashboard.attentionItems.length > 0
 
-	if (isEmpty) {
+	// The feature intro shows exactly once, and only while there is nothing
+	// real to show in its place; anyone with data has clearly gotten started.
+	if (!introDismissed && !hasAnything) {
+		return <IntroDashboard />
+	}
+	if (!hasAnything) {
 		return <EmptyDashboard />
 	}
 
@@ -44,22 +64,21 @@ export function HomeScreen() {
 					<Summary.Headline />
 				</View>
 
-				<View className="gap-3">
-					<ActiveApplications.Heading />
-					<ActiveApplications.Rail />
-				</View>
+				{drafts.length > 0 && (
+					<View className="gap-3">
+						<ActiveApplications.Heading />
+						<ActiveApplications.Rail />
+					</View>
+				)}
+
+				<Completed applications={completed} />
+
+				<Renewals items={renewalItems} />
 
 				{dashboard.attentionItems.length > 0 && (
 					<View className="gap-1">
 						<Attention.Heading />
 						<Attention.List />
-					</View>
-				)}
-
-				{dashboard.recentActivity.length > 0 && (
-					<View className="gap-1">
-						<Activity.Heading />
-						<Activity.List />
 					</View>
 				)}
 

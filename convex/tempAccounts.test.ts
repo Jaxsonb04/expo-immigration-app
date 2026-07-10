@@ -121,6 +121,18 @@ async function seedOwner(t: ReturnType<typeof newT>, ownerId: string, receipt: s
 			count: 3,
 			updatedAt: NOW,
 		})
+		await ctx.db.insert('ownerPreferences', {
+			ownerId,
+			key: 'formsIntroDismissed',
+			value: true,
+			updatedAt: NOW,
+		})
+		await ctx.db.insert('renewalEntries', {
+			ownerId,
+			kind: 'ead' as const,
+			expiryDate: '2026-12-01',
+			updatedAt: NOW,
+		})
 		return { applicantId, applicationId, documentId }
 	})
 }
@@ -134,6 +146,8 @@ const FILING_TABLES = [
 	'cases',
 	'entitlements',
 	'assistantUsage',
+	'ownerPreferences',
+	'renewalEntries',
 ] as const
 
 async function countByOwner(t: ReturnType<typeof newT>, ownerId: string) {

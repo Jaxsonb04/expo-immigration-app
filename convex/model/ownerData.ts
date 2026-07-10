@@ -106,6 +106,24 @@ export async function deleteOwnerData(ctx: MutationCtx, ownerId: string): Promis
 		for (const row of rows) await ctx.db.delete('assistantUsage', row._id)
 	}
 
+	// M6-T6 per-owner UI preferences and manual renewal entries.
+	for (;;) {
+		const rows = await ctx.db
+			.query('ownerPreferences')
+			.withIndex('by_ownerId_and_key', (q) => q.eq('ownerId', ownerId))
+			.take(DELETE_BATCH)
+		if (rows.length === 0) break
+		for (const row of rows) await ctx.db.delete('ownerPreferences', row._id)
+	}
+	for (;;) {
+		const rows = await ctx.db
+			.query('renewalEntries')
+			.withIndex('by_ownerId', (q) => q.eq('ownerId', ownerId))
+			.take(DELETE_BATCH)
+		if (rows.length === 0) break
+		for (const row of rows) await ctx.db.delete('renewalEntries', row._id)
+	}
+
 	// Community forum (M4-T1). Erasure hard-deletes the owner's own reports,
 	// comments, posts, and profile — no tombstone that would let pseudonymous
 	// content survive — AND every third-party report that points at the owner's
@@ -242,7 +260,7 @@ export async function reassignOwnerData(
 		}
 	}
 
-	for (const table of ['applicationDrafts', 'documents', 'entitlements'] as const) {
+	for (const table of ['applicationDrafts', 'documents', 'entitlements', 'renewalEntries'] as const) {
 		for (;;) {
 			const rows = await ctx.db
 				.query(table)
@@ -305,6 +323,27 @@ export async function reassignOwnerData(
 				await ctx.db.delete('assistantUsage', row._id)
 			} else {
 				await ctx.db.patch('assistantUsage', row._id, { ownerId: toOwnerId })
+			}
+		}
+	}
+
+	// One row per (owner, key): when the target account already holds a
+	// preference, its own value wins and the anonymous row is dropped.
+	for (;;) {
+		const rows = await ctx.db
+			.query('ownerPreferences')
+			.withIndex('by_ownerId_and_key', (q) => q.eq('ownerId', fromOwnerId))
+			.take(DELETE_BATCH)
+		if (rows.length === 0) break
+		for (const row of rows) {
+			const existing = await ctx.db
+				.query('ownerPreferences')
+				.withIndex('by_ownerId_and_key', (q) => q.eq('ownerId', toOwnerId).eq('key', row.key))
+				.unique()
+			if (existing !== null) {
+				await ctx.db.delete('ownerPreferences', row._id)
+			} else {
+				await ctx.db.patch('ownerPreferences', row._id, { ownerId: toOwnerId })
 			}
 		}
 	}

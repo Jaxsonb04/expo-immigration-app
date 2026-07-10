@@ -195,6 +195,28 @@ export default defineSchema({
 		updatedAt: v.number(),
 	}).index('by_ownerId_and_day', ['ownerId', 'day']),
 
+	// M6-T6: small per-owner UI flags (e.g. the Forms intro acknowledged).
+	// Server-side (not device storage) so they survive reinstalls and carry
+	// over when an anonymous session links to a real account.
+	ownerPreferences: defineTable({
+		ownerId: v.string(),
+		key: v.string(),
+		value: v.boolean(),
+		updatedAt: v.number(),
+	}).index('by_ownerId_and_key', ['ownerId', 'key']),
+
+	// M6-T6 manual renewal entries: a document expiry or a prior filing date
+	// the person logs by hand (no upload required), so Upcoming renewals can
+	// remind against the real USCIS filing windows alongside vault documents
+	// and in-app filings.
+	renewalEntries: defineTable({
+		ownerId: v.string(),
+		kind: literals('ead', 'greenCard'),
+		expiryDate: v.optional(v.string()), // ISO date (YYYY-MM-DD)
+		filedAt: v.optional(v.string()), // ISO date of a prior filing (YYYY-MM-DD)
+		updatedAt: v.number(),
+	}).index('by_ownerId', ['ownerId']),
+
 	// M4 community forum. Pseudonymous: one profile per owner maps a real
 	// ownerId to a public `handle`. handle is unique and immutable in v1.
 	communityProfiles: defineTable({

@@ -63,6 +63,7 @@ export const getHomeDashboard = query({
 				completedStepCount: application.completedStepCount,
 				totalStepCount: application.totalStepCount,
 				isUnlocked: isEntitledToCleanExport(unlockedApplicationIds.has(application._id)),
+				filedAt: application.filedAt,
 				updatedAt: application.updatedAt,
 			}))
 		const activeApplicationIds = new Set(activeApplications.map((a) => a._id))
