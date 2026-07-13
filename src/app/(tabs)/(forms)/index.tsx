@@ -31,7 +31,6 @@ export default function FormsTab() {
 			</Stack.Toolbar>
 
 			<View className="flex-1">
-				<HomeScreen />
 				<TabIntro
 					prefKey="formsIntroDismissed"
 					hero={<FilingStackHero width={104} />}
@@ -54,7 +53,9 @@ export default function FormsTab() {
 							detail: 'Export a clean, USCIS-ready packet the moment your answers are done.',
 						},
 					]}
-				/>
+				>
+					<HomeScreen />
+				</TabIntro>
 			</View>
 		</>
 	)

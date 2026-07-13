@@ -26,7 +26,6 @@ export default function CasesTab() {
 			</Stack.Toolbar>
 
 			<View className="flex-1">
-				<CasesScreen />
 				<TabIntro
 					prefKey="casesIntroDismissed"
 					hero={<CaseTrackingHero width={108} />}
@@ -49,7 +48,9 @@ export default function CasesTab() {
 							detail: 'Connect a case to the application you prepared here.',
 						},
 					]}
-				/>
+				>
+					<CasesScreen />
+				</TabIntro>
 			</View>
 		</>
 	)

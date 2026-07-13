@@ -30,7 +30,7 @@ export default function TabsLayout() {
 				</NativeTabs.Trigger>
 				<NativeTabs.Trigger name="community">
 					<NativeTabs.Trigger.Icon sf="person.2.fill" md="groups" />
-					<NativeTabs.Trigger.Label>Community</NativeTabs.Trigger.Label>
+					<NativeTabs.Trigger.Label>Forum</NativeTabs.Trigger.Label>
 				</NativeTabs.Trigger>
 				<NativeTabs.Trigger name="account">
 					<NativeTabs.Trigger.Icon sf="person.crop.circle.fill" md="account_circle" />

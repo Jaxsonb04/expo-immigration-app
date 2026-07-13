@@ -29,6 +29,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
 		socialProviders.google = {
 			clientId: env.GOOGLE_CLIENT_ID,
 			clientSecret: env.GOOGLE_CLIENT_SECRET,
+			redirectURI: 'https://auth.immifile.app/api/auth/callback/google',
 		}
 	}
 	if (env.APPLE_CLIENT_ID && env.APPLE_CLIENT_SECRET) {
@@ -42,7 +43,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
 
 	return betterAuth({
 		// Must match the app scheme in app.json (used for deep-link auth callbacks).
-		trustedOrigins: ['immigrationrenewalhelp://'],
+		trustedOrigins: ['immigrationrenewalhelp://', 'https://auth.immifile.app'],
 		database: authComponent.adapter(ctx),
 		emailAndPassword: {
 			enabled: true,

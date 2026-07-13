@@ -21,7 +21,6 @@ export default function AccountTab() {
 			</Stack.Title>
 
 			<View className="flex-1">
-				<AccountScreen />
 				<TabIntro
 					prefKey="accountIntroDismissed"
 					hero={<AccountHero size={104} />}
@@ -44,7 +43,9 @@ export default function AccountTab() {
 							detail: 'Everything can be erased permanently, any time, from Settings.',
 						},
 					]}
-				/>
+				>
+					<AccountScreen />
+				</TabIntro>
 			</View>
 		</>
 	)

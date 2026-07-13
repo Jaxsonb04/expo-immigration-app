@@ -76,7 +76,7 @@ function BlockedAuthorsSection() {
 			<Separator />
 			<View className="gap-3">
 				<Typography.Heading className="text-lg font-semibold">
-					Blocked in Community
+					Blocked in Forum
 				</Typography.Heading>
 				<Typography.Paragraph color="muted" className="text-sm">
 					You won’t see posts or comments from these authors.
@@ -110,13 +110,9 @@ function DeleteAccountSection() {
 	async function eraseAndSignOut() {
 		setBusy(true)
 		try {
-			console.log('[DIAG delete] deleteAccountData…')
 			await deleteAccountData({})
-			console.log('[DIAG delete] done → signOut…')
 			await authClient.signOut()
-			console.log('[DIAG delete] signOut done')
 		} catch (error) {
-			console.log(`[DIAG delete] ERROR ${error instanceof Error ? error.message : String(error)}`)
 			Alert.alert(
 				'Delete account',
 				error instanceof Error ? error.message : 'Something went wrong. Please try again.',
