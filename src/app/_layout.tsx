@@ -5,6 +5,7 @@ import { View } from 'react-native'
 
 import { Providers } from '@/components/providers'
 import { useLayoutStyle } from '@/hooks/use-layout-style'
+import { useSessionReconciler } from '@/hooks/use-session-reconciler'
 import '../global.css'
 
 export default function RootLayout() {
@@ -18,6 +19,11 @@ export default function RootLayout() {
 const AppContent = () => {
 	const layoutStyle = useLayoutStyle()
 	const { isLoading, isAuthenticated } = useConvexAuth()
+
+	// Backstop the sign-in refetch race from any path (see useSessionReconciler):
+	// if a session cookie is persisted but the reactive atom is stranded
+	// signed-out, re-drive resolution so the guard below flips to the app.
+	useSessionReconciler()
 
 	// Wait for Convex to resolve the persisted session before deciding which
 	// route group to show, otherwise the sign-in screen flashes for already

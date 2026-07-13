@@ -1,4 +1,5 @@
 import { authClient } from '@/lib/auth-client'
+import { ensureSessionResolved } from '@/lib/session-sync'
 import { Button, Input, Label, Separator, TextField, Typography } from 'heroui-native'
 import { SocialAuthButton, type SocialAuthButtonProvider } from 'heroui-native-pro'
 import { useEffect, useRef, useState } from 'react'
@@ -61,8 +62,19 @@ export function UpgradeActions({ onUpgraded }: { onUpgraded?: () => void }) {
 					'Could not create account',
 					error.message ?? 'Please check your details and try again.',
 				)
+				return
 			}
-			// Success is handled by the `isCredentialed` effect above.
+			// The link is complete when the session is no longer anonymous, which
+			// the `isCredentialed` effect above watches to fire `onUpgraded`. Drive
+			// the reactive atom past the refetch race so that transition actually
+			// lands instead of stranding the just-linked account.
+			const resolved = await ensureSessionResolved()
+			if (!resolved) {
+				Alert.alert(
+					'Almost there',
+					"We couldn't finish loading your account. Please try again.",
+				)
+			}
 		} catch (err) {
 			Alert.alert('Something went wrong', err instanceof Error ? err.message : 'Please try again.')
 		} finally {
@@ -76,7 +88,13 @@ export function UpgradeActions({ onUpgraded }: { onUpgraded?: () => void }) {
 			const { error } = await authClient.signIn.social({ provider, callbackURL: '/' })
 			if (error) {
 				Alert.alert('Could not continue', error.message ?? 'Please try again.')
+				return
 			}
+			// Resolves after the OAuth browser flow persists the linked session
+			// cookie (or the user dismisses it). Drive the reactive atom so the
+			// `isCredentialed` upgrade transition isn't stranded by the refetch
+			// race; a dismissed browser simply never resolves, so stay silent.
+			await ensureSessionResolved()
 		} catch (err) {
 			Alert.alert('Something went wrong', err instanceof Error ? err.message : 'Please try again.')
 		} finally {

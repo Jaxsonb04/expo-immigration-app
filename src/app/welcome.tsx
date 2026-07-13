@@ -1,5 +1,6 @@
 import { FilingStackHero } from '@/components/core'
 import { authClient } from '@/lib/auth-client'
+import { ensureSessionResolved } from '@/lib/session-sync'
 import { useRouter } from 'expo-router'
 import { Button } from 'heroui-native'
 import { useState } from 'react'
@@ -51,12 +52,16 @@ export default function WelcomeScreen() {
 			}
 			// On success the session store update flips `useConvexAuth` to
 			// authenticated and the root layout's protected route swaps in the
-			// tabs — no manual navigation. The anonymous plugin's own session
-			// signal can fire before the Expo secure-store cookie write lands,
-			// which left `useSession` stuck signed-out after an account deletion
-			// (every further tap minted another orphan anonymous user). Re-notify
-			// after the call settles so the refetch runs with the stored cookie.
-			authClient.$store.notify('$sessionSignal')
+			// tabs — no manual navigation. But that reactive atom can settle
+			// signed-out on a refetch race even though the cookie is valid (which
+			// stranded "Start filing" after an account deletion and minted a fresh
+			// orphan anonymous user on every further tap); drive it until it
+			// reflects the session. The root reconciler is the backstop if this
+			// still can't converge within its bounded window.
+			const resolved = await ensureSessionResolved()
+			if (!resolved) {
+				Alert.alert("Couldn't start", 'Please try again in a moment.')
+			}
 		} catch (err) {
 			Alert.alert('Something went wrong', err instanceof Error ? err.message : 'Please try again.')
 		} finally {

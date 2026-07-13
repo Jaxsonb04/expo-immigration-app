@@ -1,4 +1,5 @@
 import { authClient } from '@/lib/auth-client'
+import { ensureSessionResolved } from '@/lib/session-sync'
 import { Button, Input, Label, Separator, TextField, Typography } from 'heroui-native'
 import { SocialAuthButton, type SocialAuthButtonProvider } from 'heroui-native-pro'
 import { useState } from 'react'
@@ -48,10 +49,19 @@ export default function SignInScreen() {
 					'Authentication failed',
 					error.message ?? 'Please check your details and try again.',
 				)
+				return
 			}
-			// On success the Convex auth state flips to authenticated and the
-			// protected route in the root layout redirects into the app — there is
-			// no manual navigation to do here.
+			// The credentials were accepted and the session cookie is persisted;
+			// the protected route in the root layout redirects into the app once
+			// the reactive session atom reflects it. Drive that atom past the
+			// refetch race so the redirect is not stranded (see ensureSessionResolved).
+			const resolved = await ensureSessionResolved()
+			if (!resolved) {
+				Alert.alert(
+					'Almost there',
+					"We couldn't finish loading your session. Please try again.",
+				)
+			}
 		} catch (err) {
 			Alert.alert('Something went wrong', err instanceof Error ? err.message : 'Please try again.')
 		} finally {
@@ -65,7 +75,14 @@ export default function SignInScreen() {
 			const { error } = await authClient.signIn.social({ provider, callbackURL: '/' })
 			if (error) {
 				Alert.alert('Authentication failed', error.message ?? 'Please try again.')
+				return
 			}
+			// `signIn.social` resolves only after the OAuth browser flow writes the
+			// session cookie (or the user dismisses it). Drive the reactive atom so
+			// a successful sign-in isn't stranded by the refetch race; if it never
+			// resolves the user simply dismissed the browser, so stay silent — the
+			// root reconciler still recovers any session that did land.
+			await ensureSessionResolved()
 		} catch (err) {
 			Alert.alert('Something went wrong', err instanceof Error ? err.message : 'Please try again.')
 		} finally {
