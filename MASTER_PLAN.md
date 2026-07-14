@@ -3,12 +3,12 @@
 ## Project Status
 
 ```yaml
-status: complete
-current_milestone: M7
-next_task: none
-last_completed: M7-T7
+status: in_progress
+current_milestone: M8
+next_task: M8-T2
+last_completed: M8-T1
 blockers: []
-updated_at: 2026-07-10
+updated_at: 2026-07-13
 ```
 
 ## Summary
@@ -33,8 +33,8 @@ Use five primary tabs, in this order (M7 restructure, revised post-M7):
 
 - **Forms:** Default tab. Compact one-screen hub of drafts, completed filings, and upcoming renewals with "See all" detail screens; the new-form flow.
 - **Cases:** Receipt-number tracking and status timelines, active and previous.
-- **Assistant:** The safe navigator chat. M7 tried a floating "Ask" bubble anchored above the tab bar on Forms and Cases instead of a tab; it crowded both surfaces (reported directly by the user testing it), so the assistant is back to being its own tab, positioned between Cases and Forum.
-- **Forum:** Community posts and discussions, plus official USCIS news.
+- **Assistant:** The safe navigator chat. M7 tried a floating "Ask" bubble anchored above the tab bar on Forms and Cases instead of a tab; it crowded both surfaces (reported directly by the user testing it), so the assistant is back to being its own tab, positioned between Cases and Community.
+- **Community:** Community posts and discussions, plus official USCIS news. (Labeled "Forum" during M7; renamed back to "Community" in M8-T1. The route group stays `community`.)
 - **Account:** Identity preview, editable personal details, document vault, and a Settings sub-screen (sign-out, delete, moderation state, dev tools).
 
 Every tab shows a one-time intro page on first visit, persisted per owner
@@ -258,6 +258,48 @@ interface quiet, mobile-first, and task-oriented.
   - Consistent modal/popup header with a close (X) and/or back affordance and correct top safe-area padding across every modal route (new-application, new-case, new-post, community-rules, moderation, upgrade, interview, assistant sheet); app-wide spacing sweep in both themes.
   - Done when: No modal requires scrolling to dismiss; top padding is correct on every modal (community-rules is the canonical fix); spacing reads intentional in light and dark simulator screenshots.
   - Evidence: All six modal routes now wrap their screens in the shared `core/modal-header.tsx` (title + X close, `paddingTop: max(insets.top, 16)`, built in M7-T2): new-application → "Start an application", new-case → "Track a case", new-post → "Start a post", community-rules → "Forum rules", moderation → "Moderation queue", upgrade → "Create your account"; duplicate in-screen `Typography.Heading`s stripped (new-application.header, cases.new, community.new, community.rules) so each modal has exactly one title. Interview keeps its own close+progress header (already correct). Sim-verified (iPhone 17) by deep-linking every route (`immigrationrenewalhelp://…`) after tap-path selectors proved flaky (the rules link exposes accessibilityLabel "Read the forum rules", not its text): community-rules, new-case, new-post, new-application, upgrade all show the header title + X with correct top padding and dismiss without scrolling — screenshots m7_s7_rules_light/newcase_light/newpost_light/newapp_light/upgrade_light + dark passes m7_s7_rules_dark/newpost_dark/upgrade_dark (warm dark ground, terracotta CTA, consistent header). Forum tab icon restored to person.2.fill/groups per user preference (label stays "Forum"). Gates: ESLint 0 errors (2 pre-existing warnings), tsc ✓, 385/385 vitest ✓.
+
+- [x] **M8-T1 Community rename** DONE
+  - Status: DONE
+  - Rename the primary tab label from "Forum" back to "Community" (`src/app/(tabs)/_layout.tsx`) and sweep every user-facing "Forum" string (community tab title, account-settings "Blocked in Forum" + deletion copy, composer "forum rules" link + a11y label, rules-screen body). Leave the `community` route group, the `forumPosts`/`forumComments`/`forumReports` tables, the `ForumPost`/`ForumComment` types, and the `forumIntroDismissed` pref key unchanged (renaming those is a data migration, out of scope). Update the MASTER_PLAN Layout section.
+  - Done when: The tab reads "Community"; no user-facing "Forum" string remains; ESLint/tsc/vitest green; a simulator screenshot shows the "Community" tab label.
+  - Evidence: Tab label `Forum`→`Community` in `src/app/(tabs)/_layout.tsx`; user-facing sweep across the community tab title (`community/index.tsx`), account-settings ("Blocked in Community" + two deletion-copy strings), the composer ("community rules" link text + "Read the community rules" a11y label in `community.new.tsx`), and the rules-screen body (`community.rules.tsx`) — 10 string sites, each matched exactly once by an assertion-guarded replacer. Technical identifiers (`forumPosts`/`ForumPost`/`forumIntroDismissed`) and the `community` route left unchanged (renaming those is a data migration, out of scope). Layout section updated. Gates: tsc ✓, ESLint 0 errors (2 pre-existing warnings), 385/385 vitest ✓. Sim-verified iPhone 17 (light): tab bar reads Forms · Cases · Assistant · **Community** · Account (screenshot `m8_community.png`).
+
+- [ ] **M8-T2 One spacing rhythm, app-wide**
+  - Status: NOT_STARTED
+  - Establish one spacing rhythm as design-system tokens (screen padding, section rhythm, card padding, control gaps) and apply it everywhere, replacing the ad-hoc per-screen class values (census: screen padding spread across px-4/px-5/px-6/p-4/p-5; gaps gap-1..gap-6 plus half-steps). Sweep every primary tab, the interview wizard, the Journey Hub, and shared components.
+  - Done when: Spacing reads consistent surface-to-surface in both themes on a small (iPhone SE) and large device; before/after screenshots prove it; no screen reads visibly out of rhythm with its neighbours; ESLint/tsc/vitest green.
+  - Evidence: (pending)
+
+- [ ] **M8-T3 Move freely through a filing + re-enter to edit**
+  - Status: NOT_STARTED
+  - Back and Next work at every step without losing entered data; add explicit entry points to jump back into the wizard at a chosen step (step param on the interview route threaded into the host's step-index initializer), reachable from the review (M8-T4) and the Journey Hub. Re-entering, changing an earlier answer, and moving forward again persists correctly (saves stay idempotent per step) without silently invalidating later steps; server `isStepComplete` enforcement intact.
+  - Done when: A simulator run files partway, backs up two steps, changes an answer, returns to review, and sees the change — screenshots prove it; ESLint/tsc/vitest green.
+  - Evidence: (pending)
+
+- [ ] **M8-T4 A real top-to-bottom review**
+  - Status: NOT_STARTED
+  - Build a single scrollable review that renders every collected answer grouped by section (personal details, address, eligibility/card details, documents), each group with an "Edit" affordance that jumps into the wizard at that step (M8-T3). Place it ahead of the fee/instructions/preview/export block on "Review & File"; keep the free-everywhere behaviour, the conversion gate, and all disclaimers.
+  - Done when: From a completed draft the review shows all answers correctly, "Edit" round-trips to the right step and back, and the summary matches the generated PDF; screenshots prove it; ESLint/tsc/vitest green.
+  - Evidence: (pending)
+
+- [ ] **M8-T5 Guard every step (constrain to valid values)**
+  - Status: NOT_STARTED
+  - Constrain every field with a known set or fixed format at the shared Zod shape (`convex/shared/applicationShapes.ts`) AND in the UI: country of birth → country picker; US state → state/territory picker; date of birth → date picker with sane bounds; A-Number → format-masked/validated (optional for initial I-765 preserved); ZIP → 5 or 5+4; eligibility category → the valid USCIS category set (from M8-T7); names validated against a sensible character set without rejecting legitimate names. Strengthen manual address entry and offer a saved address (profile / prior filing) as one-tap fill; leave a clean seam for a future places API (prediction deferred).
+  - Done when: A simulator run proves each guarded field rejects junk and accepts valid input; unit tests on the tightened shapes reject bad values client- and server-side; ESLint/tsc/vitest green. Fresh-context verifier passed on the shared-shape changes.
+  - Evidence: (pending)
+
+- [ ] **M8-T6 Reuse what the app already knows**
+  - Status: NOT_STARTED
+  - Verify (and fix if stale) the two reuse paths: the documents "Use saved" vault-reuse attaches a saved document to a requirement slot without re-uploading and newly uploaded documents become reusable; a returning filer's stored applicant profile (name, DOB, country, A-Number, address) pre-fills a new draft — covering renewals and repeat filings — never across owners and never surfacing another applicant's data.
+  - Done when: Filing a second application after completing one shows the known fields already populated (simulator); the ownership boundary is tested; ESLint/tsc/vitest green. Fresh-context verifier passed on the autofill/PII path.
+  - Evidence: (pending)
+
+- [ ] **M8-T7 Actually know I-765 and I-90 (correctness pass)**
+  - Status: NOT_STARTED
+  - Build an authoritative per-form checklist from the current official USCIS instructions (uscis.gov only) — every collected field, its validation, the eligibility categories, document requirements, current edition, and fee facts — then audit and fix the code against it: `pdf.i765-map.ts`, `pdf.i90-map.ts`, `applicationShapes.ts`, `interviewSteps.ts` (requirement templates), `filing-info.ts`. Close the I-90 Part 2 Item 1 "My status is" gap (`TODO(M2-T2)`), which requires a new i90-only interview step collecting LPR status and its PDF checkbox mapping. Cite every USCIS source and edition date in `docs/FABLE_NOTES.md`.
+  - Done when: A cited checklist per form; the field maps verified correct (position, export value, printed item text); generated I-765 and I-90 PDFs spot-checked against the official forms; the "My status is" gap closed; ESLint/tsc/vitest green. Fresh-context verifier passed on each PDF-map change.
+  - Evidence: (pending)
 
 ## Interfaces
 

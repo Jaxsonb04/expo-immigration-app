@@ -5,7 +5,7 @@ import { useMemo, useState } from 'react'
 
 // Tab order is a product decision (MASTER_PLAN Layout, M7-T1, revised post-M7):
 // Forms is the primary surface and holds the index route, so the app opens
-// there. The assistant sits between Cases and Forum — a floating bubble
+// there. The assistant sits between Cases and Community — a floating bubble
 // crowded each surface it sat on, so it's back to being its own tab.
 export default function TabsLayout() {
 	const { tabBarStyle } = useTabLayoutStyle()
@@ -30,7 +30,7 @@ export default function TabsLayout() {
 				</NativeTabs.Trigger>
 				<NativeTabs.Trigger name="community">
 					<NativeTabs.Trigger.Icon sf="person.2.fill" md="groups" />
-					<NativeTabs.Trigger.Label>Forum</NativeTabs.Trigger.Label>
+					<NativeTabs.Trigger.Label>Community</NativeTabs.Trigger.Label>
 				</NativeTabs.Trigger>
 				<NativeTabs.Trigger name="account">
 					<NativeTabs.Trigger.Icon sf="person.crop.circle.fill" md="account_circle" />

@@ -5,7 +5,7 @@ import { router, Stack } from 'expo-router'
 import { useThemeColor } from 'heroui-native'
 import { View } from 'react-native'
 
-// Labeled Forum (M7-T1); the route group stays `community` so existing
+// Labeled Community (M8-T1); the route group stays `community` so existing
 // route refs and per-owner data paths are untouched.
 export default function ForumTab() {
 	const themeColorForeground = useThemeColor('foreground')
@@ -19,7 +19,7 @@ export default function ForumTab() {
 					color: themeColorForeground,
 				}}
 			>
-				Forum
+				Community
 			</Stack.Title>
 			<Stack.Toolbar placement="right">
 				{isModerator === true ? (

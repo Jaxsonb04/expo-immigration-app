@@ -76,7 +76,7 @@ function BlockedAuthorsSection() {
 			<Separator />
 			<View className="gap-3">
 				<Typography.Heading className="text-lg font-semibold">
-					Blocked in Forum
+					Blocked in Community
 				</Typography.Heading>
 				<Typography.Paragraph color="muted" className="text-sm">
 					You won’t see posts or comments from these authors.
@@ -125,7 +125,7 @@ function DeleteAccountSection() {
 	function confirmDelete() {
 		Alert.alert(
 			'Delete your account?',
-			'This permanently erases everything — applications, answers, uploaded documents, cases, and your forum posts and profile. It cannot be undone.',
+			'This permanently erases everything — applications, answers, uploaded documents, cases, and your community posts and profile. It cannot be undone.',
 			[
 				{ text: 'Cancel', style: 'cancel' },
 				{ text: 'Delete everything', style: 'destructive', onPress: () => void eraseAndSignOut() },
@@ -139,7 +139,7 @@ function DeleteAccountSection() {
 			<View className="gap-3">
 				<Typography.Heading className="text-lg font-semibold">Delete account</Typography.Heading>
 				<Typography.Paragraph color="muted" className="text-sm">
-					Permanently erase your applications, answers, uploaded documents, cases, and forum
+					Permanently erase your applications, answers, uploaded documents, cases, and community
 					activity from Immifile. This cannot be undone.
 				</Typography.Paragraph>
 				<Button variant="ghost" isDisabled={busy} onPress={confirmDelete}>

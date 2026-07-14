@@ -76,11 +76,11 @@ export function NewPostScreen() {
 				</Button>
 				<Pressable
 					accessibilityRole="link"
-					accessibilityLabel="Read the forum rules"
+					accessibilityLabel="Read the community rules"
 					onPress={() => router.push('/community-rules')}
 				>
 					<Typography.Paragraph color="muted" className="text-center text-xs leading-relaxed">
-						By posting you agree to the <Typography.Paragraph className="text-xs underline">forum rules</Typography.Paragraph>.
+						By posting you agree to the <Typography.Paragraph className="text-xs underline">community rules</Typography.Paragraph>.
 					</Typography.Paragraph>
 				</Pressable>
 			</View>
