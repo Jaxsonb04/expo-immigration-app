@@ -33,7 +33,7 @@ export function UpgradeSheet({ isOpen, recap, onUpgraded, onDismiss }: UpgradeSh
 			<BottomSheet.Portal>
 				<BottomSheet.Overlay />
 				<BottomSheet.Content>
-					<View className="gap-6 px-6 pb-8 pt-2">
+					<View className="gap-section px-section pb-8 pt-tight">
 						<InvestedProgressRecap recap={recap} />
 						<UpgradeActions onUpgraded={onUpgraded} />
 					</View>

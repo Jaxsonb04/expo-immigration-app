@@ -68,7 +68,7 @@ function Row({ item, onRemove }: { item: RenewalItem; onRemove?: () => void }) {
 	if (state === null) return null
 	const copy = renewalStateCopy(state)
 	return (
-		<View className="flex-row items-center gap-3 py-2">
+		<View className="flex-row items-center gap-control py-tight">
 			{stateIcon(copy.tone)}
 			<View className="flex-1">
 				<Typography.Paragraph className="font-medium">
@@ -152,12 +152,12 @@ export function AddRenewalEntry({ onOpenChange }: { onOpenChange?: (open: boolea
 	)
 
 	return (
-		<View className="gap-3 rounded-2xl bg-surface-secondary p-4">
-			<View className="flex-row flex-wrap gap-2">
+		<View className="gap-control rounded-2xl bg-surface-secondary p-card">
+			<View className="flex-row flex-wrap gap-tight">
 				{toggle(kind === 'ead', 'Work permit (EAD)', () => setKind('ead'))}
 				{toggle(kind === 'greenCard', 'Green card', () => setKind('greenCard'))}
 			</View>
-			<View className="flex-row flex-wrap gap-2">
+			<View className="flex-row flex-wrap gap-tight">
 				{toggle(meaning === 'expiry', 'Card expiry date', () => setMeaning('expiry'))}
 				{toggle(meaning === 'filed', 'Date I filed', () => setMeaning('filed'))}
 			</View>
@@ -197,7 +197,7 @@ export function AddRenewalEntry({ onOpenChange }: { onOpenChange?: (open: boolea
 					</DatePicker.Portal>
 				</DatePicker.Select>
 			</DatePicker>
-			<View className="flex-row gap-2">
+			<View className="flex-row gap-tight">
 				<Button size="sm" isDisabled={busy || date === undefined} onPress={() => void save()}>
 					<Button.Label>{busy ? 'Adding…' : 'Add'}</Button.Label>
 				</Button>
@@ -218,7 +218,7 @@ export function AddRenewalEntry({ onOpenChange }: { onOpenChange?: (open: boolea
 export function Renewals({ items }: { items: RenewalItem[] }) {
 	const deleteRenewalEntry = useMutation(api.renewals.deleteRenewalEntry)
 	return (
-		<View className="gap-1">
+		<View className="gap-hairline">
 			<SectionHeading title="Upcoming renewals" count={items.length} />
 			{items.map((item) => (
 				<Row

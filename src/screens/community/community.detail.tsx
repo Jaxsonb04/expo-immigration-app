@@ -22,7 +22,7 @@ import {
 
 function AuthorRow({ handle, at, now }: { handle: string; at: number; now: number }) {
 	return (
-		<View className="flex-row items-center gap-2.5">
+		<View className="flex-row items-center gap-control">
 			<Avatar size="sm" color="accent">
 				<Avatar.Fallback>{handleInitials(handle)}</Avatar.Fallback>
 			</Avatar>
@@ -46,7 +46,7 @@ function DeleteAction({ label, onConfirm }: { label: string; onConfirm: () => Pr
 		<Pressable
 			accessibilityRole="button"
 			accessibilityLabel={`Delete this ${label}`}
-			className="flex-row items-center gap-1.5"
+			className="flex-row items-center gap-tight"
 			onPress={confirm}
 		>
 			<StyledLucideIcon name="trash-2" size={13} className="text-danger" />
@@ -93,7 +93,7 @@ function BlockAuthorAction({ handle }: { handle: string }) {
 		<Pressable
 			accessibilityRole="button"
 			accessibilityLabel={`Block ${handle}`}
-			className="flex-row items-center gap-1.5"
+			className="flex-row items-center gap-tight"
 			onPress={confirm}
 		>
 			<StyledLucideIcon name="user-x" size={13} className="text-muted" />
@@ -107,10 +107,10 @@ function BlockAuthorAction({ handle }: { handle: string }) {
 function CommentRow({ comment, now }: { comment: ForumComment; now: number }) {
 	const deleteComment = useDeleteComment()
 	return (
-		<Surface variant="secondary" className="gap-2 rounded-2xl p-3.5">
+		<Surface variant="secondary" className="gap-tight rounded-2xl p-card">
 			<AuthorRow handle={comment.authorHandle} at={comment.createdAt} now={now} />
 			<Typography.Paragraph className="text-sm leading-relaxed">{comment.body}</Typography.Paragraph>
-			<View className="flex-row flex-wrap items-center gap-x-4 gap-y-2">
+			<View className="flex-row flex-wrap items-center gap-x-card gap-y-tight">
 				{comment.isMine ? (
 					<DeleteAction label="comment" onConfirm={() => deleteComment({ commentId: comment._id })} />
 				) : (
@@ -150,7 +150,7 @@ function CommentComposer({ postId }: { postId: Id<'forumPosts'> }) {
 	}
 
 	return (
-		<View className="gap-2">
+		<View className="gap-tight">
 			<TextField>
 				<TextArea
 					value={body}
@@ -179,11 +179,11 @@ function PostCard({ post, now }: { post: ForumPost; now: number }) {
 	}
 
 	return (
-		<View className="gap-3">
+		<View className="gap-control">
 			<AuthorRow handle={post.authorHandle} at={post.createdAt} now={now} />
 			<Typography.Heading className="text-xl font-bold leading-snug">{post.title}</Typography.Heading>
 			<Typography.Paragraph className="leading-relaxed">{post.body}</Typography.Paragraph>
-			<View className="flex-row flex-wrap items-center gap-x-4 gap-y-2">
+			<View className="flex-row flex-wrap items-center gap-x-card gap-y-tight">
 				{post.isMine ? (
 					<DeleteAction label="post" onConfirm={remove} />
 				) : (
@@ -211,10 +211,10 @@ export function CommunityDetailScreen({ postId }: { postId: Id<'forumPosts'> }) 
 	if (post === null) return <ScreenError title="This post is no longer available" />
 
 	return (
-		<BodyScrollView contentContainerClassName="gap-5 py-4">
+		<BodyScrollView contentContainerClassName="gap-gutter py-card">
 			<PostCard post={post} now={now} />
 
-			<View className="flex-row items-center justify-center gap-1.5">
+			<View className="flex-row items-center justify-center gap-tight">
 				<StyledLucideIcon name="info" size={12} className="text-muted" />
 				<Typography.Paragraph color="muted" className="text-xs leading-relaxed">
 					Peer experiences from other applicants — not legal advice.
@@ -223,7 +223,7 @@ export function CommunityDetailScreen({ postId }: { postId: Id<'forumPosts'> }) 
 
 			<Separator />
 
-			<View className="gap-3">
+			<View className="gap-control">
 				<Typography.Heading className="text-base font-semibold">Comments</Typography.Heading>
 				{status === 'LoadingFirstPage' ? (
 					<Typography.Paragraph color="muted" className="text-sm">
@@ -234,7 +234,7 @@ export function CommunityDetailScreen({ postId }: { postId: Id<'forumPosts'> }) 
 						No comments yet — be the first to reply.
 					</Typography.Paragraph>
 				) : (
-					<View className="gap-2.5">
+					<View className="gap-control">
 						{comments.map((comment) => (
 							<CommentRow key={comment._id} comment={comment} now={now} />
 						))}

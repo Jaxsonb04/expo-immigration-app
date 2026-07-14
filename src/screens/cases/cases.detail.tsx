@@ -22,11 +22,11 @@ type TimelineEntry = CaseDetail['statusHistory'][number]
 function TimelineRow({ entry, isLatest }: { entry: TimelineEntry; isLatest: boolean }) {
 	const tone = statusTone(entry.status)
 	return (
-		<View className="flex-row gap-3">
-			<View className="items-center pt-1">
+		<View className="flex-row gap-control">
+			<View className="items-center pt-hairline">
 				<View className={`h-3 w-3 rounded-full ${DOT_COLOR[tone]}`} />
 			</View>
-			<View className="flex-1 gap-0.5 pb-4">
+			<View className="flex-1 gap-hairline pb-card">
 				<Typography.Paragraph className={isLatest ? 'font-semibold' : 'font-medium'}>
 					{caseStatusLabels[entry.status]}
 				</Typography.Paragraph>
@@ -74,9 +74,9 @@ function AddUpdate({ caseId }: { caseId: Id<'cases'> }) {
 	}
 
 	return (
-		<Surface variant="secondary" className="gap-3 rounded-2xl p-4">
+		<Surface variant="secondary" className="gap-control rounded-2xl p-card">
 			<Typography.Paragraph className="font-medium">New status</Typography.Paragraph>
-			<View className="flex-row flex-wrap gap-2">
+			<View className="flex-row flex-wrap gap-tight">
 				{caseStatuses.map((option) => (
 					<Chip
 						key={option}
@@ -97,7 +97,7 @@ function AddUpdate({ caseId }: { caseId: Id<'cases'> }) {
 					className="min-h-11"
 				/>
 			</TextField>
-			<View className="flex-row gap-2">
+			<View className="flex-row gap-tight">
 				<Button variant="ghost" className="flex-1" isDisabled={busy} onPress={() => setOpen(false)}>
 					<Button.Label>Cancel</Button.Label>
 				</Button>
@@ -125,8 +125,8 @@ export function CaseDetailScreen({ caseId }: { caseId: Id<'cases'> }) {
 	const timeline = [...detail.statusHistory].sort((a, b) => b.occurredAt - a.occurredAt)
 
 	return (
-		<BodyScrollView contentContainerClassName="gap-5 py-4">
-			<View className="gap-2">
+		<BodyScrollView contentContainerClassName="gap-gutter py-card">
+			<View className="gap-tight">
 				<Typography.Heading className="text-2xl font-bold tabular-nums">
 					{detail.receiptNumber}
 				</Typography.Heading>
@@ -154,7 +154,7 @@ export function CaseDetailScreen({ caseId }: { caseId: Id<'cases'> }) {
 				accessibilityRole="link"
 				onPress={() => void Linking.openURL(USCIS_CASE_STATUS_URL)}
 			>
-				<Surface variant="secondary" className="flex-row items-center gap-3 rounded-2xl p-4">
+				<Surface variant="secondary" className="flex-row items-center gap-control rounded-2xl p-card">
 					<StyledLucideIcon name="external-link" size={20} className="text-accent" />
 					<View className="flex-1">
 						<Typography.Paragraph className="font-medium">
@@ -167,7 +167,7 @@ export function CaseDetailScreen({ caseId }: { caseId: Id<'cases'> }) {
 				</Surface>
 			</Pressable>
 
-			<View className="gap-3">
+			<View className="gap-control">
 				<Typography.Heading className="text-base font-semibold">Timeline</Typography.Heading>
 				<View>
 					{timeline.map((entry, index) => (

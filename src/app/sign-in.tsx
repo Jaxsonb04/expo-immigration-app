@@ -92,12 +92,12 @@ export default function SignInScreen() {
 
 	return (
 		<KeyboardAwareScrollView
-			contentContainerClassName="p-5 gap-4"
+			contentContainerClassName="p-gutter gap-card"
 			keyboardDismissMode="on-drag"
 			keyboardShouldPersistTaps="handled"
 			contentInsetAdjustmentBehavior="automatic"
 		>
-			<View className="gap-1 pt-1">
+			<View className="gap-hairline pt-hairline">
 				<Text className="font-display text-title text-foreground">
 					{isSignUp ? 'Create your account' : 'Welcome back'}
 				</Text>
@@ -108,7 +108,7 @@ export default function SignInScreen() {
 				</Typography.Paragraph>
 			</View>
 
-			<View className="gap-3">
+			<View className="gap-control">
 				{SOCIAL_PROVIDERS.map((provider) => (
 					<SocialAuthButton
 						key={provider}
@@ -119,7 +119,7 @@ export default function SignInScreen() {
 				))}
 			</View>
 
-			<View className="flex-row items-center gap-4">
+			<View className="flex-row items-center gap-card">
 				<Separator className="flex-1" />
 				<Typography.Paragraph color="muted" className="text-sm">
 					or continue with email
@@ -127,7 +127,7 @@ export default function SignInScreen() {
 				<Separator className="flex-1" />
 			</View>
 
-			<View className="gap-4">
+			<View className="gap-card">
 				{isSignUp ? (
 					<TextField>
 						<Label>Name</Label>

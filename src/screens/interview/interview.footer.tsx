@@ -6,7 +6,7 @@ import { useInterview } from './interview.context'
 export function Footer() {
 	const { saving, isLast, next, back } = useInterview()
 	return (
-		<View className="flex-row gap-3 px-5 pb-safe-offset-4 pt-2">
+		<View className="flex-row gap-control px-gutter pb-safe-offset-4 pt-tight">
 			<Button variant="ghost" className="flex-1" isDisabled={saving} onPress={back}>
 				<Button.Label>Back</Button.Label>
 			</Button>

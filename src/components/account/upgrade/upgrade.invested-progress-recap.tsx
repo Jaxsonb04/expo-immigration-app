@@ -16,11 +16,11 @@ export function InvestedProgressRecap({ recap }: { recap?: InvestedProgress }) {
 	const highlights = recap?.highlights ?? []
 
 	return (
-		<View className="gap-2">
+		<View className="gap-tight">
 			<Typography.Heading className="text-2xl font-bold">{title}</Typography.Heading>
 			<Typography.Paragraph color="muted">{description}</Typography.Paragraph>
 			{highlights.length > 0 ? (
-				<View className="mt-2 gap-1">
+				<View className="mt-tight gap-hairline">
 					{highlights.map((item) => (
 						<Typography.Paragraph key={item} className="text-sm">
 							{`•  ${item}`}

@@ -44,8 +44,8 @@ function ReportCard({ report, now }: { report: ModerationReport; now: number }) 
 	const isActionable = target !== null && target.moderationStatus !== 'removed'
 
 	return (
-		<Surface variant="secondary" className="gap-3 rounded-2xl p-4">
-			<View className="flex-row items-center gap-2">
+		<Surface variant="secondary" className="gap-control rounded-2xl p-card">
+			<View className="flex-row items-center gap-tight">
 				<Chip variant="soft" color="warning" size="sm">
 					<Chip.Label>{REPORT_REASON_LABELS[report.reason]}</Chip.Label>
 				</Chip>
@@ -74,8 +74,8 @@ function ReportCard({ report, now }: { report: ModerationReport; now: number }) 
 				(() => {
 					const summary = targetSummary(target)
 					return (
-						<View className="gap-1">
-							<View className="flex-row items-center gap-2">
+						<View className="gap-hairline">
+							<View className="flex-row items-center gap-tight">
 								<Typography.Paragraph className="text-xs font-medium">
 									{summary.handle}
 								</Typography.Paragraph>
@@ -98,7 +98,7 @@ function ReportCard({ report, now }: { report: ModerationReport; now: number }) 
 				})()
 			)}
 
-			<View className="flex-row gap-2">
+			<View className="flex-row gap-tight">
 				{isActionable ? (
 					isHidden ? (
 						<Button
@@ -183,8 +183,8 @@ export function CommunityModerationScreen() {
 	}
 
 	return (
-		<BodyScrollView contentContainerClassName="gap-3 py-4">
-			<Typography.Paragraph color="muted" className="px-1 text-center text-xs leading-relaxed">
+		<BodyScrollView contentContainerClassName="gap-control py-card">
+			<Typography.Paragraph color="muted" className="px-hairline text-center text-xs leading-relaxed">
 				Reporters stay anonymous; authors appear only by their public handle.
 			</Typography.Paragraph>
 			{results.map((report) => (

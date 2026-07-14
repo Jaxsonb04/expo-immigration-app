@@ -34,7 +34,7 @@ export function CommunityEmpty() {
 
 	return (
 		<View
-			className="flex-1 px-5"
+			className="flex-1 px-gutter"
 			style={{ paddingTop: insets.top + 96, paddingBottom: insets.bottom + 12 }}
 		>
 			<Animated.View entering={rise(0)}>
@@ -52,7 +52,7 @@ export function CommunityEmpty() {
 							Be the first to ask a question or share your renewal experience.
 						</EmptyState.Description>
 					</EmptyState.Header>
-					<EmptyState.Content className="w-full gap-3">
+					<EmptyState.Content className="w-full gap-control">
 						<Button onPress={() => router.push('/new-post')}>
 							<Button.Label>Start a post</Button.Label>
 						</Button>

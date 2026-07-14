@@ -66,7 +66,7 @@ function NextDeadlineCard(props: { pair?: { item: RenewalItem; state: RenewalSta
 			onPress={() => router.push('/renewals')}
 			className="active:opacity-90"
 		>
-			<Card variant="secondary" className="gap-2.5 p-5">
+			<Card variant="secondary" className="gap-control p-gutter">
 				<View className="flex-row items-center justify-between">
 					<Typography.Paragraph color="muted" className="text-sm">
 						{pair !== undefined ? `Next renewal · ${KIND_LABELS[pair.item.kind]}` : 'Renewals'}
@@ -76,13 +76,13 @@ function NextDeadlineCard(props: { pair?: { item: RenewalItem; state: RenewalSta
 
 				{pair !== undefined ? (
 					<>
-						<View className="flex-row items-end gap-2">
+						<View className="flex-row items-end gap-tight">
 							<Text
 								className={`font-display text-5xl leading-none tabular-nums ${deadlineFigure(pair.state).tone}`}
 							>
 								{deadlineFigure(pair.state).value}
 							</Text>
-							<Typography.Paragraph color="muted" className="mb-0.5 text-sm">
+							<Typography.Paragraph color="muted" className="mb-hairline text-sm">
 								{deadlineFigure(pair.state).unit}
 							</Typography.Paragraph>
 						</View>
@@ -123,8 +123,8 @@ function StatTile({ tile }: { tile: Tile }) {
 			onPress={() => router.push(tile.href)}
 			className="flex-1 active:opacity-90"
 		>
-			<Card variant="secondary" className="flex-1 gap-1 p-4">
-				<View className="flex-row items-baseline gap-1.5">
+			<Card variant="secondary" className="flex-1 gap-hairline p-card">
+				<View className="flex-row items-baseline gap-tight">
 					<Text
 						className={`font-display text-3xl leading-none tabular-nums ${tile.tone ?? 'text-foreground'}`}
 					>
@@ -148,7 +148,7 @@ function CompletedRow({ completed }: { completed: ActiveApplication[] }) {
 			accessibilityRole="button"
 			accessibilityLabel={`Completed · ${completed.length}`}
 			onPress={() => router.push('/completed')}
-			className="flex-row items-center gap-3 px-1 py-1 active:opacity-70"
+			className="flex-row items-center gap-control px-hairline py-hairline active:opacity-70"
 		>
 			<StyledLucideIcon name="circle-check" size={18} className="text-success" />
 			<Typography.Paragraph className="flex-1 text-sm">
@@ -205,10 +205,10 @@ export function HubSections(props: {
 	]
 
 	return (
-		<View className="gap-3">
+		<View className="gap-control">
 			<NextDeadlineCard pair={urgent} />
 			{tiles.length > 0 && (
-				<View className="flex-row items-stretch gap-3">
+				<View className="flex-row items-stretch gap-control">
 					{tiles.map((tile) => (
 						<StatTile key={tile.key} tile={tile} />
 					))}

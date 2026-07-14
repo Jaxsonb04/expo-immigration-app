@@ -28,7 +28,7 @@ function IdentityPreview() {
 	const user = data?.user
 
 	return (
-		<View className="flex-row items-center gap-4">
+		<View className="flex-row items-center gap-card">
 			<Avatar size="lg" variant="soft" color="accent" alt="Your account">
 				<Avatar.Fallback>
 					<Typography.Heading className="text-xl text-accent">
@@ -36,7 +36,7 @@ function IdentityPreview() {
 					</Typography.Heading>
 				</Avatar.Fallback>
 			</Avatar>
-			<View className="flex-1 gap-0.5">
+			<View className="flex-1 gap-hairline">
 				<Typography.Heading className="font-display text-2xl">
 					{isTemp ? 'Welcome' : firstName ? `Welcome back, ${firstName}` : 'Welcome back'}
 				</Typography.Heading>
@@ -81,8 +81,8 @@ const APP_ROWS: Row[] = [
 
 function RowGroup({ label, rows }: { label: string; rows: Row[] }) {
 	return (
-		<View className="gap-2">
-			<Typography.Paragraph color="muted" className="ml-1 text-sm">
+		<View className="gap-tight">
+			<Typography.Paragraph color="muted" className="ml-hairline text-sm">
 				{label}
 			</Typography.Paragraph>
 			<ListGroup>
@@ -90,7 +90,7 @@ function RowGroup({ label, rows }: { label: string; rows: Row[] }) {
 					const Icon = row.icon
 					return (
 						<View key={row.title}>
-							{index > 0 ? <Separator className="mx-4" /> : null}
+							{index > 0 ? <Separator className="mx-card" /> : null}
 							<ListGroup.Item
 								accessibilityRole="button"
 								accessibilityLabel={row.title}
@@ -126,7 +126,7 @@ export function AccountScreen() {
 	// them makes iOS skip the automatic large-title content inset (see the
 	// note in home.screen.tsx).
 	return (
-		<BodyScrollView contentContainerClassName="gap-6 pt-2">
+		<BodyScrollView contentContainerClassName="gap-section pt-tight">
 			<IdentityPreview />
 			{isTemp ? <TempAccountCard /> : null}
 			<RowGroup label="Your filing profile" rows={PROFILE_ROWS} />

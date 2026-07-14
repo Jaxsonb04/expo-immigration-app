@@ -59,7 +59,7 @@ type TabIntroProps = {
 // the icon + title reads cleaner and keeps the page uncrowded and scroll-free.
 function FeatureRow({ icon, title }: TabIntroFeature) {
 	return (
-		<View className="flex-row items-center gap-4">
+		<View className="flex-row items-center gap-card">
 			<View className="size-10 items-center justify-center rounded-2xl bg-surface-secondary">
 				<StyledLucideIcon name={icon} size={18} className="text-muted" />
 			</View>
@@ -146,7 +146,7 @@ export function TabIntro({ prefKey, hero, title, body, features, children }: Tab
 					// A flex child while shown (present from frame 1, can't drop during
 					// the switch); an absolute cover during the dismiss fade so it reveals
 					// the content mounting beneath.
-					className={dismissing ? 'absolute inset-0 bg-background px-6' : 'flex-1 bg-background px-6'}
+					className={dismissing ? 'absolute inset-0 bg-background px-section' : 'flex-1 bg-background px-section'}
 					style={[
 						overlayStyle,
 						{
@@ -163,7 +163,7 @@ export function TabIntro({ prefKey, hero, title, body, features, children }: Tab
 						{hero}
 					</Animated.View>
 
-					<Animated.View entering={rise(1)} className="items-center gap-2 pt-2">
+					<Animated.View entering={rise(1)} className="items-center gap-tight pt-tight">
 						<Text
 							className={`text-center font-display text-foreground ${compact ? 'text-2xl leading-8' : 'text-[28px] leading-9'}`}
 						>
@@ -177,7 +177,7 @@ export function TabIntro({ prefKey, hero, title, body, features, children }: Tab
 						</Typography.Paragraph>
 					</Animated.View>
 
-					<Animated.View entering={rise(2)} className={compact ? 'gap-4 pt-5' : 'gap-6 pt-9'}>
+					<Animated.View entering={rise(2)} className={compact ? 'gap-card pt-gutter' : 'gap-section pt-9'}>
 						{features.map((feature) => (
 							<FeatureRow key={feature.title} {...feature} />
 						))}
@@ -187,7 +187,7 @@ export function TabIntro({ prefKey, hero, title, body, features, children }: Tab
 					    even when the content runs tall. */}
 					<View className="min-h-6 grow" />
 
-					<Animated.View entering={rise(3)} className="pb-2">
+					<Animated.View entering={rise(3)} className="pb-tight">
 						<Button onPress={dismiss}>
 							<Button.Label>Got it</Button.Label>
 						</Button>

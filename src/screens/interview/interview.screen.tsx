@@ -45,7 +45,7 @@ export function InterviewScreen(props: { applicationId: Id<'applications'> }) {
 
 	if (detail.application.status !== 'draft') {
 		return (
-			<View className="flex-1 items-center justify-center gap-4 bg-background px-5">
+			<View className="flex-1 items-center justify-center gap-card bg-background px-gutter">
 				<Typography.Paragraph color="muted" className="text-center">
 					This application has been filed — its answers can no longer be edited.
 				</Typography.Paragraph>
@@ -134,7 +134,7 @@ function Wizard(props: { applicationId: Id<'applications'>; detail: ApplicationD
 			<View className="flex-1 bg-background">
 				<Interview.Header />
 				<KeyboardAwareScrollView
-					contentContainerClassName="gap-5 px-5 pt-4 pb-6"
+					contentContainerClassName="gap-gutter px-gutter pt-card pb-section"
 					keyboardShouldPersistTaps="handled"
 				>
 					<Interview.Question />

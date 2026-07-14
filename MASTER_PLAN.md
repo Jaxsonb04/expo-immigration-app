@@ -266,7 +266,7 @@ interface quiet, mobile-first, and task-oriented.
   - Evidence: Tab label `Forum`→`Community` in `src/app/(tabs)/_layout.tsx`; user-facing sweep across the community tab title (`community/index.tsx`), account-settings ("Blocked in Community" + two deletion-copy strings), the composer ("community rules" link text + "Read the community rules" a11y label in `community.new.tsx`), and the rules-screen body (`community.rules.tsx`) — 10 string sites, each matched exactly once by an assertion-guarded replacer. Technical identifiers (`forumPosts`/`ForumPost`/`forumIntroDismissed`) and the `community` route left unchanged (renaming those is a data migration, out of scope). Layout section updated. Gates: tsc ✓, ESLint 0 errors (2 pre-existing warnings), 385/385 vitest ✓. Sim-verified iPhone 17 (light): tab bar reads Forms · Cases · Assistant · **Community** · Account (screenshot `m8_community.png`).
 
 - [ ] **M8-T2 One spacing rhythm, app-wide**
-  - Status: NOT_STARTED
+  - Status: IN_PROGRESS
   - Establish one spacing rhythm as design-system tokens (screen padding, section rhythm, card padding, control gaps) and apply it everywhere, replacing the ad-hoc per-screen class values (census: screen padding spread across px-4/px-5/px-6/p-4/p-5; gaps gap-1..gap-6 plus half-steps). Sweep every primary tab, the interview wizard, the Journey Hub, and shared components.
   - Done when: Spacing reads consistent surface-to-surface in both themes on a small (iPhone SE) and large device; before/after screenshots prove it; no screen reads visibly out of rhythm with its neighbours; ESLint/tsc/vitest green.
   - Evidence: (pending)

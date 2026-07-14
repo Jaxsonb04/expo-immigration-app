@@ -36,7 +36,7 @@ function greetingTurn(firstName: string | null): ChatTurn {
 /** Always-visible reminder placed where the user acts (above the composer). */
 function DisclaimerBar() {
 	return (
-		<View className="flex-1 flex-row items-center gap-2">
+		<View className="flex-1 flex-row items-center gap-tight">
 			<InfoIcon size={13} className="text-muted" />
 			<Typography.Paragraph color="muted" className="flex-1 text-xs leading-snug">
 				General information only — not legal advice.
@@ -94,7 +94,7 @@ export function AssistantScreen() {
 			<ScrollView
 				ref={scrollRef}
 				className="flex-1"
-				contentContainerClassName="px-5 pt-3 pb-3 gap-3"
+				contentContainerClassName="px-gutter pt-control pb-control gap-control"
 				contentInsetAdjustmentBehavior="automatic"
 				automaticallyAdjustsScrollIndicatorInsets
 				keyboardShouldPersistTaps="handled"
@@ -132,7 +132,7 @@ export function AssistantScreen() {
 			    interpolates smoothly with the keyboard's own open/close motion. */}
 			<KeyboardStickyView offset={{ opened: insets.bottom }}>
 				<View
-					className="gap-2 border-t border-separator bg-background px-5 pt-2.5"
+					className="gap-tight border-t border-separator bg-background px-gutter pt-control"
 					style={{ paddingBottom: insets.bottom + 8 }}
 				>
 					<Composer
@@ -141,7 +141,7 @@ export function AssistantScreen() {
 						canSend={canSend}
 						outOfMessages={outOfMessages}
 					/>
-					<View className="flex-row items-center gap-3">
+					<View className="flex-row items-center gap-control">
 						<DisclaimerBar />
 						{usage ? <QuotaNote used={usage.used} limit={usage.limit} /> : null}
 					</View>

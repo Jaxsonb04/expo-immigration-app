@@ -18,7 +18,7 @@ export function JourneyHubScreen(props: { applicationId: Id<'applications'> }) {
 
 	return (
 		<JourneyHub.Provider detail={detail}>
-			<BodyScrollView contentContainerClassName="gap-6 pt-4">
+			<BodyScrollView contentContainerClassName="gap-section pt-card">
 				<JourneyHub.Header />
 
 				<JourneyHub.Prepare />

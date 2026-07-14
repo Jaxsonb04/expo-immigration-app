@@ -78,8 +78,8 @@ export default function WelcomeScreen() {
 				</Animated.View>
 			</View>
 
-			<View className="gap-5 px-6 pt-9">
-				<Animated.View entering={rise(1)} className="gap-5">
+			<View className="gap-gutter px-section pt-9">
+				<Animated.View entering={rise(1)} className="gap-gutter">
 					<Text className="font-display text-display text-foreground">
 						Renew with{'\n'}confidence.
 					</Text>
@@ -91,7 +91,7 @@ export default function WelcomeScreen() {
 				</Animated.View>
 			</View>
 
-			<Animated.View entering={rise(2)} className="gap-3 px-6 pt-10 pb-safe-offset-6">
+			<Animated.View entering={rise(2)} className="gap-control px-section pt-10 pb-safe-offset-6">
 				<Button size="lg" isDisabled={pending} onPress={handleStartFiling}>
 					<Button.Label>{pending ? 'Starting…' : 'Start filing'}</Button.Label>
 				</Button>

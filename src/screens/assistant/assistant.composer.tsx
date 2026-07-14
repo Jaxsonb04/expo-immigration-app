@@ -41,7 +41,7 @@ export function Composer({ onSend, isSending, canSend, outOfMessages }: Composer
 				placeholder={outOfMessages ? 'Daily message limit reached' : 'Describe your situation…'}
 				multiline
 				editable={!outOfMessages}
-				className="max-h-32 min-h-11 py-2.5"
+				className="max-h-32 min-h-11 py-control"
 				submitBehavior="blurAndSubmit"
 			/>
 			<InputGroup.Suffix>

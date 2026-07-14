@@ -49,16 +49,16 @@ export default function RadioGroupField({
 				isInvalid={isInvalid}
 				isDisabled={isDisabled}
 				variant="secondary"
-				className="gap-2"
+				className="gap-tight"
 			>
 				{options.map((option) => (
 					<RadioButtonGroup.Item
 						key={option.value}
 						value={option.value}
-						className="flex-row items-center gap-3 p-3"
+						className="flex-row items-center gap-control p-control"
 					>
 						<Radio />
-						<RadioButtonGroup.ItemContent className="gap-1">
+						<RadioButtonGroup.ItemContent className="gap-hairline">
 							<Label>{option.label}</Label>
 							{option.description ? <Description>{option.description}</Description> : null}
 						</RadioButtonGroup.ItemContent>

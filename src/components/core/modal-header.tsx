@@ -21,7 +21,7 @@ export function ModalHeader({ title, subtitle, onClose }: ModalHeaderProps) {
 	const insets = useSafeAreaInsets()
 	return (
 		<View
-			className="flex-row items-center gap-3 px-5 pb-3"
+			className="flex-row items-center gap-control px-gutter pb-control"
 			style={{ paddingTop: Math.max(insets.top, 16) }}
 		>
 			<View className="flex-1">

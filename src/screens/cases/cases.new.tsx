@@ -20,7 +20,7 @@ function ApplicationOption(props: {
 		<Pressable accessibilityRole="button" onPress={onPress}>
 			<Surface
 				variant={selected ? 'default' : 'secondary'}
-				className="flex-row items-center gap-3 rounded-xl p-3"
+				className="flex-row items-center gap-control rounded-xl p-control"
 			>
 				<StyledLucideIcon
 					name={selected ? 'circle-check' : 'circle'}
@@ -71,8 +71,8 @@ export function NewCaseScreen() {
 	}
 
 	return (
-		<BodyScrollView contentContainerClassName="gap-6 py-5">
-			<View className="gap-1">
+		<BodyScrollView contentContainerClassName="gap-section py-gutter">
+			<View className="gap-hairline">
 				<Typography.Paragraph color="muted">
 					Add the USCIS receipt number from your filing notice to follow its status and timeline.
 				</Typography.Paragraph>
@@ -96,7 +96,7 @@ export function NewCaseScreen() {
 			</TextField>
 
 			{applications && applications.length > 0 ? (
-				<View className="gap-2">
+				<View className="gap-tight">
 					<Typography.Heading className="text-base font-semibold">
 						Link a filed application (optional)
 					</Typography.Heading>

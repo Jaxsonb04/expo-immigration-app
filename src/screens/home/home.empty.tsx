@@ -34,17 +34,17 @@ export function EmptyDashboard() {
 	// CTA above the bar on every device, deterministically.
 	return (
 		<View
-			className="flex-1 px-5"
+			className="flex-1 px-gutter"
 			style={{ paddingTop: insets.top + 96, paddingBottom: insets.bottom + 12 }}
 		>
 			{/* M6-T4: a temp session in its final 24 hours is warned even here. */}
 			<TempAccountDeletionBanner />
 
-			<View className={`grow items-center justify-center gap-4 ${addingDate ? 'opacity-0' : ''}`}>
+			<View className={`grow items-center justify-center gap-card ${addingDate ? 'opacity-0' : ''}`}>
 				<Animated.View entering={rise(0)}>
 					<FilingStackHero width={compact ? 100 : 126} />
 				</Animated.View>
-				<Animated.View entering={rise(1)} className="items-center gap-2">
+				<Animated.View entering={rise(1)} className="items-center gap-tight">
 					<Text
 						className={`text-center font-display text-foreground ${compact ? 'text-2xl leading-8' : 'text-[28px] leading-9'}`}
 					>
@@ -60,7 +60,7 @@ export function EmptyDashboard() {
 				</Animated.View>
 			</View>
 
-			<Animated.View entering={rise(2)} className="gap-2 pt-5">
+			<Animated.View entering={rise(2)} className="gap-tight pt-gutter">
 				<StartApplicationButton />
 				{/* The manual renewal path stays reachable with zero data (M6-T6):
 				    adding a date populates the dashboard's Upcoming renewals. */}

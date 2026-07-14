@@ -9,7 +9,7 @@ export const BodyScrollView = ({ contentContainerClassName, ...props }: ScrollVi
 			automaticallyAdjustsScrollIndicatorInsets
 			contentInsetAdjustmentBehavior="automatic"
 			showsVerticalScrollIndicator={false}
-			contentContainerClassName={cn('px-5', contentContainerClassName)}
+			contentContainerClassName={cn('px-gutter', contentContainerClassName)}
 			contentContainerStyle={{
 				paddingBottom: insets.bottom + 32,
 			}}

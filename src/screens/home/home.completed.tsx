@@ -15,7 +15,7 @@ export function Completed({ applications }: { applications: ActiveApplication[] 
 	const router = useRouter()
 	if (applications.length === 0) return null
 	return (
-		<View className="gap-1">
+		<View className="gap-hairline">
 			<SectionHeading title="Completed" count={applications.length} />
 			{applications.map((application) => {
 				const label = situationLabel(application.formType, application.applicationKind)
@@ -24,7 +24,7 @@ export function Completed({ applications }: { applications: ActiveApplication[] 
 						key={application._id}
 						accessibilityRole="button"
 						onPress={() => router.push(`/application/${application._id}`)}
-						className="flex-row items-center gap-3 py-2"
+						className="flex-row items-center gap-control py-tight"
 					>
 						<StyledLucideIcon name="circle-check" size={20} className="text-success" />
 						<View className="flex-1">

@@ -26,6 +26,14 @@
   --field-radius: 0.625rem;
   --field-border-width: 0.642122456084777px;
 
+  /* Spacing rhythm (M8-T2): one 4px scale (gutter, section, card, controls). */
+  --spacing-hairline: 0.25rem; /* 4  — label->value micro gap */
+  --spacing-tight: 0.5rem;     /* 8  — closely related items */
+  --spacing-control: 0.75rem;  /* 12 — gap between controls / rows */
+  --spacing-card: 1rem;        /* 16 — card / surface interior padding */
+  --spacing-gutter: 1.25rem;   /* 20 — screen edge padding */
+  --spacing-section: 1.5rem;   /* 24 — between major sections */
+
   /* UI + body face: Inter (loaded in src/components/providers.tsx) */
   --font-normal: Inter_400Regular;
   --font-medium: Inter_500Medium;

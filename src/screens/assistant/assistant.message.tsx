@@ -23,7 +23,7 @@ function AssistantAvatar() {
 /** Left-aligned assistant row: avatar + a surface bubble. */
 function AssistantRow({ children }: { children: React.ReactNode }) {
 	return (
-		<View className="max-w-[88%] flex-row items-end gap-2 self-start">
+		<View className="max-w-[88%] flex-row items-end gap-tight self-start">
 			<AssistantAvatar />
 			<View className="flex-1">{children}</View>
 		</View>
@@ -44,7 +44,7 @@ type MessageProps = {
 export function Message({ turn, onPick, onStart, onRetry, isBusy }: MessageProps) {
 	if (turn.kind === 'user') {
 		return (
-			<View className="max-w-[82%] self-end rounded-2xl rounded-br-md bg-accent px-4 py-2.5">
+			<View className="max-w-[82%] self-end rounded-2xl rounded-br-md bg-accent px-card py-control">
 				<Text className="text-[15px] leading-snug text-accent-foreground">{turn.text}</Text>
 			</View>
 		)
@@ -53,7 +53,7 @@ export function Message({ turn, onPick, onStart, onRetry, isBusy }: MessageProps
 	if (turn.kind === 'pending') {
 		return (
 			<AssistantRow>
-				<Surface variant="secondary" className="self-start rounded-2xl rounded-bl-md px-4 py-3">
+				<Surface variant="secondary" className="self-start rounded-2xl rounded-bl-md px-card py-control">
 					<Spinner size="sm" />
 				</Surface>
 			</AssistantRow>
@@ -63,8 +63,8 @@ export function Message({ turn, onPick, onStart, onRetry, isBusy }: MessageProps
 	if (turn.kind === 'error') {
 		return (
 			<AssistantRow>
-				<View className="items-start gap-2">
-					<Surface variant="secondary" className="rounded-2xl rounded-bl-md px-4 py-2.5">
+				<View className="items-start gap-tight">
+					<Surface variant="secondary" className="rounded-2xl rounded-bl-md px-card py-control">
 						<Text className="text-[15px] leading-snug text-foreground">
 							Something went wrong reaching the assistant.
 						</Text>
@@ -89,11 +89,11 @@ export function Message({ turn, onPick, onStart, onRetry, isBusy }: MessageProps
 
 	const { text, suggestions } = turn.content
 	return (
-		<View className="gap-2">
+		<View className="gap-tight">
 			<AssistantRow>
 				<Surface
 					variant="secondary"
-					className="self-start rounded-2xl rounded-bl-md px-4 py-2.5"
+					className="self-start rounded-2xl rounded-bl-md px-card py-control"
 				>
 					<Text className="text-[15px] leading-snug text-foreground">{text}</Text>
 				</Surface>

@@ -160,7 +160,7 @@ export function AccountDetailsScreen() {
 	const self = useSelfApplicant()
 	if (self === undefined) {
 		return (
-			<View className="items-center py-6">
+			<View className="items-center py-section">
 				<Spinner />
 			</View>
 		)
@@ -214,7 +214,7 @@ function DetailsForm({ initial }: { initial: Draft }) {
 	}
 
 	return (
-		<BodyScrollView contentContainerClassName="gap-4 px-5 pt-4 pb-8">
+		<BodyScrollView contentContainerClassName="gap-card px-gutter pt-card pb-8">
 			<Typography.Paragraph color="muted" className="text-sm">
 				You’re the applicant on your own filings — these details prefill every form you start.
 			</Typography.Paragraph>
@@ -226,7 +226,7 @@ function DetailsForm({ initial }: { initial: Draft }) {
 			<Field label="Country of birth" value={draft.countryOfBirth} onChangeText={set('countryOfBirth')} autoCapitalize="words" />
 			<Field label="A-Number (if you have one)" value={draft.aNumber} onChangeText={set('aNumber')} placeholder="7–9 digits" keyboardType="number-pad" maxLength={9} />
 
-			<View className="gap-1 pt-1">
+			<View className="gap-hairline pt-hairline">
 				<Typography.Paragraph className="font-medium">Mailing address</Typography.Paragraph>
 				<Typography.Paragraph color="muted" className="text-sm">
 					Where USCIS sends notices and cards.
@@ -235,7 +235,7 @@ function DetailsForm({ initial }: { initial: Draft }) {
 			<Field label="Street address" value={draft.street} onChangeText={set('street')} autoCapitalize="words" />
 			<Field label="Apt / unit (optional)" value={draft.unit} onChangeText={set('unit')} />
 			<Field label="City" value={draft.city} onChangeText={set('city')} autoCapitalize="words" />
-			<View className="flex-row gap-3">
+			<View className="flex-row gap-control">
 				<View className="flex-1">
 					<Field label="State" value={draft.state} onChangeText={set('state')} placeholder="CA" autoCapitalize="characters" maxLength={2} />
 				</View>

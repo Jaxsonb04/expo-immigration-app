@@ -20,7 +20,7 @@ function Item(props: { item: AttentionItem }) {
 			<Pressable
 				accessibilityRole="button"
 				onPress={() => router.push('/documents')}
-				className="flex-row items-center gap-3 py-2"
+				className="flex-row items-center gap-control py-tight"
 			>
 				<StyledLucideIcon name="triangle-alert" size={20} className="text-danger" />
 				<View className="flex-1">
@@ -40,7 +40,7 @@ function Item(props: { item: AttentionItem }) {
 		<Pressable
 			accessibilityRole="button"
 			onPress={() => router.push(`/application/${item.applicationId}`)}
-			className="flex-row items-center gap-3 py-2"
+			className="flex-row items-center gap-control py-tight"
 		>
 			<StyledLucideIcon name="file-plus" size={20} className="text-warning" />
 			<View className="flex-1">

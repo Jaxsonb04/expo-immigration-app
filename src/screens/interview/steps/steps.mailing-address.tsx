@@ -7,7 +7,7 @@ export const MailingAddressStep = withForm({
 	...stepBodyOptions,
 	render: function Render({ form }) {
 		return (
-			<View className="gap-4">
+			<View className="gap-card">
 				<form.AppField
 					name="personFacts.mailingAddress.street"
 					validators={{ onBlur: fieldValidators.street, onSubmit: fieldValidators.street }}
@@ -29,7 +29,7 @@ export const MailingAddressStep = withForm({
 						<field.TextField label="City" autoCapitalize="words" isRequired focusNextOnSubmit />
 					)}
 				</form.AppField>
-				<View className="flex-row gap-3">
+				<View className="flex-row gap-control">
 					<View className="flex-1">
 						<form.AppField
 							name="personFacts.mailingAddress.state"

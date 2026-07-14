@@ -11,7 +11,7 @@ export const AddressFieldGroup = withFieldGroup({
 	defaultValues: { line1: '', city: '', state: '', postalCode: '' },
 	render: function AddressFieldGroupRender({ group }) {
 		return (
-			<View className="gap-4">
+			<View className="gap-card">
 				<group.AppField name="line1">
 					{(field) => (
 						<field.TextField label="Street address" autoCapitalize="words" focusNextOnSubmit />
@@ -20,7 +20,7 @@ export const AddressFieldGroup = withFieldGroup({
 				<group.AppField name="city">
 					{(field) => <field.TextField label="City" autoCapitalize="words" focusNextOnSubmit />}
 				</group.AppField>
-				<View className="flex-row gap-3">
+				<View className="flex-row gap-control">
 					<View className="flex-1">
 						<group.AppField name="state">
 							{(field) => (

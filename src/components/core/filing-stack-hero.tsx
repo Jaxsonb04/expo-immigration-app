@@ -125,16 +125,16 @@ export function FilingStackHero({ width = 148 }: FilingStackHeroProps) {
 						style={[StyleSheet.absoluteFill, frontStyle]}
 						className="overflow-hidden rounded-2xl border border-border bg-surface"
 					>
-						<View className="flex-1 gap-2.5 p-4">
+						<View className="flex-1 gap-control p-card">
 							{/* The one terracotta moment: a single "filled" field. */}
 							<View className="h-2.5 w-10 rounded-full bg-accent" />
-							<View className="mt-1 h-1.5 w-4/5 rounded-full bg-surface-tertiary" />
+							<View className="mt-hairline h-1.5 w-4/5 rounded-full bg-surface-tertiary" />
 							<View className="h-1.5 w-3/5 rounded-full bg-surface-tertiary" />
 							<View className="h-1.5 w-11/12 rounded-full bg-surface-tertiary" />
 							<View className="h-1.5 w-2/3 rounded-full bg-surface-tertiary" />
 							<View className="flex-1" />
 							<View className="h-px w-full bg-separator" />
-							<View className="flex-row items-center gap-2">
+							<View className="flex-row items-center gap-tight">
 								<StyledLucideIcon name="paperclip" size={13} className="text-muted" />
 								<View className="h-1.5 flex-1 rounded-full bg-surface-tertiary" />
 							</View>

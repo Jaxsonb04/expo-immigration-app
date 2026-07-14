@@ -25,8 +25,8 @@ function ReuseList(props: {
 }) {
 	if (props.documents.length === 0) return null
 	return (
-		<View className="mt-1 gap-1 rounded-xl bg-surface-secondary p-2">
-			<Typography.Paragraph color="muted" className="px-1 text-xs">
+		<View className="mt-hairline gap-hairline rounded-xl bg-surface-secondary p-tight">
+			<Typography.Paragraph color="muted" className="px-hairline text-xs">
 				Use a saved document
 			</Typography.Paragraph>
 			{props.documents.map((doc) => (
@@ -34,7 +34,7 @@ function ReuseList(props: {
 					key={doc._id}
 					accessibilityRole="button"
 					onPress={() => props.onPick(doc._id)}
-					className="flex-row items-center gap-2 rounded-lg px-2 py-2"
+					className="flex-row items-center gap-tight rounded-lg px-tight py-tight"
 				>
 					<StyledLucideIcon name="file" size={16} className="text-muted" />
 					<Typography.Paragraph className="flex-1 text-sm">
@@ -60,8 +60,8 @@ function SlotRow(props: {
 	const [showReuse, setShowReuse] = useState(false)
 
 	return (
-		<View className="gap-1 py-1">
-			<View className="flex-row items-center gap-3">
+		<View className="gap-hairline py-hairline">
+			<View className="flex-row items-center gap-control">
 				<StatusIcon status={slot.status} />
 				<View className="flex-1">
 					<Typography.Paragraph className="font-medium">
@@ -78,7 +78,7 @@ function SlotRow(props: {
 			</View>
 
 			{!busy && slot.status !== 'attached' && slot.status !== 'waived' ? (
-				<View className="flex-row gap-2 pl-8">
+				<View className="flex-row gap-tight pl-8">
 					<Button variant="secondary" size="sm" onPress={props.onUpload}>
 						<Button.Label>Upload</Button.Label>
 					</Button>
@@ -120,7 +120,7 @@ export function Documents() {
 	)
 
 	return (
-		<View className="gap-2">
+		<View className="gap-tight">
 			<SectionHeading title="Documents" />
 			{requirements.length === 0 ? (
 				<Typography.Paragraph color="muted">

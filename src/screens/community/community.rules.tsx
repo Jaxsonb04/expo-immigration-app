@@ -45,11 +45,11 @@ const RULES: Rule[] = [
 function RuleRow({ rule, index }: { rule: Rule; index: number }) {
 	const Icon = rule.icon
 	return (
-		<Surface variant="secondary" className="flex-row gap-3.5 rounded-2xl p-4">
-			<View className="pt-0.5">
+		<Surface variant="secondary" className="flex-row gap-card rounded-2xl p-card">
+			<View className="pt-hairline">
 				<Icon size={18} className="text-muted" />
 			</View>
-			<View className="flex-1 gap-1">
+			<View className="flex-1 gap-hairline">
 				<Typography.Paragraph className="font-semibold leading-snug">
 					{index + 1}. {rule.title}
 				</Typography.Paragraph>
@@ -64,13 +64,13 @@ function RuleRow({ rule, index }: { rule: Rule; index: number }) {
 /** Static community rules (M4-T3). */
 export function CommunityRulesScreen() {
 	return (
-		<BodyScrollView contentContainerClassName="gap-5 py-5">
-			<View className="gap-1">
+		<BodyScrollView contentContainerClassName="gap-gutter py-gutter">
+			<View className="gap-hairline">
 				<Typography.Paragraph color="muted" className="leading-relaxed">
 					A few ground rules keep the community a safe place to compare notes on USCIS renewals.
 				</Typography.Paragraph>
 			</View>
-			<View className="gap-2.5">
+			<View className="gap-control">
 				{RULES.map((rule, index) => (
 					<RuleRow key={rule.title} rule={rule} index={index} />
 				))}

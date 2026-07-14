@@ -23,7 +23,7 @@ function Heading() {
 function Row(props: { document: VaultDocument }) {
 	const { document } = props
 	return (
-		<View className={`flex-row items-center gap-3 py-2 ${document.isCurrent ? '' : 'opacity-50'}`}>
+		<View className={`flex-row items-center gap-control py-tight ${document.isCurrent ? '' : 'opacity-50'}`}>
 			<StyledLucideIcon name="file-text" size={20} className="text-muted" />
 			<View className="flex-1">
 				<Typography.Paragraph className="font-medium">

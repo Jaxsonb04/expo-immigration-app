@@ -49,7 +49,7 @@ export function ReportAction({ target }: { target: ReportTarget }) {
 
 	if (done) {
 		return (
-			<View className="flex-row items-center gap-1.5">
+			<View className="flex-row items-center gap-tight">
 				<StyledLucideIcon name="check" size={13} className="text-success" />
 				<Typography.Paragraph color="muted" className="text-xs">
 					Reported — thank you
@@ -63,7 +63,7 @@ export function ReportAction({ target }: { target: ReportTarget }) {
 			<Pressable
 				accessibilityRole="button"
 				accessibilityLabel="Report this content"
-				className="flex-row items-center gap-1.5"
+				className="flex-row items-center gap-tight"
 				onPress={() => setOpen(true)}
 			>
 				<StyledLucideIcon name="flag" size={13} className="text-muted" />
@@ -75,9 +75,9 @@ export function ReportAction({ target }: { target: ReportTarget }) {
 	}
 
 	return (
-		<Surface variant="secondary" className="w-full gap-3 rounded-2xl p-4">
+		<Surface variant="secondary" className="w-full gap-control rounded-2xl p-card">
 			<Typography.Paragraph className="font-medium">Why are you reporting this?</Typography.Paragraph>
-			<View className="flex-row flex-wrap gap-2">
+			<View className="flex-row flex-wrap gap-tight">
 				{reportReasons.map((option) => (
 					<Chip
 						key={option}
@@ -97,7 +97,7 @@ export function ReportAction({ target }: { target: ReportTarget }) {
 					variant="secondary"
 				/>
 			</TextField>
-			<View className="flex-row gap-2">
+			<View className="flex-row gap-tight">
 				<Button variant="ghost" className="flex-1" isDisabled={busy} onPress={() => setOpen(false)}>
 					<Button.Label>Cancel</Button.Label>
 				</Button>

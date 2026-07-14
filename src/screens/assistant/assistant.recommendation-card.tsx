@@ -26,13 +26,13 @@ const settle = FadeInDown.duration(280).reduceMotion(ReduceMotion.System)
 export function RecommendationCard({ content, onStart, isDisabled }: RecommendationCardProps) {
 	return (
 		<Animated.View entering={settle} className="max-w-[92%] self-start">
-			<Card className="gap-1 border border-border">
-				<Card.Body className="gap-4 p-5">
-					<View className="flex-row items-center gap-3">
+			<Card className="gap-hairline border border-border">
+				<Card.Body className="gap-card p-gutter">
+					<View className="flex-row items-center gap-control">
 						<View className="h-11 w-11 items-center justify-center rounded-full bg-accent-soft">
 							<FormIcon size={20} className="text-accent" />
 						</View>
-						<View className="flex-1 gap-0.5">
+						<View className="flex-1 gap-hairline">
 							<Text className="font-display text-xl leading-tight text-surface-foreground">
 								{content.title}
 							</Text>
@@ -43,7 +43,7 @@ export function RecommendationCard({ content, onStart, isDisabled }: Recommendat
 						{content.lead}
 					</Typography.Paragraph>
 				</Card.Body>
-				<Card.Footer className="px-5 pb-5">
+				<Card.Footer className="px-gutter pb-gutter">
 					<Button variant="primary" isDisabled={isDisabled} onPress={() => onStart(content)}>
 						<Button.Label>Start this form</Button.Label>
 					</Button>

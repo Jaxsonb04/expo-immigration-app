@@ -22,8 +22,8 @@ function OfficialLink({ label, url }: { label: string; url: string }) {
 function UscisFeeInfo({ formType }: { formType: RenderDraftArgs['formType'] }) {
 	const info = filingInfoFor(formType)
 	return (
-		<Surface variant="secondary" className="gap-3 rounded-2xl p-4">
-			<View className="gap-1">
+		<Surface variant="secondary" className="gap-control rounded-2xl p-card">
+			<View className="gap-hairline">
 				<Typography.Paragraph className="font-medium">
 					USCIS government filing fee
 				</Typography.Paragraph>
@@ -46,7 +46,7 @@ function UscisFeeInfo({ formType }: { formType: RenderDraftArgs['formType'] }) {
 function FilingInstructions({ formType }: { formType: RenderDraftArgs['formType'] }) {
 	const info = filingInfoFor(formType)
 	return (
-		<View className="gap-2">
+		<View className="gap-tight">
 			<Typography.Heading className="text-base font-semibold">How to file</Typography.Heading>
 			<Typography.Paragraph className="text-sm leading-relaxed">
 				{info.filingInstructions}
@@ -55,7 +55,7 @@ function FilingInstructions({ formType }: { formType: RenderDraftArgs['formType'
 				Use the current form edition, sign and date it (an unsigned form is rejected), and include
 				the correct fee. Confirm all details on uscis.gov before submitting.
 			</Typography.Paragraph>
-			<View className="flex-row flex-wrap gap-4">
+			<View className="flex-row flex-wrap gap-card">
 				<OfficialLink label="Filing address →" url={info.addressLink} />
 				<OfficialLink label="Fee waiver (I-912) →" url={OFFICIAL_LINKS.feeWaiver} />
 			</View>
@@ -102,7 +102,7 @@ export function ReviewPay() {
 	}
 
 	return (
-		<View className="gap-3">
+		<View className="gap-control">
 			<SectionHeading title="Review & File" />
 			<Typography.Paragraph color="muted">
 				Preview your form, then download your clean, print-ready filing package — edits

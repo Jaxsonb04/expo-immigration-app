@@ -23,7 +23,7 @@ export default function SwitchField({
 
 	return (
 		<HeroTextField isInvalid={isInvalid} isRequired={isRequired} isDisabled={isDisabled}>
-			<View className="flex-row items-center justify-between gap-3">
+			<View className="flex-row items-center justify-between gap-control">
 				<Label>{label}</Label>
 				<Switch
 					isSelected={field.state.value}

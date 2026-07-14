@@ -73,7 +73,7 @@ export function CaseTrackingHero({ width = 148 }: CaseTrackingHeroProps) {
 			accessible={false}
 			importantForAccessibility="no-hide-descendants"
 			style={{ width: stackW, height: cardH * 2 }}
-			className="items-center justify-center gap-5"
+			className="items-center justify-center gap-gutter"
 		>
 			{/* Receipt notice: number line, status chip, body lines. */}
 			<View style={{ width: cardW, height: cardH }}>
@@ -85,17 +85,17 @@ export function CaseTrackingHero({ width = 148 }: CaseTrackingHeroProps) {
 					style={[{ width: cardW, height: cardH }, cardStyle]}
 					className="overflow-hidden rounded-2xl border border-border bg-surface"
 				>
-					<View className="flex-1 gap-2.5 p-4">
+					<View className="flex-1 gap-control p-card">
 						<View className="flex-row items-center justify-between">
 							{/* The one terracotta moment: the receipt number. */}
 							<View className="h-2.5 w-16 rounded-full bg-accent" />
 							<View className="h-4 w-12 rounded-full bg-surface-tertiary" />
 						</View>
-						<View className="mt-1 h-1.5 w-4/5 rounded-full bg-surface-tertiary" />
+						<View className="mt-hairline h-1.5 w-4/5 rounded-full bg-surface-tertiary" />
 						<View className="h-1.5 w-3/5 rounded-full bg-surface-tertiary" />
 						<View className="flex-1" />
 						<View className="h-px w-full bg-separator" />
-						<View className="flex-row items-center gap-2">
+						<View className="flex-row items-center gap-tight">
 							<StyledLucideIcon name="landmark" size={13} className="text-muted" />
 							<View className="h-1.5 w-1/2 rounded-full bg-surface-tertiary" />
 						</View>

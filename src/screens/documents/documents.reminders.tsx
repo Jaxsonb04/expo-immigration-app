@@ -99,9 +99,9 @@ export function RenewalReminders() {
 	}
 
 	return (
-		<Surface variant="secondary" className="flex-row items-center gap-3 rounded-2xl p-4">
+		<Surface variant="secondary" className="flex-row items-center gap-control rounded-2xl p-card">
 			<StyledLucideIcon name="bell" size={20} className="text-muted" />
-			<View className="flex-1 gap-0.5">
+			<View className="flex-1 gap-hairline">
 				<Typography.Paragraph className="font-medium">Renewal reminders</Typography.Paragraph>
 				<Typography.Paragraph color="muted" className="text-sm">
 					Get reminded 180, 90, 30, 7, and 1 day before a document expires.

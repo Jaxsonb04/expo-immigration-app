@@ -68,11 +68,11 @@ export function CommunityHero({ width = 190 }: CommunityHeroProps) {
 		>
 			{/* A question, asked. */}
 			<Animated.View style={[{ width: bubbleW, alignSelf: 'flex-start' }, leftBubble]}>
-				<View className="flex-row items-end gap-2">
+				<View className="flex-row items-end gap-tight">
 					<View className="size-8 items-center justify-center rounded-full border border-border bg-surface-secondary">
 						<StyledLucideIcon name="user" size={14} className="text-muted" />
 					</View>
-					<View className="flex-1 gap-2 rounded-2xl rounded-bl-sm border border-border bg-surface p-3.5">
+					<View className="flex-1 gap-tight rounded-2xl rounded-bl-sm border border-border bg-surface p-card">
 						<View className="h-1.5 w-4/5 rounded-full bg-surface-tertiary" />
 						<View className="h-1.5 w-3/5 rounded-full bg-surface-tertiary" />
 					</View>
@@ -83,10 +83,10 @@ export function CommunityHero({ width = 190 }: CommunityHeroProps) {
 			<Animated.View
 				style={[{ width: bubbleW * 0.86, alignSelf: 'flex-end', marginTop: 18 }, rightBubble]}
 			>
-				<View className="flex-row items-end gap-2">
-					<View className="flex-1 gap-2 rounded-2xl rounded-br-sm border border-border bg-surface p-3.5">
+				<View className="flex-row items-end gap-tight">
+					<View className="flex-1 gap-tight rounded-2xl rounded-br-sm border border-border bg-surface p-card">
 						<View className="h-1.5 w-11/12 rounded-full bg-surface-tertiary" />
-						<Animated.View style={dotsStyle} className="flex-row gap-1">
+						<Animated.View style={dotsStyle} className="flex-row gap-hairline">
 							<View className="size-1.5 rounded-full bg-accent" />
 							<View className="size-1.5 rounded-full bg-accent opacity-70" />
 							<View className="size-1.5 rounded-full bg-accent opacity-40" />

@@ -27,10 +27,10 @@ function Card(props: { application: ActiveApplication; className?: string }) {
 			onPress={() => router.push(`/application/${application._id}`)}
 		>
 			<HeroCard className={props.className ?? 'w-64'}>
-				<HeroCard.Body className="gap-1">
+				<HeroCard.Body className="gap-hairline">
 					<HeroCard.Title>{label.primary}</HeroCard.Title>
 					<HeroCard.Description>{application.applicantName}</HeroCard.Description>
-					<View className="flex-row items-center gap-2 pt-1">
+					<View className="flex-row items-center gap-tight pt-hairline">
 						<Chip size="sm" variant="soft">
 							<Chip.Label>{progressLabel(application)}</Chip.Label>
 						</Chip>
@@ -57,7 +57,7 @@ function Rail() {
 			horizontal
 			showsHorizontalScrollIndicator={false}
 			className="-mx-5"
-			contentContainerClassName="gap-3 px-5 pb-2"
+			contentContainerClassName="gap-control px-gutter pb-tight"
 		>
 			{drafts(activeApplications).map((application) => (
 				<Card key={application._id} application={application} />

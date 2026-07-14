@@ -11,7 +11,7 @@ export function Header() {
 	const progress = Math.max(0.04, (stepNumber - 1) / totalSteps)
 
 	return (
-		<View className="flex-row items-center gap-3 px-5 pt-4 pb-2">
+		<View className="flex-row items-center gap-control px-gutter pt-card pb-tight">
 			<Pressable
 				accessibilityRole="button"
 				accessibilityLabel="Close interview"

@@ -103,8 +103,8 @@ export function UpgradeActions({ onUpgraded }: { onUpgraded?: () => void }) {
 	}
 
 	return (
-		<View className="gap-6">
-			<View className="gap-3">
+		<View className="gap-section">
+			<View className="gap-control">
 				{SOCIAL_PROVIDERS.map((provider) => (
 					<SocialAuthButton
 						key={provider}
@@ -115,7 +115,7 @@ export function UpgradeActions({ onUpgraded }: { onUpgraded?: () => void }) {
 				))}
 			</View>
 
-			<View className="flex-row items-center gap-4">
+			<View className="flex-row items-center gap-card">
 				<Separator className="flex-1" />
 				<Typography.Paragraph color="muted" className="text-sm">
 					or use email
@@ -123,7 +123,7 @@ export function UpgradeActions({ onUpgraded }: { onUpgraded?: () => void }) {
 				<Separator className="flex-1" />
 			</View>
 
-			<View className="gap-4">
+			<View className="gap-card">
 				<TextField>
 					<Label>Name</Label>
 					<Input

@@ -30,7 +30,7 @@ function openOfficialLink(url: string) {
 function NewsroomLinkRow() {
 	return (
 		<Pressable accessibilityRole="link" onPress={() => openOfficialLink(NEWSROOM_URL)}>
-			<Surface variant="secondary" className="flex-row items-center gap-3 rounded-2xl p-4">
+			<Surface variant="secondary" className="flex-row items-center gap-control rounded-2xl p-card">
 				<NewspaperIcon size={18} className="text-muted" />
 				<Typography.Paragraph color="muted" className="flex-1 text-sm">
 					Read the latest at uscis.gov/newsroom
@@ -65,7 +65,7 @@ export function UscisNews({ maxItems = MAX_VISIBLE_ITEMS }: { maxItems?: number 
 	return (
 		<Widget>
 			<Widget.Header>
-				<View className="gap-0.5">
+				<View className="gap-hairline">
 					<Widget.Title className="text-base">Latest from USCIS</Widget.Title>
 					<Widget.Description className="text-xs">Direct from uscis.gov</Widget.Description>
 				</View>
@@ -82,9 +82,9 @@ export function UscisNews({ maxItems = MAX_VISIBLE_ITEMS }: { maxItems?: number 
 						className="active:opacity-70"
 					>
 						<View
-							className={`flex-row items-center gap-3 px-3.5 py-3 ${index > 0 ? 'border-t border-separator' : ''}`}
+							className={`flex-row items-center gap-control px-card py-control ${index > 0 ? 'border-t border-separator' : ''}`}
 						>
-							<View className="flex-1 gap-0.5">
+							<View className="flex-1 gap-hairline">
 								<Typography.Paragraph
 									numberOfLines={2}
 									className="text-sm font-medium leading-snug"

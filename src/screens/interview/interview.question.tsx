@@ -15,8 +15,8 @@ export function Question() {
 	const [helpVisible, setHelpVisible] = useState(false)
 
 	return (
-		<View className="gap-4">
-			<View className="flex-row items-start gap-3">
+		<View className="gap-card">
+			<View className="flex-row items-start gap-control">
 				<Typography.Heading className="flex-1 text-3xl font-semibold leading-9">
 					{step.question}
 				</Typography.Heading>
@@ -24,7 +24,7 @@ export function Question() {
 					accessibilityRole="button"
 					accessibilityLabel="Show help for this question"
 					hitSlop={8}
-					className="pt-1"
+					className="pt-hairline"
 					onPress={() => setHelpVisible((visible) => !visible)}
 				>
 					<HelpIcon size={22} className={helpVisible ? 'text-accent' : 'text-muted'} />
@@ -32,7 +32,7 @@ export function Question() {
 			</View>
 
 			{helpVisible && (
-				<View className="rounded-xl bg-accent/10 p-4">
+				<View className="rounded-xl bg-accent/10 p-card">
 					<Typography.Paragraph className="text-sm leading-5">{step.help}</Typography.Paragraph>
 				</View>
 			)}

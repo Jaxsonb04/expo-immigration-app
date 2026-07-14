@@ -22,8 +22,8 @@ function StatusChip({ status }: { status: CaseSummary['status'] }) {
 function CaseRow({ item }: { item: CaseSummary }) {
 	return (
 		<Pressable accessibilityRole="button" onPress={() => router.push(`/cases/${item._id}`)}>
-			<Surface variant="secondary" className="gap-2 rounded-2xl p-4">
-				<View className="flex-row items-center justify-between gap-3">
+			<Surface variant="secondary" className="gap-tight rounded-2xl p-card">
+				<View className="flex-row items-center justify-between gap-control">
 					<Typography.Paragraph className="font-semibold tabular-nums">
 						{item.receiptNumber}
 					</Typography.Paragraph>
@@ -63,7 +63,7 @@ export function CasesScreen() {
 	const previous = cases.filter((item) => item.status === 'cardDelivered')
 
 	return (
-		<BodyScrollView contentContainerClassName="gap-3 py-4">
+		<BodyScrollView contentContainerClassName="gap-control py-card">
 			{active.length > 0 && previous.length > 0 && (
 				<SectionHeading title="Active" count={active.length} />
 			)}
@@ -71,7 +71,7 @@ export function CasesScreen() {
 				<CaseRow key={item._id} item={item} />
 			))}
 			{previous.length > 0 && (
-				<View className="gap-3 pt-3">
+				<View className="gap-control pt-control">
 					<SectionHeading title="Previous" count={previous.length} />
 					{previous.map((item) => (
 						<CaseRow key={item._id} item={item} />

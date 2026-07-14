@@ -46,7 +46,7 @@ function SignInSection() {
 	const providerLabel = useProviderLabel(isCredentialed)
 	if (!isCredentialed) return null
 	return (
-		<View className="gap-3">
+		<View className="gap-control">
 			<Typography.Heading className="text-lg font-semibold">Sign-in</Typography.Heading>
 			{providerLabel !== null && (
 				<View className="flex-row items-center justify-between">
@@ -74,7 +74,7 @@ function BlockedAuthorsSection() {
 	return (
 		<>
 			<Separator />
-			<View className="gap-3">
+			<View className="gap-control">
 				<Typography.Heading className="text-lg font-semibold">
 					Blocked in Community
 				</Typography.Heading>
@@ -82,7 +82,7 @@ function BlockedAuthorsSection() {
 					You won’t see posts or comments from these authors.
 				</Typography.Paragraph>
 				{blocks.map((block) => (
-					<View key={block.profileId} className="flex-row items-center justify-between gap-3">
+					<View key={block.profileId} className="flex-row items-center justify-between gap-control">
 						<Typography.Paragraph className="flex-1 font-medium">{block.handle}</Typography.Paragraph>
 						<Button
 							size="sm"
@@ -136,7 +136,7 @@ function DeleteAccountSection() {
 	return (
 		<>
 			<Separator />
-			<View className="gap-3">
+			<View className="gap-control">
 				<Typography.Heading className="text-lg font-semibold">Delete account</Typography.Heading>
 				<Typography.Paragraph color="muted" className="text-sm">
 					Permanently erase your applications, answers, uploaded documents, cases, and community
@@ -170,7 +170,7 @@ function DevSection() {
 	}
 
 	return (
-		<View className="gap-3">
+		<View className="gap-control">
 			<Typography.Heading className="text-lg font-semibold">Developer</Typography.Heading>
 			<Typography.Paragraph color="muted" className="text-sm">
 				Walkthrough demo data — replaces everything in this workspace.
@@ -200,7 +200,7 @@ function DevSection() {
  */
 export function AccountSettingsScreen() {
 	return (
-		<BodyScrollView contentContainerClassName="gap-6 px-5 pt-4 pb-8">
+		<BodyScrollView contentContainerClassName="gap-section px-gutter pt-card pb-8">
 			<SignInSection />
 			<BlockedAuthorsSection />
 			<DeleteAccountSection />

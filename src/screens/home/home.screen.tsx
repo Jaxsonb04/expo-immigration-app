@@ -49,11 +49,11 @@ export function HomeScreen() {
 			    bounce must stay natively enabled — disabling either makes iOS clamp
 			    the resting offset to 0 and skip the automatic content inset, which
 			    shoves this content under the transparent large-title header. */}
-			<BodyScrollView contentContainerClassName="gap-4 pt-1">
+			<BodyScrollView contentContainerClassName="gap-card pt-hairline">
 				{/* M6-T4: only renders for a temp session in its final 24 hours. */}
 				<TempAccountDeletionBanner />
 
-				<View className="gap-1">
+				<View className="gap-hairline">
 					<Summary.TodayLabel />
 					<Summary.Headline />
 				</View>

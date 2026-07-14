@@ -17,8 +17,8 @@ import { UscisNews } from './community.news'
 function PostRow({ post, now }: { post: ForumPost; now: number }) {
 	return (
 		<Pressable accessibilityRole="button" onPress={() => router.push(`/community/${post._id}`)}>
-			<Surface variant="secondary" className="gap-3 rounded-2xl p-4">
-				<View className="flex-row items-center gap-2.5">
+			<Surface variant="secondary" className="gap-control rounded-2xl p-card">
+				<View className="flex-row items-center gap-control">
 					<Avatar size="sm" color="accent">
 						<Avatar.Fallback>{handleInitials(post.authorHandle)}</Avatar.Fallback>
 					</Avatar>
@@ -29,7 +29,7 @@ function PostRow({ post, now }: { post: ForumPost; now: number }) {
 						{formatRelativeTime(post.createdAt, now)}
 					</Typography.Paragraph>
 				</View>
-				<View className="gap-1">
+				<View className="gap-hairline">
 					<Typography.Paragraph className="text-base font-semibold leading-snug">
 						{post.title}
 					</Typography.Paragraph>
@@ -37,7 +37,7 @@ function PostRow({ post, now }: { post: ForumPost; now: number }) {
 						{post.body}
 					</Typography.Paragraph>
 				</View>
-				<View className="flex-row items-center gap-1.5">
+				<View className="flex-row items-center gap-tight">
 					<StyledLucideIcon name="message-circle" size={14} className="text-muted" />
 					<Typography.Paragraph color="muted" className="text-xs tabular-nums">
 						{commentCountLabel(post.commentCount)}
@@ -67,11 +67,11 @@ export function CommunityScreen() {
 	}
 
 	return (
-		<BodyScrollView contentContainerClassName="gap-3 py-4">
+		<BodyScrollView contentContainerClassName="gap-control py-card">
 			{/* M7-T6: official news leads the tab, capped at three items so the
 			    peer feed stays within reach. */}
 			<UscisNews />
-			<View className="gap-0.5 px-1 pt-1">
+			<View className="gap-hairline px-hairline pt-hairline">
 				<Typography.Paragraph color="muted" className="text-center text-xs leading-relaxed">
 					Peer support from others going through USCIS renewals — not legal advice.
 				</Typography.Paragraph>

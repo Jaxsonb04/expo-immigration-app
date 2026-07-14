@@ -10,7 +10,7 @@ export function Prepare() {
 	const interviewDone = useInterviewDone()
 	const isDraft = application.status === 'draft'
 	return (
-		<View className="gap-2">
+		<View className="gap-tight">
 			<SectionHeading title="Prepare" />
 			<Typography.Paragraph color="muted">
 				{interviewDone

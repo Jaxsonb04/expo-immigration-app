@@ -7,7 +7,7 @@ export const LegalNameStep = withForm({
 	...stepBodyOptions,
 	render: function Render({ form }) {
 		return (
-			<View className="gap-4">
+			<View className="gap-card">
 				<form.AppField
 					name="personFacts.givenName"
 					validators={{ onBlur: fieldValidators.givenName, onSubmit: fieldValidators.givenName }}

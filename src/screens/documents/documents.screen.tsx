@@ -20,17 +20,17 @@ export function DocumentsScreen() {
 
 	return (
 		<VaultProvider vault={vault}>
-			<BodyScrollView contentContainerClassName="gap-6 pt-4">
+			<BodyScrollView contentContainerClassName="gap-section pt-card">
 				<RenewalReminders />
 
 				{vault.neededSlots.length > 0 && (
-					<View className="gap-1">
+					<View className="gap-hairline">
 						<NeededDocuments.Heading />
 						<NeededDocuments.List />
 					</View>
 				)}
 
-				<View className="gap-1">
+				<View className="gap-hairline">
 					<VaultDocuments.Heading />
 					<VaultDocuments.List />
 				</View>

@@ -7,10 +7,10 @@ export function Header() {
 	const { application, applicant, isUnlocked } = useJourneyHub()
 	const label = situationLabel(application.formType, application.applicationKind)
 	return (
-		<View className="gap-1">
+		<View className="gap-hairline">
 			<Typography.Paragraph color="muted">{applicant?.displayName}</Typography.Paragraph>
 			<Typography.Heading className="text-2xl font-semibold">{label.primary}</Typography.Heading>
-			<View className="flex-row items-center gap-2">
+			<View className="flex-row items-center gap-tight">
 				<Typography.Paragraph color="muted" className="text-sm">
 					{label.secondary}
 				</Typography.Paragraph>

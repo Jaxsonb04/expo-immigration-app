@@ -9,7 +9,7 @@ export function Track() {
 	const linkedCase = detail.case
 	if (linkedCase === null) {
 		return (
-			<View className="gap-2">
+			<View className="gap-tight">
 				<SectionHeading title="Track" />
 				<Typography.Paragraph color="muted">
 					{detail.application.status === 'filed'
@@ -20,9 +20,9 @@ export function Track() {
 		)
 	}
 	return (
-		<View className="gap-2">
+		<View className="gap-tight">
 			<SectionHeading title="Track" />
-			<View className="flex-row items-center gap-2">
+			<View className="flex-row items-center gap-tight">
 				<Typography.Paragraph className="font-medium">
 					{caseStatusLabels[linkedCase.status]}
 				</Typography.Paragraph>
@@ -31,7 +31,7 @@ export function Track() {
 				</Chip>
 			</View>
 			{[...linkedCase.statusHistory].reverse().map((entry, index) => (
-				<View key={`${entry.status}-${index}`} className="flex-row items-center gap-3">
+				<View key={`${entry.status}-${index}`} className="flex-row items-center gap-control">
 					<Typography.Paragraph color="muted" className="text-sm w-20">
 						{relativeTime(entry.occurredAt)}
 					</Typography.Paragraph>

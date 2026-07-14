@@ -8,7 +8,7 @@ export const CardDetailsStep = withForm({
 	render: function Render({ form, applicationKind, formType }) {
 		const reasonValidator = fieldValidators.replacementReason(applicationKind)
 		return (
-			<View className="gap-4">
+			<View className="gap-card">
 				<form.AppField
 					name="form.cardExpirationDate"
 					validators={{

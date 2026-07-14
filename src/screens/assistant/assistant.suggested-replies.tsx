@@ -14,7 +14,7 @@ type SuggestedRepliesProps = {
 export function SuggestedReplies({ replies, onPick, isDisabled }: SuggestedRepliesProps) {
 	if (replies.length === 0) return null
 	return (
-		<View className="flex-row flex-wrap gap-2">
+		<View className="flex-row flex-wrap gap-tight">
 			{replies.map((reply) => (
 				<Chip
 					key={reply.id}

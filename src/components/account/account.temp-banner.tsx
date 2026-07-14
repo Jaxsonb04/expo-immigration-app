@@ -50,10 +50,10 @@ export function TempAccountDeletionBanner() {
 	if (deleteAt === null || deleteAt - now > TEMP_ACCOUNT_WARNING_MS) return null
 
 	return (
-		<Surface className="gap-3 rounded-2xl border border-warning/40 bg-warning/10 p-4">
-			<View className="flex-row items-start gap-3">
-				<StyledLucideIcon name="clock-alert" size={18} className="mt-0.5 text-warning" />
-				<View className="flex-1 gap-1">
+		<Surface className="gap-control rounded-2xl border border-warning/40 bg-warning/10 p-card">
+			<View className="flex-row items-start gap-control">
+				<StyledLucideIcon name="clock-alert" size={18} className="mt-hairline text-warning" />
+				<View className="flex-1 gap-hairline">
 					<Typography.Paragraph className="font-medium">
 						Your temporary account will be deleted {deletionTimeLeftCopy(deleteAt, now)}
 					</Typography.Paragraph>
@@ -91,8 +91,8 @@ export function TempAccountCard() {
 	if (deleteAt === null) return null
 
 	return (
-		<Surface variant="secondary" className="gap-3 rounded-2xl p-4">
-			<View className="gap-1">
+		<Surface variant="secondary" className="gap-control rounded-2xl p-card">
+			<View className="gap-hairline">
 				<Typography.Paragraph className="font-medium">
 					You’re using a temporary account
 				</Typography.Paragraph>

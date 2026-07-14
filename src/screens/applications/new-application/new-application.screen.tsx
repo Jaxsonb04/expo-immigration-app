@@ -59,7 +59,7 @@ export function NewApplicationScreen() {
 	})
 
 	return (
-		<BodyScrollView contentContainerClassName="py-5 gap-6">
+		<BodyScrollView contentContainerClassName="py-gutter gap-section">
 			<NewApplication.Header />
 			<NewApplication.ApplicantField form={form} options={applicantOptions} />
 			<NewApplication.DependentNameField form={form} />

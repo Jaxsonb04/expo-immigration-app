@@ -7,7 +7,7 @@ import type { StyledIconComponent } from '@/components/styled-icon'
 /** Centered, full-height container shared by every screen state. */
 function StateShell({ children }: { children: ReactNode }) {
 	return (
-		<View className="flex-1 items-center justify-center gap-5 bg-background px-8">{children}</View>
+		<View className="flex-1 items-center justify-center gap-gutter bg-background px-8">{children}</View>
 	)
 }
 
@@ -56,7 +56,7 @@ export function ScreenEmpty({ icon, visual, title, description, action, footer }
 	return (
 		<StateShell>
 			{visual ?? (icon ? <StateIcon icon={icon} /> : null)}
-			<View className="gap-2">
+			<View className="gap-tight">
 				<Typography.Heading className="text-center text-xl font-semibold">{title}</Typography.Heading>
 				{description ? (
 					<Typography.Paragraph color="muted" className="text-center text-base leading-relaxed">
@@ -91,7 +91,7 @@ export function ScreenError({
 	return (
 		<StateShell>
 			{icon ? <StateIcon icon={icon} /> : null}
-			<View className="gap-2">
+			<View className="gap-tight">
 				<Typography.Heading className="text-center text-xl font-semibold">{title}</Typography.Heading>
 				{description ? (
 					<Typography.Paragraph color="muted" className="text-center text-base leading-relaxed">

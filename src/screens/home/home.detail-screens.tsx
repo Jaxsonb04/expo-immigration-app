@@ -26,7 +26,7 @@ export function DraftsScreen() {
 	if (dashboard === undefined) return <Loading />
 	const drafts = dashboard.activeApplications.filter((a) => a.status === 'draft')
 	return (
-		<BodyScrollView contentContainerClassName="gap-3 pt-4">
+		<BodyScrollView contentContainerClassName="gap-control pt-card">
 			{drafts.map((application) => (
 				<ActiveApplications.Card
 					key={application._id}
@@ -44,7 +44,7 @@ export function CompletedScreen() {
 	if (dashboard === undefined) return <Loading />
 	const completed = dashboard.activeApplications.filter((a) => a.status === 'filed')
 	return (
-		<BodyScrollView contentContainerClassName="pt-4">
+		<BodyScrollView contentContainerClassName="pt-card">
 			<Completed applications={completed} />
 		</BodyScrollView>
 	)
@@ -55,7 +55,7 @@ export function RenewalsScreen() {
 	const items = useRenewalItems()
 	if (items === undefined) return <Loading />
 	return (
-		<BodyScrollView contentContainerClassName="pt-4">
+		<BodyScrollView contentContainerClassName="pt-card">
 			<Renewals items={items} />
 		</BodyScrollView>
 	)
@@ -67,7 +67,7 @@ export function AttentionScreen() {
 	if (dashboard === undefined) return <Loading />
 	return (
 		<DashboardProvider dashboard={dashboard}>
-			<BodyScrollView contentContainerClassName="pt-4">
+			<BodyScrollView contentContainerClassName="pt-card">
 				<Attention.List />
 			</BodyScrollView>
 		</DashboardProvider>
