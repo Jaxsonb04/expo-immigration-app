@@ -259,3 +259,47 @@ verification skip selector archaeology entirely: `openLink:
 immigrationrenewalhelp://<route>` (or `xcrun simctl openurl`) opens each
 modal deterministically, then `tapOn: "Close"` hits the shared ModalHeader X
 (a11y label "Close"). Verified all six M7 modals this way in light and dark.
+
+## USCIS I-765/I-90 form facts, verified (2026-07-13, M8-T7 groundwork)
+
+**Summary:** a parallel research + adversarial-verify workflow pulled the current
+official I-765 and I-90 facts from uscis.gov only; full cited detail is in
+`docs/uscis-form-research.md` (the source of truth for the M8-T7 audit). Headline
+facts, all CONFIRMED by an independent verifier re-fetching the live pages:
+
+- **I-765** edition **08/21/25**; fee **$520 paper / $470 online**, **$0** separate
+  biometrics; general filing fee is category- and channel-dependent (many
+  humanitarian/adjustment categories are $0; a non-waivable Pub. L. 119-21 surcharge
+  applies to some asylum/parole/TPS categories). Source: uscis.gov/i-765, G-1055.
+- **I-765 eligibility set = 53 genuine codes** (the app currently offers only 8 — a
+  real correctness gap for M8-T5/T7). Verifier caveats to honour when I wire the set:
+  **(c)(34) is NOT in the 08/21/25 instructions "Who May File" list** (drop it despite
+  a stray fee-table mention), and **"(a)(7)(ii)" is not a category** — it's a regex
+  artifact of the CFR citation `8 CFR 103.2(a)(7)`. Reconcile against the live form PDF
+  before finalizing options.
+- **I-90** edition **01/20/25**; fee **$465 paper / $415 online**, **$0** separate
+  biometrics (folded in since the 04/01/2024 fee rule). Source: uscis.gov/i-90, G-1055.
+- **I-90 Part 2 Item 1 "My status is"** (the unmapped `P2_checkbox1[0..2]` TODO), exact
+  printed order/text — CONFIRMED verbatim: **1.** Lawful Permanent Resident (Proceed to
+  Section A.) · **2.** Permanent Resident - In Commuter Status (Proceed to Section A.) ·
+  **3.** Conditional Permanent Resident (Proceed to Section B.). Closing the TODO needs a
+  new i90-only interview step collecting this status, then a checkbox mapping.
+- **A-Number** on both forms: USCIS specifies only that it "begins with an A"; it is
+  labeled "(if any)" and instructions say enter "N/A" if none. The app's digits-only
+  7–9 regex is close but not the official phrasing — revisit in M8-T5.
+
+**Lesson: adversarial verification earned its cost here** — it caught (c)(34) and the
+(a)(7)(ii) artifact that a single-pass research agent asserted as real. Never wire a
+"known set" into a guard from one research pass; cross-check against the live form.
+
+## Detached `bash -c` subshell drops PATH — npx 127, vitest mis-collects (2026-07-13)
+
+**Summary:** the remote-build detached pattern `ssh jaxson-build 'cd repo && nohup bash
+-c "…" > log 2>&1 &'` does NOT inherit an outer `export PATH=/usr/local/bin`. Inside
+that subshell `npx` resolves to nothing → **EXIT 127**, and `bun run test:once` reported
+**20/24 test files "failed"** (really failed to collect, only 46/385 tests ran) — a
+misleading cascade that looks like a real regression but is pure environment. Re-running
+with `export PATH=/usr/local/bin:$PATH` as the FIRST line *inside* the `bash -c` body
+made both green (eslint 0 errors, 385/385 vitest). **Lesson: put the PATH export inside
+the `bash -c` body, not just on the outer ssh command; and treat a mass "files failed to
+collect" (not assertion failures) as a PATH/toolchain artifact, not a code break.**
