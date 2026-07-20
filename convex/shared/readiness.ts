@@ -47,23 +47,19 @@ export type ApplicationReadiness = {
 // was removed as NOT a filing gap: the printed I-765 has no what-happened
 // field — its Part 1 replacement checkbox is mapped — so the app-collected
 // reason is app-side context only.
-// The I-765 Item 13 SSN box is "if known" and is DELIBERATELY left blank —
-// the app never collects an SSN (this edition has no SSA card-request or
-// consent items at all), which is a valid complete filing, so it is not a gap.
-const I765_COVERAGE_GAPS: readonly string[] = [
-	'Your most recent arrival in the U.S. (I-94 number, passport or travel document, date and place of last entry, and your status then and now)',
-	'The extra questions a few eligibility categories require (for example the receipt number for a spouse of an H-1B holder, or the asylum-filing question for a pending asylum application)',
-]
+// Slice complete: EMPTY — the I-765 field contract is done. Every required
+// applicant-facing printed item is collected+mapped or has an explicit honest
+// stop (interpreter/preparer needs Parts 4-5). Deliberately-blank optional
+// items: SSN (Item 13, "if known" — owner decision: never collected, the
+// storage shape rejects one), USCIS online account number (Item 9, "if any"),
+// in-care-of name (5.A, "if any"), mobile phone (Part 3 Item 4, "if any"),
+// ABC-settlement self-identification box (Part 3 Item 6), attorney/G-28
+// block, and the category items for categories the app does not offer
+// (STEM-OPT Item 28, c(35)/(36) Item 31). "N/A" is printed into Other Names
+// 2.a when none were used, per instructions rule 3. Signature/date are
+// wet-ink per the filing instructions.
+const I765_COVERAGE_GAPS: readonly string[] = []
 
-// Slice 3c: EMPTY — the I-90 field contract is complete. Every required
-// applicant-facing printed item is either collected+mapped or has an explicit
-// honest stop (a 'yes' on proceedings/I-407 or a non-English preparation
-// needs Parts 6-8, and blocks the step with an explanation instead of
-// exporting an incomplete form). Optional-by-form items deliberately left
-// blank: USCIS online account number (Item 2, "if any"), SSN (Item 16,
-// "if any"), in-care-of name (Item 6.A, mail routing), mobile phone (Part 5
-// Item 4), commuter-POE reason 2.h.1 (not an offered situation).
-// Signature/date are wet-ink per the filing instructions.
 const I90_COVERAGE_GAPS: readonly string[] = []
 
 /**

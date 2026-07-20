@@ -3,6 +3,7 @@ import { ApplicantStatementStep } from './steps.applicant-statement'
 import { CardDetailsStep } from './steps.card-details'
 import { CitizenshipStep } from './steps.citizenship'
 import { ImmigrationHistoryStep } from './steps.immigration-history'
+import { LastArrivalStep } from './steps.last-arrival'
 import { ContactInfoStep } from './steps.contact-info'
 import { CountryOfBirthStep } from './steps.country-of-birth'
 import { DateOfBirthStep } from './steps.date-of-birth'
@@ -25,6 +26,7 @@ export const stepBodies = {
 	citizenship: CitizenshipStep,
 	'personal-details': PersonalDetailsStep,
 	'other-information': OtherInformationStep,
+	'last-arrival': LastArrivalStep,
 	'immigration-history': ImmigrationHistoryStep,
 	'a-number': ANumberStep,
 	'mailing-address': MailingAddressStep,

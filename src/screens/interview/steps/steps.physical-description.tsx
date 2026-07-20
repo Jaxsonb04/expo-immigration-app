@@ -82,11 +82,7 @@ export const PhysicalDescriptionStep = withForm({
 					validators={{ onBlur: fieldValidators.ethnicity, onSubmit: fieldValidators.ethnicity }}
 				>
 					{(field) => (
-						<field.RadioGroupField
-							label="Ethnicity"
-							options={[...ethnicityOptions]}
-							isRequired
-						/>
+						<field.RadioGroupField label="Ethnicity" options={[...ethnicityOptions]} isRequired />
 					)}
 				</form.AppField>
 				<form.AppField

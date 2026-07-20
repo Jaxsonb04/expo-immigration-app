@@ -60,12 +60,33 @@ const fullI765Draft: I765DraftAnswers = {
 		eligibilityCategory: 'C08',
 		gender: 'female',
 		maritalStatus: 'single',
+		hasUsedOtherNames: 'yes',
+		otherNames: [{ familyName: 'Santos', givenName: 'Mari' }],
+		dateOfLastEntry: '2019-08-14',
+		placeOfLastEntry: 'JFK Airport, New York',
+		statusAtLastEntry: 'F-1 student',
+		currentImmigrationStatus: 'Pending asylum applicant',
+		usedTravelDocument: 'yes',
+		passportNumber: 'G12345678',
+		travelDocCountryOfIssuance: 'Mexico',
+		travelDocExpirationDate: '2026-01-01',
+		i94Number: '12345678901',
+		sevisNumber: 'N1234567890',
 	},
 	form: {
 		previousEadCardNumber: 'ABC1234567890',
 		replacementReason: 'lost',
 		previouslyFiledI765: 'no',
 		preparedSelfInEnglish: 'yes',
+		physicalAddressSameAsMailing: 'no',
+		physicalAddress: {
+			street: '9 Elm St',
+			unit: 'APT 2',
+			city: 'Austin',
+			state: 'tx',
+			zipCode: '78701',
+		},
+		c8EverArrestedOrConvicted: 'no',
 	},
 }
 
@@ -297,8 +318,147 @@ describe('buildI765Ops', () => {
 		expect(new Set(maritalFields).size).toBe(4)
 		for (const field of maritalFields) expect(names).toContain(field)
 		expect(
-			applyOps(form, maritalFields.map((field) => ({ kind: 'check', field }) as FillOp)),
+			applyOps(
+				form,
+				maritalFields.map((field) => ({ kind: 'check', field }) as FillOp),
+			),
 		).toEqual({ filledCount: 4, failedFields: [] })
+	})
+
+	test('maps the final I-765 items: other names, physical address, last arrival, category', () => {
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I765_FIELDS.otherName1Family,
+			value: 'Santos',
+		})
+		expect(ops).toContainEqual({ kind: 'text', field: I765_FIELDS.otherName1Given, value: 'Mari' })
+		expect(ops).toContainEqual({ kind: 'check', field: I765_FIELDS.physicalSameNo })
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I765_FIELDS.physicalStreet,
+			value: '9 Elm St',
+		})
+		expect(ops).toContainEqual({ kind: 'check', field: I765_FIELDS.physicalUnitApt })
+		expect(ops).toContainEqual({ kind: 'select', field: I765_FIELDS.physicalState, value: 'TX' })
+		expect(ops).toContainEqual({ kind: 'text', field: I765_FIELDS.i94Number, value: '12345678901' })
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I765_FIELDS.passportNumber,
+			value: 'G12345678',
+		})
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I765_FIELDS.travelDocExpDate,
+			value: '01/01/2026',
+		})
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I765_FIELDS.dateOfLastEntry,
+			value: '08/14/2019',
+		})
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I765_FIELDS.placeOfLastEntry,
+			value: 'JFK Airport, New York',
+		})
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I765_FIELDS.sevisNumber,
+			value: 'N1234567890',
+		})
+		// C08 draft: the arrest answer box, and no C26 receipt op.
+		expect(ops).toContainEqual({ kind: 'check', field: I765_FIELDS.c8ArrestedNo })
+		expect(ops.some((op) => op.field === I765_FIELDS.c26ReceiptNumber)).toBe(false)
+	})
+
+	test('two and three other names land on the correct printed rows (swapped indices)', () => {
+		// Literal pins: [1] is the SECOND printed row (Item 3), [0] the THIRD
+		// (Item 4) — verified via tooltips + y-geometry on this edition.
+		expect(I765_FIELDS.otherName2Family).toBe('form1[0].Page1[0].Line3a_FamilyName[1]')
+		expect(I765_FIELDS.otherName3Family).toBe('form1[0].Page1[0].Line3a_FamilyName[0]')
+		const three = buildI765Ops(
+			{
+				...fullI765Draft,
+				personFacts: {
+					...fullI765Draft.personFacts,
+					hasUsedOtherNames: 'yes',
+					otherNames: [
+						{ familyName: 'First', givenName: 'Row' },
+						{ familyName: 'Second', givenName: 'Row' },
+						{ familyName: 'Third', givenName: 'Row' },
+					],
+				},
+			},
+			'renewal',
+		)
+		expect(three).toContainEqual({
+			kind: 'text',
+			field: I765_FIELDS.otherName1Family,
+			value: 'First',
+		})
+		expect(three).toContainEqual({
+			kind: 'text',
+			field: 'form1[0].Page1[0].Line3a_FamilyName[1]',
+			value: 'Second',
+		})
+		expect(three).toContainEqual({
+			kind: 'text',
+			field: 'form1[0].Page1[0].Line3a_FamilyName[0]',
+			value: 'Third',
+		})
+		// Two rows: Item 3 filled, Item 4 untouched — no skipped-row look.
+		const two = buildI765Ops(
+			{
+				...fullI765Draft,
+				personFacts: {
+					...fullI765Draft.personFacts,
+					hasUsedOtherNames: 'yes',
+					otherNames: [
+						{ familyName: 'First', givenName: 'Row' },
+						{ familyName: 'Second', givenName: 'Row' },
+					],
+				},
+			},
+			'renewal',
+		)
+		expect(two).toContainEqual({
+			kind: 'text',
+			field: 'form1[0].Page1[0].Line3a_FamilyName[1]',
+			value: 'Second',
+		})
+		expect(two.some((op) => op.field === 'form1[0].Page1[0].Line3a_FamilyName[0]')).toBe(false)
+	})
+
+	test('writes N/A into Other Names 2.a when none were used (instructions rule 3)', () => {
+		const none = buildI765Ops(
+			{
+				...fullI765Draft,
+				personFacts: {
+					...fullI765Draft.personFacts,
+					hasUsedOtherNames: 'no',
+					otherNames: [],
+				},
+			},
+			'renewal',
+		)
+		expect(none).toContainEqual({ kind: 'text', field: I765_FIELDS.otherName1Family, value: 'N/A' })
+		expect(none.some((op) => op.field === I765_FIELDS.otherName1Given)).toBe(false)
+	})
+
+	test('a same-as-mailing draft leaves Item 7 blank and checks the Yes box', () => {
+		const same = buildI765Ops(
+			{
+				...fullI765Draft,
+				form: {
+					...fullI765Draft.form,
+					physicalAddressSameAsMailing: 'yes',
+					physicalAddress: undefined,
+				},
+			},
+			'renewal',
+		)
+		expect(same).toContainEqual({ kind: 'check', field: I765_FIELDS.physicalSameYes })
+		expect(same.some((op) => op.field === I765_FIELDS.physicalStreet)).toBe(false)
 	})
 
 	test('formats the date of birth as MM/DD/YYYY', () => {
@@ -495,7 +655,11 @@ describe('buildI90Ops', () => {
 			},
 			'renewal',
 		)
-		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.physicalStreet, value: '1 Calle Real' })
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I90_FIELDS.physicalStreet,
+			value: '1 Calle Real',
+		})
 		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.physicalUnitApt })
 		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.physicalUnitNumber, value: '2' })
 		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.physicalCountry, value: 'Mexico' })

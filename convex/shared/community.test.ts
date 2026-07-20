@@ -67,7 +67,9 @@ describe('requireText', () => {
 		expect(() => requireText('   ', POST_TITLE_MAX, 'Title')).toThrow(/required/i)
 	})
 	test('rejects over-long (measured after trim)', () => {
-		expect(() => requireText('x'.repeat(POST_TITLE_MAX + 1), POST_TITLE_MAX, 'Title')).toThrow(/fewer/i)
+		expect(() => requireText('x'.repeat(POST_TITLE_MAX + 1), POST_TITLE_MAX, 'Title')).toThrow(
+			/fewer/i,
+		)
 		// Trailing whitespace does not count toward the limit.
 		expect(requireText(`${'x'.repeat(POST_TITLE_MAX)}   `, POST_TITLE_MAX, 'Title')).toHaveLength(
 			POST_TITLE_MAX,

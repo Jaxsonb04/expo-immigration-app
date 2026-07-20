@@ -20,6 +20,7 @@ const i765Steps = [
 	'country-of-birth',
 	'citizenship',
 	'other-information',
+	'last-arrival',
 	'a-number',
 	'mailing-address',
 	'contact-info',
@@ -60,7 +61,10 @@ export function preReviewStepKeys(formType: FormType): readonly string[] {
 // I-90 Item 5 note requires attaching evidence for a legal name change).
 // reconcileRequirements adds/deletes slots idempotently, so flipping an
 // answer back removes a still-`needed` slot but never discards attachments.
-export const requirementTemplates: Record<FormType, Partial<Record<ApplicationKind, readonly string[]>>> = {
+export const requirementTemplates: Record<
+	FormType,
+	Partial<Record<ApplicationKind, readonly string[]>>
+> = {
 	i765: {
 		initial: ['passportPhoto', 'i94'],
 		renewal: ['eadCard', 'passportPhoto'],
@@ -82,11 +86,19 @@ export function requiredSlotKeys(
 	answers?: RequirementAnswers,
 ): readonly string[] {
 	const base = requirementTemplates[formType][applicationKind] ?? []
-	const form = (answers?.form ?? {}) as { nameChangedSinceIssuance?: unknown }
+	const form = (answers?.form ?? {}) as {
+		nameChangedSinceIssuance?: unknown
+		c8EverArrestedOrConvicted?: unknown
+	}
 	if (formType === 'i90' && form.nameChangedSinceIssuance === 'yes') {
 		// Printed Item 5 NOTE: "Attach all evidence of your legal name change
 		// with this application."
 		return [...base, 'nameChangeEvidence']
+	}
+	if (formType === 'i765' && form.c8EverArrestedOrConvicted === 'yes') {
+		// Printed Item 30 NOTE: a (c)(8) "Yes" requires court dispositions per
+		// the Special Filing Instructions in the official I-765 instructions.
+		return [...base, 'courtDispositions']
 	}
 	return base
 }

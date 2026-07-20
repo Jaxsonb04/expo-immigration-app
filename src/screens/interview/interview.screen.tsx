@@ -7,7 +7,11 @@ import { Alert, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 import { Interview } from './interview'
 import type { InterviewState } from './interview.context'
-import { useApplicationDetail, useSaveApplicationStep, type ApplicationDetail } from './interview.data'
+import {
+	useApplicationDetail,
+	useSaveApplicationStep,
+	type ApplicationDetail,
+} from './interview.data'
 import {
 	initialStepIndex,
 	interviewFormOptions,

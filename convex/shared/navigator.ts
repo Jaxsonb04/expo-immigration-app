@@ -1,9 +1,5 @@
 import { z } from 'zod/v4'
-import {
-	type ApplicationKind,
-	type FormType,
-	isSupportedSituation,
-} from './applicationShapes'
+import { type ApplicationKind, type FormType, isSupportedSituation } from './applicationShapes'
 
 // M1-T2 "Safe navigator" (ADR-0004: information only, never legal advice, never
 // infers eligibility). The assistant's Claude call extracts ONLY these

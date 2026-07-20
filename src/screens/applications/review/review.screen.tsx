@@ -102,8 +102,16 @@ export function ReviewScreen({ applicationId }: { applicationId: Id<'application
 		try {
 			const args: RenderDraftArgs =
 				draft.formType === 'i765'
-					? { formType: 'i765', answers: draft.answers, applicationKind: application.applicationKind }
-					: { formType: 'i90', answers: draft.answers, applicationKind: application.applicationKind }
+					? {
+							formType: 'i765',
+							answers: draft.answers,
+							applicationKind: application.applicationKind,
+						}
+					: {
+							formType: 'i90',
+							answers: draft.answers,
+							applicationKind: application.applicationKind,
+						}
 			await openDraftInApp(args)
 		} catch (error) {
 			Alert.alert(
@@ -144,7 +152,11 @@ export function ReviewScreen({ applicationId }: { applicationId: Id<'application
 				{/* The documents checklist above already shows per-document needed/
 				    attached state, so the blockers notice here carries only the
 				    form-wide coverage (honesty) items — no double-listing. */}
-				<ReadinessBlockers formType={draft.formType} readiness={readiness} families={['coverage']} />
+				<ReadinessBlockers
+					formType={draft.formType}
+					readiness={readiness}
+					families={['coverage']}
+				/>
 
 				<View className="gap-control">
 					<Button

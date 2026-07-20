@@ -10,7 +10,13 @@
 export const moderationStatuses = ['visible', 'hidden', 'removed'] as const
 export type ModerationStatus = (typeof moderationStatuses)[number]
 
-export const reportReasons = ['spam', 'harassment', 'misinformation', 'legalAdvice', 'other'] as const
+export const reportReasons = [
+	'spam',
+	'harassment',
+	'misinformation',
+	'legalAdvice',
+	'other',
+] as const
 export type ReportReason = (typeof reportReasons)[number]
 
 // Report lifecycle (M4-T3). `open` = awaiting moderator review. A moderator
@@ -71,7 +77,11 @@ export function requireText(raw: string, max: number, label: string): string {
 }
 
 /** Trim an optional text field; empty-after-trim collapses to undefined. */
-export function optionalText(raw: string | undefined, max: number, label: string): string | undefined {
+export function optionalText(
+	raw: string | undefined,
+	max: number,
+	label: string,
+): string | undefined {
 	if (raw === undefined) return undefined
 	const value = raw.trim()
 	if (value.length === 0) return undefined
@@ -82,13 +92,41 @@ export function optionalText(raw: string | undefined, max: number, label: string
 // Friendly, non-identifying word lists for auto-generated pseudonyms. Kept ≤8
 // chars each so adjective+noun+≤3 digits always fits HANDLE_MAX.
 const HANDLE_ADJECTIVES = [
-	'Quiet', 'Brave', 'Calm', 'Kind', 'Swift', 'Bright', 'Gentle', 'Bold',
-	'Sunny', 'Clever', 'Merry', 'Steady', 'Warm', 'Noble', 'Lucky', 'Hopeful',
+	'Quiet',
+	'Brave',
+	'Calm',
+	'Kind',
+	'Swift',
+	'Bright',
+	'Gentle',
+	'Bold',
+	'Sunny',
+	'Clever',
+	'Merry',
+	'Steady',
+	'Warm',
+	'Noble',
+	'Lucky',
+	'Hopeful',
 ] as const
 
 const HANDLE_NOUNS = [
-	'Sparrow', 'River', 'Maple', 'Harbor', 'Willow', 'Falcon', 'Cedar', 'Meadow',
-	'Lantern', 'Compass', 'Beacon', 'Anchor', 'Summit', 'Cricket', 'Robin', 'Pine',
+	'Sparrow',
+	'River',
+	'Maple',
+	'Harbor',
+	'Willow',
+	'Falcon',
+	'Cedar',
+	'Meadow',
+	'Lantern',
+	'Compass',
+	'Beacon',
+	'Anchor',
+	'Summit',
+	'Cricket',
+	'Robin',
+	'Pine',
 ] as const
 
 /**

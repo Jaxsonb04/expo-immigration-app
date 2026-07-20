@@ -1,8 +1,4 @@
-import type {
-	ApplicationKind,
-	CaseStatus,
-	FormType,
-} from '@convex/shared/applicationShapes'
+import type { ApplicationKind, CaseStatus, FormType } from '@convex/shared/applicationShapes'
 
 // Plain labels first, technical labels second (REARCHITECTURE.md
 // "Terminology"): display copy is composed from formType + applicationKind —
@@ -38,6 +34,9 @@ const requirementLabels: Record<string, string> = {
 	permanentResidentCard: 'Permanent Resident Card',
 	// Answer-aware (I-90 Item 5 NOTE): required when the name legally changed.
 	nameChangeEvidence: 'Legal name-change document (marriage certificate, court order, or decree)',
+	// Answer-aware (I-765 Item 30 NOTE): required when a (c)(8) applicant
+	// answers yes to the arrest/conviction question.
+	courtDispositions: 'Certified court disposition for each arrest or conviction',
 }
 
 export function requirementLabel(requirementKey: string): string {

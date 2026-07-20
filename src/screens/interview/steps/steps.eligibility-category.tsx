@@ -6,6 +6,7 @@ import {
 	eligibilityCategoryOptions,
 	fieldValidators,
 	replacementReasonOptions,
+	yesNoOptions,
 } from '../interview.form'
 import { stepBodyOptions } from './steps.options'
 
@@ -40,6 +41,53 @@ export const EligibilityCategoryStep = withForm({
 							<ScreeningStopNotice stop={I765_CATEGORY_STOP} />
 						) : null
 					}
+				</form.Subscribe>
+				{/* Category-specific printed items (29-30), asked only for the
+				    category that requires them. */}
+				<form.Subscribe selector={(state) => state.values.personFacts.eligibilityCategory}>
+					{(category) => (
+						<>
+							{category === 'C26' && (
+								<form.AppField
+									name="form.c26SpouseReceiptNumber"
+									validators={{
+										onBlur: fieldValidators.c26SpouseReceiptNumber,
+										onSubmit: fieldValidators.c26SpouseReceiptNumber,
+									}}
+								>
+									{(field) => (
+										<field.TextField
+											label="Your spouse's H-1B receipt number"
+											description="The 13-character receipt on their most recent Form I-797 for Form I-129 (for example WAC1234567890)."
+											autoCapitalize="characters"
+											maxLength={13}
+											isRequired
+										/>
+									)}
+								</form.AppField>
+							)}
+							{category === 'C08' && (
+								<form.AppField
+									name="form.c8EverArrestedOrConvicted"
+									validators={{
+										onBlur: fieldValidators.requiredChoice,
+										onSubmit: fieldValidators.requiredChoice,
+									}}
+								>
+									{(field) => (
+										<field.RadioGroupField
+											label="Have you EVER been arrested for and/or convicted of any crime?"
+											description={
+												'Answering "Yes" is allowed — the form then requires certified court dispositions for each arrest or conviction, which will appear in your document checklist. Consider getting legal help before filing.'
+											}
+											options={[...yesNoOptions]}
+											isRequired
+										/>
+									)}
+								</form.AppField>
+							)}
+						</>
+					)}
 				</form.Subscribe>
 				{applicationKind === 'replacement' && (
 					<form.AppField

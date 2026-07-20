@@ -22,6 +22,15 @@ const validPersonFacts = {
 	eligibilityCategory: 'C08',
 	gender: 'female',
 	maritalStatus: 'single',
+	hasUsedOtherNames: 'no',
+	dateOfLastEntry: '2019-08-14',
+	placeOfLastEntry: 'JFK Airport, New York',
+	statusAtLastEntry: 'F-1 student',
+	currentImmigrationStatus: 'Pending asylum applicant',
+	usedTravelDocument: 'yes',
+	passportNumber: 'G12345678',
+	travelDocCountryOfIssuance: 'Mexico',
+	travelDocExpirationDate: '2026-01-01',
 	motherGivenName: 'Rosa',
 	fatherGivenName: 'Miguel',
 	classOfAdmission: 'IR1',
@@ -44,7 +53,12 @@ const validPersonFacts = {
 
 const formFor = (situation: { formType: string; applicationKind: string }) => ({
 	...(situation.formType === 'i765'
-		? { previouslyFiledI765: 'no', preparedSelfInEnglish: 'yes' }
+		? {
+				previouslyFiledI765: 'no',
+				preparedSelfInEnglish: 'yes',
+				physicalAddressSameAsMailing: 'yes',
+				c8EverArrestedOrConvicted: 'no',
+			}
 		: {}),
 	...(situation.formType === 'i90'
 		? {
@@ -94,7 +108,10 @@ describe('isStepComplete — required fields enforced', () => {
 	test('mailing-address needs street/city/state/zip', () => {
 		expect(
 			isStepComplete('i90', 'renewal', 'mailing-address', {
-				personFacts: { ...validPersonFacts, mailingAddress: { street: '1 Main St', city: 'Austin', state: '', zipCode: '78701' } },
+				personFacts: {
+					...validPersonFacts,
+					mailingAddress: { street: '1 Main St', city: 'Austin', state: '', zipCode: '78701' },
+				},
 				form: {},
 			}),
 		).toBe(false)
@@ -106,9 +123,9 @@ describe('isStepComplete — required fields enforced', () => {
 
 	test('country-of-birth needs the city too (slice 3a); state/province stays optional', () => {
 		expect(isStepComplete('i765', 'renewal', 'country-of-birth', answers({}))).toBe(true)
-		expect(isStepComplete('i765', 'renewal', 'country-of-birth', answers({ cityOfBirth: '' }))).toBe(
-			false,
-		)
+		expect(
+			isStepComplete('i765', 'renewal', 'country-of-birth', answers({ cityOfBirth: '' })),
+		).toBe(false)
 		expect(isStepComplete('i90', 'renewal', 'country-of-birth', answers({ cityOfBirth: '' }))).toBe(
 			false,
 		)
@@ -145,9 +162,7 @@ describe('isStepComplete — required fields enforced', () => {
 			{ ethnicity: '' },
 			{ races: [] },
 		]) {
-			expect(isStepComplete('i90', 'renewal', 'physical-description', answers(missing))).toBe(
-				false,
-			)
+			expect(isStepComplete('i90', 'renewal', 'physical-description', answers(missing))).toBe(false)
 		}
 	})
 
@@ -171,8 +186,12 @@ describe('isStepComplete — kind-aware branches', () => {
 	})
 
 	test('replacementReason required only for the replacement situations', () => {
-		const noReason = { personFacts: validPersonFacts, form: {} }
-		const withReason = { personFacts: validPersonFacts, form: { replacementReason: 'lost' } }
+		// validPersonFacts uses C08, so its Item 30 must be answered here.
+		const noReason = { personFacts: validPersonFacts, form: { c8EverArrestedOrConvicted: 'no' } }
+		const withReason = {
+			personFacts: validPersonFacts,
+			form: { replacementReason: 'lost', c8EverArrestedOrConvicted: 'no' },
+		}
 		// i765 final step (eligibility-category)
 		expect(isStepComplete('i765', 'renewal', 'eligibility-category', noReason)).toBe(true)
 		expect(isStepComplete('i765', 'replacement', 'eligibility-category', noReason)).toBe(false)
@@ -181,10 +200,16 @@ describe('isStepComplete — kind-aware branches', () => {
 		// for replacement
 		const status = { cardStatus: 'permanentResident', nameChangedSinceIssuance: 'no' }
 		expect(
-			isStepComplete('i90', 'renewal', 'card-details', { personFacts: validPersonFacts, form: status }),
+			isStepComplete('i90', 'renewal', 'card-details', {
+				personFacts: validPersonFacts,
+				form: status,
+			}),
 		).toBe(true)
 		expect(
-			isStepComplete('i90', 'replacement', 'card-details', { personFacts: validPersonFacts, form: status }),
+			isStepComplete('i90', 'replacement', 'card-details', {
+				personFacts: validPersonFacts,
+				form: status,
+			}),
 		).toBe(false)
 		expect(
 			isStepComplete('i90', 'replacement', 'card-details', {
@@ -291,8 +316,8 @@ describe('isStepComplete — kind-aware branches', () => {
 
 	test('mailing-address (i90): physical-address question gates completion', () => {
 		const mailingOnly = { personFacts: validPersonFacts, form: {} }
-		// i765 does not ask the physical-address question.
-		expect(isStepComplete('i765', 'renewal', 'mailing-address', mailingOnly)).toBe(true)
+		// BOTH forms now ask the physical-address question (I-765 Item 6 too).
+		expect(isStepComplete('i765', 'renewal', 'mailing-address', mailingOnly)).toBe(false)
 		expect(isStepComplete('i90', 'renewal', 'mailing-address', mailingOnly)).toBe(false)
 		expect(
 			isStepComplete('i90', 'renewal', 'mailing-address', {
@@ -325,11 +350,114 @@ describe('isStepComplete — kind-aware branches', () => {
 					...validPersonFacts,
 					mailingAddress: { street: '1 Main St', city: 'Austin', state, zipCode: '78701' },
 				},
-				form: {},
+				form: { physicalAddressSameAsMailing: 'yes' },
 			})
 		expect(withState('TX')).toBe(true)
 		expect(withState('tx')).toBe(true)
 		expect(withState('ZZ')).toBe(false)
+	})
+
+	test('i765 legal-name: the other-names question gates completion', () => {
+		const base = { ...validPersonFacts }
+		expect(
+			isStepComplete('i765', 'renewal', 'legal-name', {
+				personFacts: { ...base, hasUsedOtherNames: '' },
+				form: {},
+			}),
+		).toBe(false)
+		expect(
+			isStepComplete('i765', 'renewal', 'legal-name', {
+				personFacts: { ...base, hasUsedOtherNames: 'yes' },
+				form: {},
+			}),
+		).toBe(false)
+		expect(
+			isStepComplete('i765', 'renewal', 'legal-name', {
+				personFacts: {
+					...base,
+					hasUsedOtherNames: 'yes',
+					otherNames: [{ familyName: 'Diaz', givenName: 'Anita' }],
+				},
+				form: {},
+			}),
+		).toBe(true)
+		// The i90 does not ask it.
+		expect(
+			isStepComplete('i90', 'renewal', 'legal-name', {
+				personFacts: { ...base, hasUsedOtherNames: '' },
+				form: {},
+			}),
+		).toBe(true)
+	})
+
+	test('i765 last-arrival: required core, conditional travel-document group', () => {
+		const complete = { personFacts: validPersonFacts, form: {} }
+		expect(isStepComplete('i765', 'renewal', 'last-arrival', complete)).toBe(true)
+		// No document used: the group is not required.
+		expect(
+			isStepComplete('i765', 'renewal', 'last-arrival', {
+				personFacts: {
+					...validPersonFacts,
+					usedTravelDocument: 'no',
+					passportNumber: '',
+					travelDocCountryOfIssuance: '',
+					travelDocExpirationDate: '',
+				},
+				form: {},
+			}),
+		).toBe(true)
+		// Used one: needs a number + country + expiration.
+		expect(
+			isStepComplete('i765', 'renewal', 'last-arrival', {
+				personFacts: { ...validPersonFacts, passportNumber: '', travelDocNumber: '' },
+				form: {},
+			}),
+		).toBe(false)
+		// Core items are required for everyone.
+		expect(
+			isStepComplete('i765', 'renewal', 'last-arrival', {
+				personFacts: { ...validPersonFacts, placeOfLastEntry: '' },
+				form: {},
+			}),
+		).toBe(false)
+	})
+
+	test('i765 eligibility: category-specific items gate their categories only', () => {
+		const withCategory = (eligibilityCategory: string, form: Record<string, unknown>) =>
+			isStepComplete('i765', 'renewal', 'eligibility-category', {
+				personFacts: { ...validPersonFacts, eligibilityCategory },
+				form,
+			})
+		expect(withCategory('C09', {})).toBe(true)
+		expect(withCategory('C26', {})).toBe(false)
+		expect(withCategory('C26', { c26SpouseReceiptNumber: 'WAC1234567890' })).toBe(true)
+		expect(withCategory('C26', { c26SpouseReceiptNumber: 'BAD' })).toBe(false)
+		expect(withCategory('C08', {})).toBe(false)
+		expect(withCategory('C08', { c8EverArrestedOrConvicted: 'yes' })).toBe(true)
+		expect(withCategory('C08', { c8EverArrestedOrConvicted: 'no' })).toBe(true)
+	})
+
+	test('i765 mailing-address: physical question required, US-only when different', () => {
+		const withForm = (form: Record<string, unknown>) =>
+			isStepComplete('i765', 'renewal', 'mailing-address', {
+				personFacts: validPersonFacts,
+				form,
+			})
+		expect(withForm({})).toBe(false)
+		expect(withForm({ physicalAddressSameAsMailing: 'yes' })).toBe(true)
+		// A foreign physical address is NOT acceptable on the I-765.
+		expect(
+			withForm({
+				physicalAddressSameAsMailing: 'no',
+				physicalAddress: { street: '1 Calle Real', city: 'Tijuana', country: 'Mexico' },
+			}),
+		).toBe(false)
+		expect(
+			withForm({
+				physicalAddressSameAsMailing: 'no',
+				physicalAddress: { street: '9 Elm St', city: 'Austin', state: 'TX', zipCode: '78701' },
+			}),
+		).toBe(true)
 	})
 
 	test('applicant-statement: English self-preparation and accommodations gate', () => {
@@ -360,16 +488,22 @@ describe('isStepComplete — kind-aware branches', () => {
 		expect(isStepComplete('i765', 'renewal', 'eligibility-category', withCategory(''))).toBe(false)
 		// "Not listed" and unknown codes can never complete the step — the app
 		// only prepares the categories in shared/screening.ts.
-		expect(isStepComplete('i765', 'renewal', 'eligibility-category', withCategory('notListed'))).toBe(false)
-		expect(isStepComplete('i765', 'renewal', 'eligibility-category', withCategory('C99'))).toBe(false)
-		expect(isStepComplete('i765', 'renewal', 'eligibility-category', withCategory('A17'))).toBe(true)
+		expect(
+			isStepComplete('i765', 'renewal', 'eligibility-category', withCategory('notListed')),
+		).toBe(false)
+		expect(isStepComplete('i765', 'renewal', 'eligibility-category', withCategory('C99'))).toBe(
+			false,
+		)
+		expect(isStepComplete('i765', 'renewal', 'eligibility-category', withCategory('A17'))).toBe(
+			true,
+		)
 	})
 })
 
 describe('isStepComplete — never completes review or unknown keys', () => {
 	test.each(['review', 'nonsense', ''])('%s is never complete', (stepKey) => {
-		expect(isStepComplete('i765', 'renewal', stepKey, { personFacts: validPersonFacts, form: {} })).toBe(
-			false,
-		)
+		expect(
+			isStepComplete('i765', 'renewal', stepKey, { personFacts: validPersonFacts, form: {} }),
+		).toBe(false)
 	})
 })

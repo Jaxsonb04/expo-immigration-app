@@ -34,6 +34,15 @@ const basePersonFacts = {
 	// i90-only person facts
 	gender: 'female',
 	maritalStatus: 'single',
+	hasUsedOtherNames: 'no',
+	dateOfLastEntry: '2019-08-14',
+	placeOfLastEntry: 'JFK Airport, New York',
+	statusAtLastEntry: 'F-1 student',
+	currentImmigrationStatus: 'Pending asylum applicant',
+	usedTravelDocument: 'yes',
+	passportNumber: 'G12345678',
+	travelDocCountryOfIssuance: 'Mexico',
+	travelDocExpirationDate: '2026-01-01',
 	motherGivenName: 'Rosa',
 	fatherGivenName: 'Miguel',
 	classOfAdmission: 'IR1',
@@ -60,6 +69,9 @@ function completeFor(formType: FormType, applicationKind: ApplicationKind) {
 	if (formType === 'i765') {
 		form.previouslyFiledI765 = 'no'
 		form.preparedSelfInEnglish = 'yes'
+		form.physicalAddressSameAsMailing = 'yes'
+		// basePersonFacts uses C08, whose Item 30 must be answered.
+		form.c8EverArrestedOrConvicted = 'no'
 	}
 	if (formType === 'i90') {
 		form.cardStatus = 'permanentResident'
@@ -89,9 +101,7 @@ function assertGroupConsistency(
 		)
 		expect(group.complete, `${group.stepKey} vs readiness`).toBe(readinessComplete)
 		// (3) matches the rows' own status + blocker.
-		const rowsClean = group.rows.every(
-			(r) => r.status === 'ok' || r.status === 'optional-blank',
-		)
+		const rowsClean = group.rows.every((r) => r.status === 'ok' || r.status === 'optional-blank')
 		expect(group.complete, `${group.stepKey} vs rows/blocker`).toBe(
 			rowsClean && group.blocker === undefined,
 		)
@@ -102,7 +112,11 @@ describe('buildReviewModel — group ordering', () => {
 	test.each(supportedSituations)(
 		'$formType/$applicationKind groups follow the interview blueprint exactly',
 		({ formType, applicationKind }) => {
-			const model = buildReviewModel(formType, applicationKind, completeFor(formType, applicationKind))
+			const model = buildReviewModel(
+				formType,
+				applicationKind,
+				completeFor(formType, applicationKind),
+			)
 			expect(model.groups.map((g) => g.stepKey)).toEqual([...preReviewStepKeys(formType)])
 		},
 	)
@@ -193,6 +207,60 @@ describe('buildReviewModel — consistency invariant (anti-drift keystone)', () 
 				},
 			}
 		} else {
+			variants.otherNamesYes = {
+				personFacts: {
+					...basePersonFacts,
+					hasUsedOtherNames: 'yes',
+					otherNames: [{ familyName: 'Diaz', givenName: 'Anita' }],
+				},
+				form: complete.form,
+			}
+			variants.otherNamesYesEmpty = {
+				personFacts: { ...basePersonFacts, hasUsedOtherNames: 'yes' },
+				form: complete.form,
+			}
+			variants.noTravelDocument = {
+				personFacts: {
+					...basePersonFacts,
+					usedTravelDocument: 'no',
+					passportNumber: '',
+					travelDocCountryOfIssuance: '',
+					travelDocExpirationDate: '',
+				},
+				form: complete.form,
+			}
+			variants.travelDocNumbersMissing = {
+				personFacts: { ...basePersonFacts, passportNumber: '', travelDocNumber: '' },
+				form: complete.form,
+			}
+			variants.c26 = {
+				personFacts: { ...basePersonFacts, eligibilityCategory: 'C26' },
+				form: { ...complete.form, c26SpouseReceiptNumber: 'WAC1234567890' },
+			}
+			variants.c26MissingReceipt = {
+				personFacts: { ...basePersonFacts, eligibilityCategory: 'C26' },
+				form: complete.form,
+			}
+			variants.c8ArrestedYes = {
+				personFacts: { ...basePersonFacts, eligibilityCategory: 'C08' },
+				form: { ...complete.form, c8EverArrestedOrConvicted: 'yes' },
+			}
+			variants.physicalDifferentUs765 = {
+				personFacts: { ...basePersonFacts },
+				form: {
+					...complete.form,
+					physicalAddressSameAsMailing: 'no',
+					physicalAddress: { street: '9 Elm St', city: 'Austin', state: 'TX', zipCode: '78701' },
+				},
+			}
+			variants.physicalForeignRejected765 = {
+				personFacts: { ...basePersonFacts },
+				form: {
+					...complete.form,
+					physicalAddressSameAsMailing: 'no',
+					physicalAddress: { street: '1 Calle Real', city: 'Tijuana', country: 'Mexico' },
+				},
+			}
 			variants.notListed = {
 				personFacts: { ...basePersonFacts, eligibilityCategory: 'notListed' },
 				form: complete.form,
@@ -277,10 +345,10 @@ describe('buildReviewModel — row applicability and status', () => {
 		}
 	})
 
-	test('i765 mailing-address shows only the mailingAddress row (no physical fields)', () => {
+	test('i765 mailing-address asks the physical question; address row only when different', () => {
 		const model = buildReviewModel('i765', 'renewal', completeFor('i765', 'renewal'))
 		const rows = model.groups.find((g) => g.stepKey === 'mailing-address')!.rows
-		expect(rows.map((r) => r.key)).toEqual(['mailingAddress'])
+		expect(rows.map((r) => r.key)).toEqual(['mailingAddress', 'physicalAddressSameAsMailing'])
 	})
 
 	test('i90 mailing-address: physicalAddress row appears only when different', () => {
@@ -304,7 +372,9 @@ describe('buildReviewModel — row applicability and status', () => {
 
 	test('immigration-history: entry-detail rows appear only for immigrant-visa entries', () => {
 		const visa = buildReviewModel('i90', 'renewal', completeFor('i90', 'renewal'))
-		const visaKeys = visa.groups.find((g) => g.stepKey === 'immigration-history')!.rows.map((r) => r.key)
+		const visaKeys = visa.groups
+			.find((g) => g.stepKey === 'immigration-history')!
+			.rows.map((r) => r.key)
 		expect(visaKeys).toContain('destinationAtAdmission')
 
 		const adjustment = buildReviewModel('i90', 'renewal', {
@@ -335,9 +405,9 @@ describe('buildReviewModel — group blockers', () => {
 			personFacts: { ...basePersonFacts, eligibilityCategory: 'notListed' },
 			form: {},
 		})
-		expect(
-			notListed.groups.find((g) => g.stepKey === 'eligibility-category')!.blocker,
-		).toBe('category-unsupported')
+		expect(notListed.groups.find((g) => g.stepKey === 'eligibility-category')!.blocker).toBe(
+			'category-unsupported',
+		)
 
 		const blank = buildReviewModel('i765', 'renewal', {
 			personFacts: { ...basePersonFacts, eligibilityCategory: '' },
@@ -353,7 +423,9 @@ describe('buildReviewModel — group blockers', () => {
 			personFacts: { ...basePersonFacts },
 			form: { ...completeFor('i90', 'renewal').form, cardStatus: 'conditionalResident' },
 		})
-		expect(model.groups.find((g) => g.stepKey === 'card-details')!.blocker).toBe('card-not-eligible')
+		expect(model.groups.find((g) => g.stepKey === 'card-details')!.blocker).toBe(
+			'card-not-eligible',
+		)
 	})
 
 	test('a value-based blocker marks its own row "blocked" (not a plain ok)', () => {

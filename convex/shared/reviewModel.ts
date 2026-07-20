@@ -11,13 +11,18 @@ import { preReviewStepKeys, requiredSlotKeys } from './interviewSteps'
 import {
 	accommodationDetailsApply,
 	aNumberRequired,
+	c26ReceiptApplies,
+	c8QuestionApplies,
 	immigrantVisaDetailsApply,
 	isStepComplete,
+	otherNamesApply,
 	physicalAddressApplies,
 	physicalAddressComplete,
+	physicalAddressUsComplete,
 	previousNameApplies,
 	replacementReasonApplies,
 	stepOwnedKeys,
+	travelDocDetailsApply,
 } from './interviewValidation'
 import { isI90CardStatus, isSupportedI765Category, screenI90 } from './screening'
 
@@ -55,6 +60,7 @@ export type GroupBlockerCode =
 	| 'card-not-eligible'
 	| 'needs-preparer-parts'
 	| 'accommodation-detail-missing'
+	| 'travel-doc-number-missing'
 
 export type ReviewGroup = {
 	stepKey: string
@@ -91,6 +97,12 @@ function isEmptyValue(raw: unknown): boolean {
 /** Rows that are collected but never required to complete a step. */
 const ALWAYS_OPTIONAL = new Set([
 	'middleName',
+	'i94Number',
+	'sevisNumber',
+	// The passport/travel-doc NUMBERS are an at-least-one pair when the group
+	// applies; the pair rule is a group blocker, not per-row required-ness.
+	'passportNumber',
+	'travelDocNumber',
 	'stateProvinceOfBirth',
 	'secondCountryOfCitizenship',
 	'email',
@@ -111,12 +123,26 @@ function rowApplies(
 	answers: Answers,
 ): boolean {
 	switch (key) {
-		// mailing-address owns these form keys for BOTH forms, but they are an
-		// i90-only question (Part 1 Item 7); physicalAddress only when it differs.
-		case 'physicalAddressSameAsMailing':
-			return formType === 'i90'
+		// Both forms ask the same-as-physical question (I-765 Item 6 / I-90
+		// Item 7); the physical address itself only when it differs.
 		case 'physicalAddress':
-			return formType === 'i90' && physicalAddressApplies(answers.form)
+			return physicalAddressApplies(answers.form)
+		// i765 Items 2-3 Other Names Used (owned by the shared legal-name step).
+		case 'hasUsedOtherNames':
+			return formType === 'i765'
+		case 'otherNames':
+			return formType === 'i765' && otherNamesApply(answers.personFacts)
+		// i765 Items 18-21: only when a passport/travel document was used.
+		case 'passportNumber':
+		case 'travelDocNumber':
+		case 'travelDocCountryOfIssuance':
+		case 'travelDocExpirationDate':
+			return travelDocDetailsApply(answers.personFacts)
+		// i765 category-specific items (Items 29-30).
+		case 'c26SpouseReceiptNumber':
+			return c26ReceiptApplies(answers.personFacts)
+		case 'c8EverArrestedOrConvicted':
+			return c8QuestionApplies(answers.personFacts)
 		// Immigrant-visa entry details (Part 3 Items 3.A/3.A.1).
 		case 'destinationAtAdmission':
 		case 'portOfEntryCityState':
@@ -143,11 +169,7 @@ function rowApplies(
 }
 
 /** Whether an applicable row is required to complete its step. */
-function rowRequired(
-	key: string,
-	formType: FormType,
-	applicationKind: ApplicationKind,
-): boolean {
+function rowRequired(key: string, formType: FormType, applicationKind: ApplicationKind): boolean {
 	if (ALWAYS_OPTIONAL.has(key)) return false
 	if (key === 'aNumber') return aNumberRequired(formType, applicationKind)
 	return true
@@ -180,7 +202,11 @@ function rowStatus(
 	// The i90 physical address is "complete" by the same US-state-or-country
 	// rule isStepComplete uses, which the loose zod shape does not capture.
 	if (key === 'physicalAddress') {
-		return physicalAddressComplete(asRecord(rawValue)) ? 'ok' : 'invalid'
+		const complete =
+			formType === 'i90'
+				? physicalAddressComplete(asRecord(rawValue))
+				: physicalAddressUsComplete(asRecord(rawValue))
+		return complete ? 'ok' : 'invalid'
 	}
 	if (key === 'mailingAddress') {
 		return addressShape.safeParse(rawValue).success ? 'ok' : 'invalid'
@@ -227,6 +253,15 @@ function groupBlocker(
 ): GroupBlockerCode | undefined {
 	const { personFacts: pf, form } = answers
 	switch (stepKey) {
+		case 'last-arrival':
+			// Pair rule (i765 Items 18-19): a used travel document needs at least
+			// one document number — a missing-detail case like the accommodation
+			// blocker, with no single offending value to mark.
+			return travelDocDetailsApply(pf) &&
+				isEmptyValue(pf.passportNumber) &&
+				isEmptyValue(pf.travelDocNumber)
+				? 'travel-doc-number-missing'
+				: undefined
 		case 'immigration-history':
 			return pf.everInProceedings === 'yes' || pf.filedI407OrAbandoned === 'yes'
 				? 'proceedings-need-explanation'

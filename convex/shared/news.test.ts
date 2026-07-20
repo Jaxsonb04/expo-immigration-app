@@ -18,7 +18,9 @@ function rssDocument(items: string): string {
 	].join('\n')
 }
 
-function rssItem(overrides: Partial<Record<'title' | 'link' | 'description' | 'pubDate', string>> = {}): string {
+function rssItem(
+	overrides: Partial<Record<'title' | 'link' | 'description' | 'pubDate', string>> = {},
+): string {
 	const fields = {
 		title: 'USCIS Updates Policy Guidance',
 		link: 'https://www.uscis.gov/newsroom/news-releases/uscis-updates-policy-guidance',
@@ -68,7 +70,8 @@ describe('parseRssItems — happy path', () => {
 			title: 'USCIS Announces New Fee Rule & Filing Updates',
 			url: 'https://www.uscis.gov/newsroom/news-releases/fee-rule',
 			publishedAt: Date.parse('Mon, 06 Jul 2026 14:00:00 -0400'),
-			summary: 'USCIS today announced a new rule affecting <certain> filings. Read the "full notice" online.',
+			summary:
+				'USCIS today announced a new rule affecting <certain> filings. Read the "full notice" online.',
 		})
 		expect(items[1].summary).toBe("It's now faster to renew a green card.")
 		expect(items[2].summary).toBe('The office opens next month.')
@@ -143,9 +146,9 @@ describe('parseRssItems — malformed input', () => {
 
 describe('decodeEntities', () => {
 	test('decodes the common feed entities', () => {
-		expect(decodeEntities('Fee &amp; Form &lt;I-90&gt; &quot;update&quot; &#039;now&#039; &#39;ok&#39;')).toBe(
-			'Fee & Form <I-90> "update" \'now\' \'ok\'',
-		)
+		expect(
+			decodeEntities('Fee &amp; Form &lt;I-90&gt; &quot;update&quot; &#039;now&#039; &#39;ok&#39;'),
+		).toBe("Fee & Form <I-90> \"update\" 'now' 'ok'")
 	})
 
 	test('decodes double-encoded entities the feed sometimes emits', () => {

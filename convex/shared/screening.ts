@@ -76,9 +76,7 @@ export const supportedI765Categories = [
 ] as const
 
 export function isSupportedI765Category(value: unknown): boolean {
-	return (
-		typeof value === 'string' && (supportedI765Categories as readonly string[]).includes(value)
-	)
+	return typeof value === 'string' && (supportedI765Categories as readonly string[]).includes(value)
 }
 
 /** Picker value for "my category isn't listed" — never a valid category. */
@@ -92,7 +90,5 @@ export const I765_CATEGORY_STOP: ScreeningStop = {
 		'sometimes, companion forms. This app currently prepares only the categories listed ' +
 		'above. Filing under the wrong category can get an application rejected, so we won’t ' +
 		'guess — check the official Form I-765 instructions for your category and how to file it.',
-	officialLinks: [
-		{ label: 'Official Form I-765 page →', url: 'https://www.uscis.gov/i-765' },
-	],
+	officialLinks: [{ label: 'Official Form I-765 page →', url: 'https://www.uscis.gov/i-765' }],
 }

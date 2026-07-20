@@ -26,8 +26,22 @@ const completeI765Answers = {
 		eligibilityCategory: 'C08',
 		gender: 'female' as const,
 		maritalStatus: 'single' as const,
+		hasUsedOtherNames: 'no' as const,
+		dateOfLastEntry: '2019-08-14',
+		placeOfLastEntry: 'JFK Airport, New York',
+		statusAtLastEntry: 'F-1 student',
+		currentImmigrationStatus: 'Pending asylum applicant',
+		usedTravelDocument: 'yes' as const,
+		passportNumber: 'G12345678',
+		travelDocCountryOfIssuance: 'Mexico',
+		travelDocExpirationDate: '2026-01-01',
 	},
-	form: { previouslyFiledI765: 'no' as const, preparedSelfInEnglish: 'yes' as const },
+	form: {
+		previouslyFiledI765: 'no' as const,
+		preparedSelfInEnglish: 'yes' as const,
+		physicalAddressSameAsMailing: 'yes' as const,
+		c8EverArrestedOrConvicted: 'no' as const,
+	},
 }
 
 const attachedSlots = [
@@ -152,19 +166,22 @@ const completeI90Answers = {
 }
 
 describe('computeReadiness — coverage', () => {
-	test('every I-765 situation stays coverage-blocked (contract incomplete)', () => {
+	test('BOTH field contracts are complete — coverage never blocks any situation', () => {
 		for (const { formType, applicationKind } of supportedSituations) {
-			if (formType !== 'i765') continue
-			expect(formCoverageGaps(formType, applicationKind).length).toBeGreaterThan(0)
-			const readiness = computeReadiness({
-				formType,
-				applicationKind,
-				answers: completeI765Answers,
-				requirements: attachedSlots,
-			})
-			expect(readiness.formCoverageComplete).toBe(false)
-			expect(readiness.isReadyToFile).toBe(false)
+			expect(formCoverageGaps(formType, applicationKind)).toEqual([])
 		}
+	})
+
+	test('MILESTONE: a complete I-765 renewal with resolved documents is ready to file', () => {
+		const readiness = computeReadiness({
+			formType: 'i765',
+			applicationKind: 'renewal',
+			answers: completeI765Answers,
+			requirements: attachedSlots,
+		})
+		expect(readiness.answersComplete).toBe(true)
+		expect(readiness.blockers).toEqual([])
+		expect(readiness.isReadyToFile).toBe(true)
 	})
 
 	test('the I-90 field contract is complete — coverage no longer blocks', () => {
@@ -210,16 +227,15 @@ describe('computeReadiness — coverage', () => {
 		).toBe(true)
 	})
 
-	test('complete answers + documents still leave only coverage blockers', () => {
+	test('incomplete answers still block a form whose coverage is complete', () => {
 		const readiness = computeReadiness({
 			formType: 'i765',
 			applicationKind: 'renewal',
-			answers: completeI765Answers,
+			answers: { personFacts: {}, form: {} },
 			requirements: attachedSlots,
 		})
-		expect(readiness.answersComplete).toBe(true)
-		expect(readiness.documentsComplete).toBe(true)
-		expect(readiness.blockers.every((blocker) => blocker.kind === 'coverage')).toBe(true)
+		expect(readiness.answersComplete).toBe(false)
+		expect(readiness.formCoverageComplete).toBe(true)
 		expect(readiness.isReadyToFile).toBe(false)
 	})
 

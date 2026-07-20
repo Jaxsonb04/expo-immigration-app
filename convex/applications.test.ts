@@ -3,7 +3,11 @@ import { convexTest } from 'convex-test'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { api } from './_generated/api'
 import schema from './schema'
-import { type ApplicationKind, type FormType, supportedSituations } from './shared/applicationShapes'
+import {
+	type ApplicationKind,
+	type FormType,
+	supportedSituations,
+} from './shared/applicationShapes'
 
 const modules = import.meta.glob('./**/*.ts')
 
@@ -78,7 +82,7 @@ describe('createApplication', () => {
 		const detail = await alice.query(api.applications.getApplication, { applicationId })
 		expect(detail.application.status).toBe('draft')
 		expect(detail.application.completedStepCount).toBe(0)
-		expect(detail.application.totalStepCount).toBe(11)
+		expect(detail.application.totalStepCount).toBe(12)
 		expect(detail.application.currentStepKey).toBe('legal-name')
 		// Draft seeded from the profile, steps still incomplete.
 		expect(detail.draft.answers.personFacts).toMatchObject({
@@ -212,9 +216,15 @@ describe('saveApplicationStep', () => {
 		const result = await alice.mutation(api.applications.saveApplicationStep, {
 			applicationId,
 			stepKey: 'legal-name',
-			stepData: { personFacts: { givenName: 'Alice', familyName: 'Anders' } },
+			stepData: {
+				personFacts: { givenName: 'Alice', familyName: 'Anders', hasUsedOtherNames: 'no' },
+			},
 		})
-		expect(result).toEqual({ nextStepKey: 'date-of-birth', completedStepCount: 1, totalStepCount: 11 })
+		expect(result).toEqual({
+			nextStepKey: 'date-of-birth',
+			completedStepCount: 1,
+			totalStepCount: 12,
+		})
 
 		const detail = await alice.query(api.applications.getApplication, { applicationId })
 		expect(detail.application.currentStepKey).toBe('date-of-birth')
@@ -269,7 +279,12 @@ describe('saveApplicationStep', () => {
 		const { t, alice, applicantId, applicationId } = await setup()
 
 		const steps: { stepKey: string; stepData: { personFacts?: object; form?: object } }[] = [
-			{ stepKey: 'legal-name', stepData: { personFacts: { givenName: 'Alice', familyName: 'Anders' } } },
+			{
+				stepKey: 'legal-name',
+				stepData: {
+					personFacts: { givenName: 'Alice', familyName: 'Anders', hasUsedOtherNames: 'no' },
+				},
+			},
 			{ stepKey: 'date-of-birth', stepData: { personFacts: { dateOfBirth: '1991-02-03' } } },
 			{
 				stepKey: 'country-of-birth',
@@ -283,12 +298,33 @@ describe('saveApplicationStep', () => {
 					form: { previouslyFiledI765: 'no' },
 				},
 			},
+			{
+				stepKey: 'last-arrival',
+				stepData: {
+					personFacts: {
+						dateOfLastEntry: '2019-08-14',
+						placeOfLastEntry: 'JFK Airport, New York',
+						statusAtLastEntry: 'F-1 student',
+						currentImmigrationStatus: 'Pending adjustment applicant',
+						usedTravelDocument: 'no',
+					},
+				},
+			},
 			{ stepKey: 'a-number', stepData: { personFacts: { aNumber: '01234567' } } },
-			{ stepKey: 'mailing-address', stepData: { personFacts: { mailingAddress } } },
+			{
+				stepKey: 'mailing-address',
+				stepData: {
+					personFacts: { mailingAddress },
+					form: { physicalAddressSameAsMailing: 'yes' },
+				},
+			},
 			{ stepKey: 'contact-info', stepData: { personFacts: { daytimePhone: '5105550101' } } },
 			{
 				stepKey: 'eligibility-category',
-				stepData: { personFacts: { eligibilityCategory: 'C08' } },
+				stepData: {
+					personFacts: { eligibilityCategory: 'C08' },
+					form: { c8EverArrestedOrConvicted: 'no' },
+				},
 			},
 		]
 		for (const step of steps) {
@@ -379,7 +415,10 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 				stepKey: 'eligibility-category',
 				stepData: {
 					personFacts: { eligibilityCategory: 'C08' },
-					...(situation.applicationKind === 'replacement' ? { form: reason } : {}),
+					form: {
+						c8EverArrestedOrConvicted: 'no' as const,
+						...(situation.applicationKind === 'replacement' ? reason : {}),
+					},
 				},
 			}
 		}
@@ -413,7 +452,16 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 			})
 
 			const steps = [
-				{ stepKey: 'legal-name', stepData: { personFacts: { givenName: 'Ana', familyName: 'Diaz' } } },
+				{
+					stepKey: 'legal-name',
+					stepData: {
+						personFacts: {
+							givenName: 'Ana',
+							familyName: 'Diaz',
+							...(situation.formType === 'i765' ? { hasUsedOtherNames: 'no' as const } : {}),
+						},
+					},
+				},
 				{ stepKey: 'date-of-birth', stepData: { personFacts: { dateOfBirth: '1990-05-01' } } },
 				{
 					stepKey: 'country-of-birth',
@@ -421,12 +469,27 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 				},
 				...(situation.formType === 'i765'
 					? [
-							{ stepKey: 'citizenship', stepData: { personFacts: { countryOfCitizenship: 'Mexico' } } },
+							{
+								stepKey: 'citizenship',
+								stepData: { personFacts: { countryOfCitizenship: 'Mexico' } },
+							},
 							{
 								stepKey: 'other-information',
 								stepData: {
 									personFacts: { gender: 'female' as const, maritalStatus: 'single' as const },
 									form: { previouslyFiledI765: 'no' as const },
+								},
+							},
+							{
+								stepKey: 'last-arrival',
+								stepData: {
+									personFacts: {
+										dateOfLastEntry: '2019-08-14',
+										placeOfLastEntry: 'JFK Airport, New York',
+										statusAtLastEntry: 'F-1 student',
+										currentImmigrationStatus: 'Pending adjustment applicant',
+										usedTravelDocument: 'no' as const,
+									},
 								},
 							},
 						]
@@ -461,9 +524,7 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 					stepKey: 'mailing-address',
 					stepData: {
 						personFacts: { mailingAddress },
-						...(situation.formType === 'i90'
-							? { form: { physicalAddressSameAsMailing: 'yes' as const } }
-							: {}),
+						form: { physicalAddressSameAsMailing: 'yes' as const },
 					},
 				},
 				{ stepKey: 'contact-info', stepData: { personFacts: { daytimePhone: '5125550142' } } },
@@ -491,20 +552,22 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 					stepData: {
 						form: {
 							preparedSelfInEnglish: 'yes' as const,
-							...(situation.formType === 'i90'
-								? { requestingAccommodation: 'no' as const }
-								: {}),
+							...(situation.formType === 'i90' ? { requestingAccommodation: 'no' as const } : {}),
 						},
 					},
 				},
 			]
 
-			let result: { nextStepKey: string; completedStepCount: number; totalStepCount: number } | undefined
+			let result:
+				{ nextStepKey: string; completedStepCount: number; totalStepCount: number } | undefined
 			for (const step of steps) {
-				result = await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
+				result = await alice.mutation(api.applications.saveApplicationStep, {
+					applicationId,
+					...step,
+				})
 			}
 
-			const preReviewCount = situation.formType === 'i765' ? 10 : 11
+			const preReviewCount = situation.formType === 'i765' ? 11 : 11
 			expect(result).toBeDefined()
 			expect(result!.nextStepKey).toBe('review')
 			expect(result!.completedStepCount).toBe(preReviewCount)
@@ -684,7 +747,12 @@ describe('getApplication readiness', () => {
 	}
 
 	const completeSteps = [
-		{ stepKey: 'legal-name', stepData: { personFacts: { givenName: 'Ana', familyName: 'Diaz' } } },
+		{
+			stepKey: 'legal-name',
+			stepData: {
+				personFacts: { givenName: 'Ana', familyName: 'Diaz', hasUsedOtherNames: 'no' as const },
+			},
+		},
 		{ stepKey: 'date-of-birth', stepData: { personFacts: { dateOfBirth: '1990-05-01' } } },
 		{
 			stepKey: 'country-of-birth',
@@ -698,28 +766,53 @@ describe('getApplication readiness', () => {
 				form: { previouslyFiledI765: 'no' as const },
 			},
 		},
+		{
+			stepKey: 'last-arrival',
+			stepData: {
+				personFacts: {
+					dateOfLastEntry: '2019-08-14',
+					placeOfLastEntry: 'JFK Airport, New York',
+					statusAtLastEntry: 'F-1 student',
+					currentImmigrationStatus: 'Pending asylum applicant',
+					usedTravelDocument: 'no' as const,
+				},
+			},
+		},
 		{ stepKey: 'a-number', stepData: { personFacts: { aNumber: '123456789' } } },
-		{ stepKey: 'mailing-address', stepData: { personFacts: { mailingAddress } } },
+		{
+			stepKey: 'mailing-address',
+			stepData: {
+				personFacts: { mailingAddress },
+				form: { physicalAddressSameAsMailing: 'yes' as const },
+			},
+		},
 		{ stepKey: 'contact-info', stepData: { personFacts: { daytimePhone: '5125550142' } } },
-		{ stepKey: 'eligibility-category', stepData: { personFacts: { eligibilityCategory: 'C08' } } },
+		{
+			stepKey: 'eligibility-category',
+			stepData: {
+				personFacts: { eligibilityCategory: 'C08' },
+				form: { c8EverArrestedOrConvicted: 'no' as const },
+			},
+		},
 		{
 			stepKey: 'applicant-statement',
 			stepData: { form: { preparedSelfInEnglish: 'yes' as const } },
 		},
 	]
 
-	test('a fresh application reports answer, document, and coverage blockers', async () => {
+	test('a fresh application reports answer and document blockers', async () => {
 		const { alice, applicationId } = await setup()
 		const { readiness } = await alice.query(api.applications.getApplication, { applicationId })
 		expect(readiness.isReadyToFile).toBe(false)
 		expect(readiness.answersComplete).toBe(false)
 		expect(readiness.documentsComplete).toBe(false)
-		expect(readiness.formCoverageComplete).toBe(false)
+		// Both field contracts are complete — coverage never blocks anymore.
+		expect(readiness.formCoverageComplete).toBe(true)
 		const kinds = new Set(readiness.blockers.map((blocker) => blocker.kind))
-		expect(kinds).toEqual(new Set(['answers', 'document', 'coverage']))
+		expect(kinds).toEqual(new Set(['answers', 'document']))
 	})
 
-	test('complete answers + resolved documents still fail closed on form coverage', async () => {
+	test('MILESTONE: a fully answered I-765 renewal with resolved documents is ready to file', async () => {
 		const { t, alice, applicationId } = await setup()
 		for (const step of completeSteps) {
 			await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
@@ -735,14 +828,40 @@ describe('getApplication readiness', () => {
 			}
 		})
 
-		const { readiness } = await alice.query(api.applications.getApplication, { applicationId })
+		const { readiness, application } = await alice.query(api.applications.getApplication, {
+			applicationId,
+		})
+		expect(application.currentStepKey).toBe('review')
 		expect(readiness.answersComplete).toBe(true)
 		expect(readiness.documentsComplete).toBe(true)
-		// The app's own field contract is still incomplete (M2-T1 audit), so a
-		// clean "filing package" claim would be false — readiness must say so.
-		expect(readiness.formCoverageComplete).toBe(false)
-		expect(readiness.isReadyToFile).toBe(false)
-		expect(readiness.blockers.every((blocker) => blocker.kind === 'coverage')).toBe(true)
+		expect(readiness.formCoverageComplete).toBe(true)
+		expect(readiness.blockers).toEqual([])
+		expect(readiness.isReadyToFile).toBe(true)
+	})
+
+	test('a (c)(8) "yes" to the arrest question adds the court-dispositions slot', async () => {
+		const { alice, applicationId } = await setup()
+		await alice.mutation(api.applications.saveApplicationStep, {
+			applicationId,
+			stepKey: 'eligibility-category',
+			stepData: {
+				personFacts: { eligibilityCategory: 'C08' },
+				form: { c8EverArrestedOrConvicted: 'yes' as const },
+			},
+		})
+		let detail = await alice.query(api.applications.getApplication, { applicationId })
+		expect(detail.requirements.map((r) => r.requirementKey)).toContain('courtDispositions')
+
+		await alice.mutation(api.applications.saveApplicationStep, {
+			applicationId,
+			stepKey: 'eligibility-category',
+			stepData: {
+				personFacts: { eligibilityCategory: 'C08' },
+				form: { c8EverArrestedOrConvicted: 'no' as const },
+			},
+		})
+		detail = await alice.query(api.applications.getApplication, { applicationId })
+		expect(detail.requirements.map((r) => r.requirementKey)).not.toContain('courtDispositions')
 	})
 
 	test('forged stepCompletion flags cannot unlock readiness (re-derived from data)', async () => {
