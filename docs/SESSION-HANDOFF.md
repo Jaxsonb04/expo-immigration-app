@@ -153,34 +153,44 @@ summary). Full-wizard behavior is unchanged when `singleStep` is undefined.
 
 ---
 
-## 5. EXACT NEXT ACTION — the last P0: application filed lifecycle
+## 5. ~~EXACT NEXT ACTION~~ DONE 2026-07-20 (`5d46788`): the filed lifecycle shipped
 
-`convex/applications.ts` currently exports **only** `createApplication`,
-`listApplications`, `getApplication`, `saveApplicationStep`. There is **no way to mark an
-application filed, close it, or delete it**, so "Completed" applications, filed-date
-renewal history, the filed Journey Hub state, and normal case linkage are only reachable
-via seeded/manual DB state. `convex/cases.ts` inserts a case but never transitions the
-linked application.
+**All P0s of the workflow repair are now complete.** What landed:
 
-Build:
-1. An explicit user-confirmed **"I filed this with USCIS"** transition with a filing date
-   (`status: 'draft' -> 'filed'`, set `filedAt`). Gate it on `readiness.isReadyToFile`
-   (or at minimum warn honestly if not ready — do not silently allow a false filed state).
-2. **Case reconciliation**: creating/linking a receipt-number case should transition its
-   application to `filed` idempotently. `cases.new.tsx` says "Link a filed application"
-   but lists all applications — fix that too.
-3. Filed applications must still be able to **re-download their package**; define a clear
-   correction/reopen policy.
-4. **Close/archive/delete** for abandoned or mistakenly created drafts, so they stop
-   creating permanent false attention items on Home.
+- `convex/applications.ts` gained `markFiled`, `closeApplication`,
+  `reopenApplication`, `deleteApplication` — all owner-scoped, all
+  user-confirmed in the UI. `markFiled` is gated on the readiness contract with
+  an explicit `acknowledgeNotReady` escape hatch (recording a real filing is
+  allowed; silently faking readiness is not), validates the date to
+  `[_creationTime − 1d, now + 1d]`, and is idempotent (the first filing date
+  stands).
+- **Policies decided this session** (keep them consistent): close never erases a
+  filing record (a closed filed app keeps `filedAt`; reopen restores it to
+  *filed*, not draft). Un-filing (filed → draft) is blocked once a case is
+  linked — corrections after a real filing happen with USCIS. Delete refuses
+  filed apps (reopen first if it was a mistake), cascades draft + slots +
+  entitlements, and *unlinks* (never deletes) a tracked case.
+- `createCase` reconciles: linking a receipt to a draft transitions it to filed
+  idempotently; closed and already-linked apps are refused. New
+  `listLinkableApplications` (non-closed, unlinked, filed-first) powers
+  `cases.new.tsx`, whose copy is now honest about the draft→filed effect.
+- Journey Hub: `journey-hub.mark-filed.tsx` ("I filed this with USCIS" +
+  date picker, honest not-ready confirm), filed branch in ReviewPay
+  (re-download of the clean package — export is pure client-side render from
+  the locked draft, so it stays byte-faithful), `journey-hub.manage.tsx`
+  (close/delete/reopen), Track pushes `/new-case` when filed & unlinked.
+- 15 new tests (588 total). The milestone `i90Steps`/`setupI90`/`setupReadyI90`
+  fixtures were hoisted to module scope in `applications.test.ts` — reuse
+  `setupReadyI90()` whenever a test needs a genuinely ready application.
 
-Note the schema already has `filedAt` / `closedAt` fields and `applicationStatuses =
-['draft','filed','closed']`, and the dev seed already creates filed/closed rows — so the
-data model is ready; the mutations and UI are what's missing.
+Not done / consciously left: the read-only review screen still shows a dead-end
+"can no longer be edited" card for filed apps (deep-link only; Prepare hides the
+button) — a nice-to-have "view answers read-only after filing" remains open.
+Sim QA for all of this UI is still owed (see §7).
 
 ---
 
-## 6. BACKLOG AFTER THAT (handoff's original order)
+## 6. NEXT UP — the P1 backlog (original order)
 
 - **P1 documents**: `convex/documents.ts` attach rule only checks owner — it does **not**
   validate document type vs requirement. "Use saved" offers every document regardless of
