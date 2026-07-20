@@ -32,6 +32,8 @@ export function JourneyHubScreen(props: { applicationId: Id<'applications'> }) {
 
 				<JourneyHub.Track />
 
+				<JourneyHub.Manage />
+
 				<JourneyHub.LastSaved />
 			</BodyScrollView>
 		</JourneyHub.Provider>

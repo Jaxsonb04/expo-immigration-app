@@ -1,21 +1,29 @@
 import { SectionHeading } from '@/components/core'
 import { caseStatusLabels, relativeTime } from '@/lib/application-labels'
-import { Chip, Typography } from 'heroui-native'
+import { useRouter } from 'expo-router'
+import { Button, Chip, Typography } from 'heroui-native'
 import { View } from 'react-native'
 import { useJourneyHub } from './journey-hub.context'
 
 export function Track() {
+	const router = useRouter()
 	const detail = useJourneyHub()
 	const linkedCase = detail.case
 	if (linkedCase === null) {
+		const isFiled = detail.application.status === 'filed'
 		return (
 			<View className="gap-tight">
 				<SectionHeading title="Track" />
 				<Typography.Paragraph color="muted">
-					{detail.application.status === 'filed'
-						? 'Filed. Add your receipt number to track this case — coming with case tracking.'
+					{isFiled
+						? 'Filed. When your USCIS receipt notice arrives (usually 1–3 weeks), add the receipt number to follow the case here.'
 						: 'After you mail your application, enter the receipt number from your USCIS notice to track it here.'}
 				</Typography.Paragraph>
+				{isFiled && (
+					<Button variant="secondary" onPress={() => router.push('/new-case')}>
+						<Button.Label>Add your receipt number</Button.Label>
+					</Button>
+				)}
 			</View>
 		)
 	}

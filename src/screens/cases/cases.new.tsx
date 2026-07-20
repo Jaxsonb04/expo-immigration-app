@@ -30,7 +30,7 @@ function ApplicationOption(props: {
 				<View className="flex-1">
 					<Typography.Paragraph className="font-medium">{label.primary}</Typography.Paragraph>
 					<Typography.Paragraph color="muted" className="text-sm">
-						{application.applicantName}
+						{application.applicantName} · {application.status === 'filed' ? 'Filed' : 'Draft'}
 					</Typography.Paragraph>
 				</View>
 			</Surface>
@@ -91,15 +91,20 @@ export function NewCaseScreen() {
 					autoCorrect={false}
 				/>
 				{showError && !isValid ? (
-					<FieldError>Enter a receipt number like EAC1234567890 — 3 letters and 10 digits.</FieldError>
+					<FieldError>
+						Enter a receipt number like EAC1234567890 — 3 letters and 10 digits.
+					</FieldError>
 				) : null}
 			</TextField>
 
 			{applications && applications.length > 0 ? (
 				<View className="gap-tight">
 					<Typography.Heading className="text-base font-semibold">
-						Link a filed application (optional)
+						Link an application (optional)
 					</Typography.Heading>
+					<Typography.Paragraph color="muted" className="text-sm">
+						A receipt number means USCIS received your filing — linking a draft marks it as filed.
+					</Typography.Paragraph>
 					{applications.map((application) => (
 						<ApplicationOption
 							key={application._id}

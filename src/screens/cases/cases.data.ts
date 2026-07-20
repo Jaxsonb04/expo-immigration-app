@@ -8,7 +8,9 @@ import type { FunctionReturnType } from 'convex/server'
 
 export type CaseSummary = FunctionReturnType<typeof api.cases.listCases>[number]
 export type CaseDetail = FunctionReturnType<typeof api.cases.getCase>
-export type LinkableApplication = FunctionReturnType<typeof api.applications.listApplications>[number]
+export type LinkableApplication = FunctionReturnType<
+	typeof api.cases.listLinkableApplications
+>[number]
 
 /** Official USCIS case-status lookup — users enter their receipt number there. */
 export const USCIS_CASE_STATUS_URL = 'https://egov.uscis.gov/'
@@ -21,10 +23,11 @@ export function useCase(caseId: Id<'cases'>): CaseDetail | undefined {
 	return useQuery(api.cases.getCase, { caseId })
 }
 
-/** Applications the owner could link a case to (a filed case usually references
- * a filed application, but any is allowed). */
+/** Applications the owner can link a case to: non-closed and not already
+ * linked (server-filtered). Linking a draft marks it filed — the receipt is
+ * proof the filing happened. */
 export function useLinkableApplications(): LinkableApplication[] | undefined {
-	return useQuery(api.applications.listApplications, {})
+	return useQuery(api.cases.listLinkableApplications, {})
 }
 
 export function useCreateCase() {

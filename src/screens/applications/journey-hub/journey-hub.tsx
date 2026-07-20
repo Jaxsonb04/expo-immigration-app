@@ -2,6 +2,7 @@ import { JourneyHubProvider } from './journey-hub.context'
 import { Documents } from './journey-hub.documents'
 import { Header } from './journey-hub.header'
 import { LastSaved } from './journey-hub.last-saved'
+import { Manage } from './journey-hub.manage'
 import { Prepare } from './journey-hub.prepare'
 import { ReviewPay } from './journey-hub.review-pay'
 import { Track } from './journey-hub.track'
@@ -19,5 +20,6 @@ export const JourneyHub = {
 	Documents,
 	ReviewPay,
 	Track,
+	Manage,
 	LastSaved,
 }

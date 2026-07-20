@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { Alert, Linking, Pressable, View } from 'react-native'
 import { ReadinessBlockers } from './journey-hub.blockers'
 import { useJourneyHub } from './journey-hub.context'
+import { MarkFiled } from './journey-hub.mark-filed'
 import type { RenderDraftArgs } from './pdf/pdf.render'
 import { formMetaFor, openDraftInApp, openFilingPackage } from './pdf/pdf.preview'
 
@@ -104,14 +105,15 @@ export function ReviewPay() {
 	return (
 		<View className="gap-control">
 			<SectionHeading title="Review & File" />
-			<Typography.Paragraph color="muted">
-				Preview a watermarked draft once your answers are complete. The clean export unlocks only
-				when everything the official form requires is covered. The USCIS filing fee is separate
-				and paid to USCIS directly, never to this app.
-			</Typography.Paragraph>
 
 			{isDraft && (
 				<>
+					<Typography.Paragraph color="muted">
+						Preview a watermarked draft once your answers are complete. The clean export unlocks
+						only when everything the official form requires is covered. The USCIS filing fee is
+						separate and paid to USCIS directly, never to this app.
+					</Typography.Paragraph>
+
 					<ReadinessBlockers formType={application.formType} readiness={readiness} />
 
 					<Button
@@ -154,6 +156,43 @@ export function ReviewPay() {
 							{`Locked — this version can't yet produce a complete ${meta.title}. The items under "Before this can be filed" explain what's missing.`}
 						</Typography.Paragraph>
 					)}
+
+					<MarkFiled />
+				</>
+			)}
+
+			{application.status === 'filed' && (
+				<>
+					<Surface variant="secondary" className="gap-hairline rounded-2xl p-card">
+						<Typography.Paragraph className="font-medium">Filed with USCIS</Typography.Paragraph>
+						<Typography.Paragraph color="muted" className="text-sm">
+							{application.filedAt !== undefined
+								? `You recorded this filing on ${new Date(application.filedAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}. Editing is locked so your answers stay exactly as filed.`
+								: 'Editing is locked so your answers stay exactly as filed.'}
+						</Typography.Paragraph>
+					</Surface>
+
+					<Button
+						variant="secondary"
+						isDisabled={!readiness.isReadyToFile || packageBusy}
+						onPress={async () => {
+							const ok = await requireAccount({
+								title: 'Sign in to download your filing package',
+								description: 'Sign in to re-download the package you filed.',
+							})
+							if (!ok) return
+							await runExport(openFilingPackage, setPackageBusy, 'Could not build filing package')
+						}}
+					>
+						<Button.Label>
+							{packageBusy ? 'Preparing package…' : 'Download filing package again'}
+						</Button.Label>
+					</Button>
+					<Typography.Paragraph color="muted" type="body-sm">
+						{readiness.isReadyToFile
+							? `Rebuilt from your saved answers — identical to the ${meta.title} you exported.`
+							: `This application was marked filed while incomplete in the app, so a clean ${meta.title} can't be rebuilt from it.`}
+					</Typography.Paragraph>
 				</>
 			)}
 		</View>

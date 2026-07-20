@@ -576,103 +576,123 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 	)
 })
 
+// Complete I-90 renewal answer set, shared by the readiness milestone and the
+// filed-lifecycle tests (which need a genuinely ready application to file).
+const i90Steps = [
+	{ stepKey: 'legal-name', stepData: { personFacts: { givenName: 'Ana', familyName: 'Diaz' } } },
+	{ stepKey: 'date-of-birth', stepData: { personFacts: { dateOfBirth: '1990-05-01' } } },
+	{
+		stepKey: 'country-of-birth',
+		stepData: { personFacts: { countryOfBirth: 'Mexico', cityOfBirth: 'Oaxaca' } },
+	},
+	{
+		stepKey: 'personal-details',
+		stepData: {
+			personFacts: {
+				gender: 'female' as const,
+				motherGivenName: 'Rosa',
+				fatherGivenName: 'Miguel',
+				classOfAdmission: 'IR1',
+				dateOfAdmission: '2015-06-10',
+			},
+		},
+	},
+	{
+		stepKey: 'immigration-history',
+		stepData: {
+			personFacts: {
+				locationAppliedVisa: 'Ciudad Juarez, Mexico',
+				locationIssuedVisa: 'Ciudad Juarez, Mexico',
+				becameResidentVia: 'immigrantVisa' as const,
+				destinationAtAdmission: 'San Francisco, CA',
+				portOfEntryCityState: 'San Ysidro, CA',
+				everInProceedings: 'no' as const,
+				filedI407OrAbandoned: 'no' as const,
+			},
+		},
+	},
+	{ stepKey: 'a-number', stepData: { personFacts: { aNumber: '123456789' } } },
+	{
+		stepKey: 'mailing-address',
+		stepData: {
+			personFacts: { mailingAddress },
+			form: { physicalAddressSameAsMailing: 'yes' as const },
+		},
+	},
+	{ stepKey: 'contact-info', stepData: { personFacts: { daytimePhone: '5125550142' } } },
+	{
+		stepKey: 'physical-description',
+		stepData: {
+			personFacts: {
+				heightFeet: '5' as const,
+				heightInches: '4' as const,
+				weightPounds: '130',
+				eyeColor: 'brown' as const,
+				hairColor: 'black' as const,
+				ethnicity: 'hispanicOrLatino' as const,
+				races: ['white' as const],
+			},
+		},
+	},
+	{
+		stepKey: 'card-details',
+		stepData: {
+			form: {
+				cardStatus: 'permanentResident' as const,
+				cardExpirationDate: '2030-01-01',
+				nameChangedSinceIssuance: 'no' as const,
+			},
+		},
+	},
+	{
+		stepKey: 'applicant-statement',
+		stepData: {
+			form: {
+				preparedSelfInEnglish: 'yes' as const,
+				requestingAccommodation: 'no' as const,
+			},
+		},
+	},
+]
+
+async function setupI90() {
+	const t = newT()
+	const alice = t.withIdentity({ subject: 'alice' })
+	const applicantId = await alice.mutation(api.applicants.createApplicant, {
+		displayName: 'Ana',
+		isSelf: true,
+	})
+	const applicationId = await alice.mutation(api.applications.createApplication, {
+		applicantId,
+		formType: 'i90',
+		applicationKind: 'renewal',
+		i90CardStatus: 'permanentResident',
+	})
+	return { t, alice, applicationId }
+}
+
+/** Answer every step and waive every document slot: genuinely ready to file. */
+async function setupReadyI90() {
+	const { t, alice, applicationId } = await setupI90()
+	for (const step of i90Steps) {
+		await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
+	}
+	await t.run(async (ctx) => {
+		const slots = await ctx.db
+			.query('applicationDocuments')
+			.withIndex('by_applicationId', (q) => q.eq('applicationId', applicationId))
+			.take(50)
+		for (const slot of slots) {
+			await ctx.db.patch('applicationDocuments', slot._id, { status: 'waived' })
+		}
+	})
+	return { t, alice, applicationId }
+}
+
 // Slice 3c: the I-90 field contract is complete, so a fully-answered I-90 with
 // resolved documents must genuinely reach isReadyToFile through the real
 // mutations — and the name-change answer must drive its document requirement.
 describe('I-90 end-to-end readiness (milestone)', () => {
-	const i90Steps = [
-		{ stepKey: 'legal-name', stepData: { personFacts: { givenName: 'Ana', familyName: 'Diaz' } } },
-		{ stepKey: 'date-of-birth', stepData: { personFacts: { dateOfBirth: '1990-05-01' } } },
-		{
-			stepKey: 'country-of-birth',
-			stepData: { personFacts: { countryOfBirth: 'Mexico', cityOfBirth: 'Oaxaca' } },
-		},
-		{
-			stepKey: 'personal-details',
-			stepData: {
-				personFacts: {
-					gender: 'female' as const,
-					motherGivenName: 'Rosa',
-					fatherGivenName: 'Miguel',
-					classOfAdmission: 'IR1',
-					dateOfAdmission: '2015-06-10',
-				},
-			},
-		},
-		{
-			stepKey: 'immigration-history',
-			stepData: {
-				personFacts: {
-					locationAppliedVisa: 'Ciudad Juarez, Mexico',
-					locationIssuedVisa: 'Ciudad Juarez, Mexico',
-					becameResidentVia: 'immigrantVisa' as const,
-					destinationAtAdmission: 'San Francisco, CA',
-					portOfEntryCityState: 'San Ysidro, CA',
-					everInProceedings: 'no' as const,
-					filedI407OrAbandoned: 'no' as const,
-				},
-			},
-		},
-		{ stepKey: 'a-number', stepData: { personFacts: { aNumber: '123456789' } } },
-		{
-			stepKey: 'mailing-address',
-			stepData: {
-				personFacts: { mailingAddress },
-				form: { physicalAddressSameAsMailing: 'yes' as const },
-			},
-		},
-		{ stepKey: 'contact-info', stepData: { personFacts: { daytimePhone: '5125550142' } } },
-		{
-			stepKey: 'physical-description',
-			stepData: {
-				personFacts: {
-					heightFeet: '5' as const,
-					heightInches: '4' as const,
-					weightPounds: '130',
-					eyeColor: 'brown' as const,
-					hairColor: 'black' as const,
-					ethnicity: 'hispanicOrLatino' as const,
-					races: ['white' as const],
-				},
-			},
-		},
-		{
-			stepKey: 'card-details',
-			stepData: {
-				form: {
-					cardStatus: 'permanentResident' as const,
-					cardExpirationDate: '2030-01-01',
-					nameChangedSinceIssuance: 'no' as const,
-				},
-			},
-		},
-		{
-			stepKey: 'applicant-statement',
-			stepData: {
-				form: {
-					preparedSelfInEnglish: 'yes' as const,
-					requestingAccommodation: 'no' as const,
-				},
-			},
-		},
-	]
-
-	async function setupI90() {
-		const t = newT()
-		const alice = t.withIdentity({ subject: 'alice' })
-		const applicantId = await alice.mutation(api.applicants.createApplicant, {
-			displayName: 'Ana',
-			isSelf: true,
-		})
-		const applicationId = await alice.mutation(api.applications.createApplication, {
-			applicantId,
-			formType: 'i90',
-			applicationKind: 'renewal',
-			i90CardStatus: 'permanentResident',
-		})
-		return { t, alice, applicationId }
-	}
-
 	test('a fully answered I-90 renewal with resolved documents is ready to file', async () => {
 		const { t, alice, applicationId } = await setupI90()
 		for (const step of i90Steps) {
@@ -930,5 +950,204 @@ describe('home dashboard + vault', () => {
 		const bobVault = await bob.query(api.home.getVault, {})
 		expect(bobVault.documents).toHaveLength(0)
 		expect(bobVault.neededSlots).toHaveLength(0)
+	})
+})
+
+// The last P0 of the workflow repair: the filed lifecycle. Nothing but these
+// user-confirmed transitions (and the receipt-number reconcile in cases.ts)
+// may move an application out of draft.
+describe('filed lifecycle', () => {
+	test('markFiled files a ready application with the given date and locks editing', async () => {
+		const { alice, applicationId } = await setupReadyI90()
+		const filedAt = Date.now() - 60_000
+		await alice.mutation(api.applications.markFiled, { applicationId, filedAt })
+
+		const { application, readiness } = await alice.query(api.applications.getApplication, {
+			applicationId,
+		})
+		expect(application.status).toBe('filed')
+		expect(application.filedAt).toBe(filedAt)
+		// The package must stay re-downloadable: the stored draft still renders
+		// clean, so readiness (which gates the export button) must hold.
+		expect(readiness.isReadyToFile).toBe(true)
+
+		await expect(
+			alice.mutation(api.applications.saveApplicationStep, {
+				applicationId,
+				stepKey: 'legal-name',
+				stepData: { personFacts: { givenName: 'Changed', familyName: 'Name' } },
+			}),
+		).rejects.toThrow(/only draft applications/i)
+	})
+
+	test('markFiled on a not-ready application requires explicit acknowledgment', async () => {
+		const { alice, applicationId } = await setupI90()
+		await expect(
+			alice.mutation(api.applications.markFiled, { applicationId, filedAt: Date.now() }),
+		).rejects.toThrow(/isn’t complete/i)
+
+		await alice.mutation(api.applications.markFiled, {
+			applicationId,
+			filedAt: Date.now(),
+			acknowledgeNotReady: true,
+		})
+		const { application } = await alice.query(api.applications.getApplication, { applicationId })
+		expect(application.status).toBe('filed')
+	})
+
+	test('markFiled is idempotent: re-confirming keeps the original filing date', async () => {
+		const { alice, applicationId } = await setupReadyI90()
+		const original = Date.now() - 120_000
+		await alice.mutation(api.applications.markFiled, { applicationId, filedAt: original })
+		await alice.mutation(api.applications.markFiled, { applicationId, filedAt: Date.now() })
+		const { application } = await alice.query(api.applications.getApplication, { applicationId })
+		expect(application.filedAt).toBe(original)
+	})
+
+	test('markFiled rejects future dates and dates before the application existed', async () => {
+		const { alice, applicationId } = await setupReadyI90()
+		await expect(
+			alice.mutation(api.applications.markFiled, {
+				applicationId,
+				filedAt: Date.now() + 3 * 24 * 60 * 60 * 1000,
+			}),
+		).rejects.toThrow(/future/i)
+		await expect(
+			alice.mutation(api.applications.markFiled, {
+				applicationId,
+				filedAt: Date.now() - 30 * 24 * 60 * 60 * 1000,
+			}),
+		).rejects.toThrow(/before this application was started/i)
+	})
+
+	test('lifecycle mutations are owner-scoped', async () => {
+		const { t, alice, applicationId } = await setupReadyI90()
+		const bob = t.withIdentity({ subject: 'bob' })
+		await expect(
+			bob.mutation(api.applications.markFiled, { applicationId, filedAt: Date.now() }),
+		).rejects.toThrow('Application not found')
+		await expect(
+			bob.mutation(api.applications.closeApplication, { applicationId }),
+		).rejects.toThrow('Application not found')
+		await expect(
+			bob.mutation(api.applications.reopenApplication, { applicationId }),
+		).rejects.toThrow('Application not found')
+		await expect(
+			bob.mutation(api.applications.deleteApplication, { applicationId }),
+		).rejects.toThrow('Application not found')
+		// Alice's application is untouched by all of Bob's attempts.
+		const { application } = await alice.query(api.applications.getApplication, { applicationId })
+		expect(application.status).toBe('draft')
+	})
+
+	test('closeApplication closes a draft; reopen restores it to draft', async () => {
+		const { alice, applicationId } = await setupI90()
+		await alice.mutation(api.applications.closeApplication, { applicationId })
+		let detail = await alice.query(api.applications.getApplication, { applicationId })
+		expect(detail.application.status).toBe('closed')
+		expect(detail.application.closedAt).toBeDefined()
+
+		await alice.mutation(api.applications.reopenApplication, { applicationId })
+		detail = await alice.query(api.applications.getApplication, { applicationId })
+		expect(detail.application.status).toBe('draft')
+		expect(detail.application.closedAt).toBeUndefined()
+	})
+
+	test('closing a filed application keeps the filing record; reopen restores filed', async () => {
+		const { alice, applicationId } = await setupReadyI90()
+		const filedAt = Date.now() - 60_000
+		await alice.mutation(api.applications.markFiled, { applicationId, filedAt })
+		await alice.mutation(api.applications.closeApplication, { applicationId })
+		let detail = await alice.query(api.applications.getApplication, { applicationId })
+		expect(detail.application.status).toBe('closed')
+		expect(detail.application.filedAt).toBe(filedAt)
+
+		// Reopening a closed-but-filed application restores FILED, not draft —
+		// closing never erased the filing record, so reopening can't either.
+		await alice.mutation(api.applications.reopenApplication, { applicationId })
+		detail = await alice.query(api.applications.getApplication, { applicationId })
+		expect(detail.application.status).toBe('filed')
+		expect(detail.application.filedAt).toBe(filedAt)
+	})
+
+	test('reopen un-files a filed application only while no case is linked', async () => {
+		const { alice, applicationId } = await setupReadyI90()
+		await alice.mutation(api.applications.markFiled, { applicationId, filedAt: Date.now() })
+		await alice.mutation(api.applications.reopenApplication, { applicationId })
+		let detail = await alice.query(api.applications.getApplication, { applicationId })
+		expect(detail.application.status).toBe('draft')
+		expect(detail.application.filedAt).toBeUndefined()
+
+		// File again, link a real receipt: un-filing is now blocked.
+		await alice.mutation(api.applications.markFiled, { applicationId, filedAt: Date.now() })
+		await alice.mutation(api.cases.createCase, {
+			receiptNumber: 'EAC1234567890',
+			applicationId,
+		})
+		await expect(
+			alice.mutation(api.applications.reopenApplication, { applicationId }),
+		).rejects.toThrow(/tracked USCIS case/i)
+	})
+
+	test('deleteApplication cascades draft, slots, and entitlements, and unlinks a case', async () => {
+		const { t, alice, applicationId } = await setupReadyI90()
+		// A closed application can still have a case (filed → case → closed).
+		await alice.mutation(api.applications.markFiled, { applicationId, filedAt: Date.now() })
+		const caseId = await alice.mutation(api.cases.createCase, {
+			receiptNumber: 'EAC1234567890',
+			applicationId,
+		})
+		await t.run(async (ctx) => {
+			const application = await ctx.db.get('applications', applicationId)
+			await ctx.db.insert('entitlements', {
+				ownerId: application!.ownerId,
+				applicationId,
+				status: 'active',
+				source: 'devStub',
+				updatedAt: Date.now(),
+			})
+		})
+
+		// Filed applications are the filing record — deletion is refused.
+		await expect(
+			alice.mutation(api.applications.deleteApplication, { applicationId }),
+		).rejects.toThrow(/can’t be deleted/i)
+
+		await alice.mutation(api.applications.closeApplication, { applicationId })
+		await alice.mutation(api.applications.deleteApplication, { applicationId })
+
+		await expect(alice.query(api.applications.getApplication, { applicationId })).rejects.toThrow(
+			'Application not found',
+		)
+		await t.run(async (ctx) => {
+			const [draft, slots, entitlements] = await Promise.all([
+				ctx.db
+					.query('applicationDrafts')
+					.withIndex('by_applicationId', (q) => q.eq('applicationId', applicationId))
+					.unique(),
+				ctx.db
+					.query('applicationDocuments')
+					.withIndex('by_applicationId', (q) => q.eq('applicationId', applicationId))
+					.take(50),
+				ctx.db
+					.query('entitlements')
+					.withIndex('by_applicationId', (q) => q.eq('applicationId', applicationId))
+					.take(10),
+			])
+			expect(draft).toBeNull()
+			expect(slots).toHaveLength(0)
+			expect(entitlements).toHaveLength(0)
+		})
+		// The case is a real receipt: kept, but unlinked.
+		const orphanedCase = await alice.query(api.cases.getCase, { caseId })
+		expect(orphanedCase.applicationId).toBeUndefined()
+	})
+
+	test('markFiled on a closed application is refused until reopened', async () => {
+		const { alice, applicationId } = await setupReadyI90()
+		await alice.mutation(api.applications.closeApplication, { applicationId })
+		await expect(
+			alice.mutation(api.applications.markFiled, { applicationId, filedAt: Date.now() }),
+		).rejects.toThrow(/closed/i)
 	})
 })

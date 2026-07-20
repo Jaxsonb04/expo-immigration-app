@@ -39,9 +39,9 @@ describe('createCase', () => {
 		async (bad) => {
 			const t = newT()
 			const alice = t.withIdentity({ subject: 'alice' })
-			await expect(
-				alice.mutation(api.cases.createCase, { receiptNumber: bad }),
-			).rejects.toThrow(/receipt number/i)
+			await expect(alice.mutation(api.cases.createCase, { receiptNumber: bad })).rejects.toThrow(
+				/receipt number/i,
+			)
 		},
 	)
 
@@ -50,11 +50,13 @@ describe('createCase', () => {
 		const alice = t.withIdentity({ subject: 'alice' })
 		const bob = t.withIdentity({ subject: 'bob' })
 		await alice.mutation(api.cases.createCase, { receiptNumber: RECEIPT })
-		await expect(
-			alice.mutation(api.cases.createCase, { receiptNumber: RECEIPT }),
-		).rejects.toThrow(/already tracking/i)
+		await expect(alice.mutation(api.cases.createCase, { receiptNumber: RECEIPT })).rejects.toThrow(
+			/already tracking/i,
+		)
 		// Owner-scoped uniqueness: Bob can track the same receipt.
-		await expect(bob.mutation(api.cases.createCase, { receiptNumber: RECEIPT })).resolves.toBeDefined()
+		await expect(
+			bob.mutation(api.cases.createCase, { receiptNumber: RECEIPT }),
+		).resolves.toBeDefined()
 	})
 
 	test('links an owned application; rejects a foreign one', async () => {
@@ -95,7 +97,10 @@ describe('addStatusUpdate', () => {
 		const tracked = await alice.query(api.cases.getCase, { caseId })
 		expect(tracked.status).toBe('biometrics')
 		expect(tracked.statusHistory).toHaveLength(2)
-		expect(tracked.statusHistory[1]).toMatchObject({ status: 'biometrics', note: 'ASC appointment 8/1' })
+		expect(tracked.statusHistory[1]).toMatchObject({
+			status: 'biometrics',
+			note: 'ASC appointment 8/1',
+		})
 	})
 
 	test('backdates when occurredAt is provided', async () => {
@@ -131,5 +136,106 @@ describe('authorization / owner isolation', () => {
 		const t = newT()
 		await expect(t.query(api.cases.listCases, {})).rejects.toThrow()
 		await expect(t.mutation(api.cases.createCase, { receiptNumber: RECEIPT })).rejects.toThrow()
+	})
+})
+
+// Receipt-number reconcile (workflow repair, filed lifecycle): a real receipt
+// is decisive evidence of filing, so linking a draft transitions it to filed.
+describe('receipt-number filing reconcile', () => {
+	async function setupDraft(t: ReturnType<typeof newT>) {
+		const alice = t.withIdentity({ subject: 'alice' })
+		const applicantId = await alice.mutation(api.applicants.createApplicant, {
+			displayName: 'Alice',
+			isSelf: true,
+		})
+		const applicationId = await alice.mutation(api.applications.createApplication, {
+			applicantId,
+			formType: 'i765',
+			applicationKind: 'renewal',
+		})
+		return { alice, applicantId, applicationId }
+	}
+
+	test('linking a draft marks it filed with a filing date', async () => {
+		const t = newT()
+		const { alice, applicationId } = await setupDraft(t)
+		const before = Date.now()
+		await alice.mutation(api.cases.createCase, { receiptNumber: RECEIPT, applicationId })
+		const { application } = await alice.query(api.applications.getApplication, { applicationId })
+		expect(application.status).toBe('filed')
+		expect(application.filedAt).toBeGreaterThanOrEqual(before)
+	})
+
+	test('linking an already-filed application keeps its original filedAt', async () => {
+		const t = newT()
+		const { alice, applicationId } = await setupDraft(t)
+		// Within the allowed window (a filing can't predate the application).
+		const original = Date.now() - 60 * 60 * 1000
+		await alice.mutation(api.applications.markFiled, {
+			applicationId,
+			filedAt: original,
+			acknowledgeNotReady: true,
+		})
+		await alice.mutation(api.cases.createCase, { receiptNumber: RECEIPT, applicationId })
+		const { application } = await alice.query(api.applications.getApplication, { applicationId })
+		expect(application.status).toBe('filed')
+		expect(application.filedAt).toBe(original)
+	})
+
+	test('a closed application cannot be linked', async () => {
+		const t = newT()
+		const { alice, applicationId } = await setupDraft(t)
+		await alice.mutation(api.applications.closeApplication, { applicationId })
+		await expect(
+			alice.mutation(api.cases.createCase, { receiptNumber: RECEIPT, applicationId }),
+		).rejects.toThrow(/closed/i)
+	})
+
+	test('an application already linked to a case cannot be linked again', async () => {
+		const t = newT()
+		const { alice, applicationId } = await setupDraft(t)
+		await alice.mutation(api.cases.createCase, { receiptNumber: RECEIPT, applicationId })
+		await expect(
+			alice.mutation(api.cases.createCase, { receiptNumber: 'WAC9876543210', applicationId }),
+		).rejects.toThrow(/already linked/i)
+	})
+})
+
+describe('listLinkableApplications', () => {
+	test('offers non-closed, unlinked applications; filed first', async () => {
+		const t = newT()
+		const alice = t.withIdentity({ subject: 'alice' })
+		const applicantId = await alice.mutation(api.applicants.createApplicant, {
+			displayName: 'Alice',
+			isSelf: true,
+		})
+		const make = () =>
+			alice.mutation(api.applications.createApplication, {
+				applicantId,
+				formType: 'i765',
+				applicationKind: 'renewal',
+			})
+		const draftId = await make()
+		const filedId = await make()
+		const closedId = await make()
+		const linkedId = await make()
+		await alice.mutation(api.applications.markFiled, {
+			applicationId: filedId,
+			filedAt: Date.now(),
+			acknowledgeNotReady: true,
+		})
+		await alice.mutation(api.applications.closeApplication, { applicationId: closedId })
+		await alice.mutation(api.cases.createCase, {
+			receiptNumber: RECEIPT,
+			applicationId: linkedId,
+		})
+
+		const linkable = await alice.query(api.cases.listLinkableApplications, {})
+		expect(linkable.map((a) => a._id)).toEqual([filedId, draftId])
+		expect(linkable[0]).toMatchObject({ status: 'filed', applicantName: 'Alice' })
+
+		// Owner-scoped like everything else.
+		const bob = t.withIdentity({ subject: 'bob' })
+		expect(await bob.query(api.cases.listLinkableApplications, {})).toHaveLength(0)
 	})
 })

@@ -299,3 +299,181 @@ export const saveApplicationStep = mutation({
 		}
 	},
 })
+
+// ---------------------------------------------------------------------------
+// Filed lifecycle (decision 6: status transitions are explicit user actions or
+// case-link assisted — payment never flips status). The transitions below are
+// the ONLY writers of applications.status besides createApplication and the
+// receipt-number reconcile in convex/cases.ts.
+// ---------------------------------------------------------------------------
+
+const DAY_MS = 24 * 60 * 60 * 1000
+
+/**
+ * The user-confirmed "I filed this with USCIS" transition: draft -> filed with
+ * the user's filing date. Honesty gate: if the server-owned readiness contract
+ * says the application isn't ready, the caller must explicitly acknowledge that
+ * it filed an incomplete-in-app application (`acknowledgeNotReady`) — recording
+ * the user's real-world filing is allowed, silently faking readiness is not.
+ * Idempotent: re-confirming an already-filed application keeps the original
+ * filing date.
+ */
+export const markFiled = mutation({
+	args: {
+		applicationId: v.id('applications'),
+		filedAt: v.number(),
+		acknowledgeNotReady: v.optional(v.boolean()),
+	},
+	handler: async (ctx, args) => {
+		const ownerId = await requireOwnerId(ctx)
+		const application = await getOwnedApplication(ctx, ownerId, args.applicationId)
+		if (application.status === 'filed') return
+		if (application.status === 'closed') {
+			throw new Error('This application is closed. Reopen it before marking it filed.')
+		}
+
+		const now = Date.now()
+		if (!Number.isFinite(args.filedAt) || args.filedAt > now + DAY_MS) {
+			throw new Error('The filing date can’t be in the future')
+		}
+		if (args.filedAt < application._creationTime - DAY_MS) {
+			throw new Error('The filing date can’t be before this application was started')
+		}
+
+		const [draft, requirements] = await Promise.all([
+			getDraftForApplication(ctx, application._id),
+			ctx.db
+				.query('applicationDocuments')
+				.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))
+				.take(50),
+		])
+		const readiness = computeReadiness({
+			formType: application.formType,
+			applicationKind: application.applicationKind,
+			answers: draft.answers,
+			requirements,
+		})
+		if (!readiness.isReadyToFile && args.acknowledgeNotReady !== true) {
+			throw new Error(
+				'This application isn’t complete in the app yet. Finish the remaining items, or confirm that you filed it anyway.',
+			)
+		}
+
+		await ctx.db.patch('applications', application._id, {
+			status: 'filed',
+			filedAt: args.filedAt,
+			updatedAt: now,
+		})
+	},
+})
+
+/**
+ * Close an application so it stops appearing as active work: an abandoned
+ * draft, or a filed application whose case has concluded. Closing never erases
+ * the filing record — a filed application keeps its filedAt. Idempotent.
+ */
+export const closeApplication = mutation({
+	args: { applicationId: v.id('applications') },
+	handler: async (ctx, args) => {
+		const ownerId = await requireOwnerId(ctx)
+		const application = await getOwnedApplication(ctx, ownerId, args.applicationId)
+		if (application.status === 'closed') return
+		await ctx.db.patch('applications', application._id, {
+			status: 'closed',
+			closedAt: Date.now(),
+			updatedAt: Date.now(),
+		})
+	},
+})
+
+/**
+ * Reopen policy: a closed application returns to the state it was in before
+ * closing (filed if it has a filing record, draft otherwise). A filed
+ * application can be reopened to a draft — "I marked this filed by mistake" —
+ * but only while no USCIS case is linked: once a real receipt number exists,
+ * the filing happened, and corrections happen with USCIS, not by un-filing
+ * here. Idempotent for drafts.
+ */
+export const reopenApplication = mutation({
+	args: { applicationId: v.id('applications') },
+	handler: async (ctx, args) => {
+		const ownerId = await requireOwnerId(ctx)
+		const application = await getOwnedApplication(ctx, ownerId, args.applicationId)
+		const now = Date.now()
+		if (application.status === 'draft') return
+		if (application.status === 'closed') {
+			await ctx.db.patch('applications', application._id, {
+				status: application.filedAt !== undefined ? 'filed' : 'draft',
+				closedAt: undefined,
+				updatedAt: now,
+			})
+			return
+		}
+		// filed -> draft: only while no case links this filing to USCIS.
+		const linkedCase = await ctx.db
+			.query('cases')
+			.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))
+			.first()
+		if (linkedCase !== null) {
+			throw new Error(
+				'This application has a tracked USCIS case, so it can’t go back to a draft. Corrections after filing happen with USCIS directly.',
+			)
+		}
+		await ctx.db.patch('applications', application._id, {
+			status: 'draft',
+			filedAt: undefined,
+			updatedAt: now,
+		})
+	},
+})
+
+/**
+ * Permanently delete a draft or closed application and everything that exists
+ * only because of it: its draft answers, its requirement slots, and its
+ * entitlement rows. Vault documents are the applicant's, not the
+ * application's, and are never touched. A linked case (possible for a closed
+ * application) is kept — it's a real receipt — but unlinked. Filed
+ * applications can't be deleted: they're the filing record. Reopen first if it
+ * was marked filed by mistake.
+ */
+export const deleteApplication = mutation({
+	args: { applicationId: v.id('applications') },
+	handler: async (ctx, args) => {
+		const ownerId = await requireOwnerId(ctx)
+		const application = await getOwnedApplication(ctx, ownerId, args.applicationId)
+		if (application.status === 'filed') {
+			throw new Error(
+				'A filed application is your filing record and can’t be deleted. Close it instead — or reopen it first if it was marked filed by mistake.',
+			)
+		}
+
+		const [draft, slots, entitlements, linkedCases] = await Promise.all([
+			ctx.db
+				.query('applicationDrafts')
+				.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))
+				.unique(),
+			ctx.db
+				.query('applicationDocuments')
+				.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))
+				.take(50),
+			ctx.db
+				.query('entitlements')
+				.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))
+				.take(10),
+			ctx.db
+				.query('cases')
+				.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))
+				.take(10),
+		])
+		if (draft !== null) await ctx.db.delete('applicationDrafts', draft._id)
+		for (const slot of slots) await ctx.db.delete('applicationDocuments', slot._id)
+		for (const entitlement of entitlements) await ctx.db.delete('entitlements', entitlement._id)
+		for (const linkedCase of linkedCases) {
+			await ctx.db.patch('cases', linkedCase._id, {
+				applicationId: undefined,
+				updatedAt: Date.now(),
+			})
+		}
+		await ctx.db.delete('applications', application._id)
+	},
+})
