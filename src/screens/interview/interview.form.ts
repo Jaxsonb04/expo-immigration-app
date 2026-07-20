@@ -54,6 +54,13 @@ export type InterviewValues = {
 		hairColor: string
 		ethnicity: string
 		races: string[]
+		locationAppliedVisa: string
+		locationIssuedVisa: string
+		becameResidentVia: string
+		destinationAtAdmission: string
+		portOfEntryCityState: string
+		everInProceedings: string
+		filedI407OrAbandoned: string
 	}
 	form: {
 		previousEadCardNumber: string
@@ -61,6 +68,26 @@ export type InterviewValues = {
 		ssn: string
 		cardExpirationDate: string
 		cardStatus: string
+		nameChangedSinceIssuance: string
+		previousFamilyName: string
+		previousGivenName: string
+		previousMiddleName: string
+		physicalAddressSameAsMailing: string
+		physicalAddress: {
+			street: string
+			unit: string
+			city: string
+			state: string
+			zipCode: string
+			province: string
+			postalCode: string
+			country: string
+		}
+		preparedSelfInEnglish: string
+		requestingAccommodation: string
+		accommodationDeafSignLanguage: string
+		accommodationBlindDetail: string
+		accommodationOtherDetail: string
 	}
 }
 
@@ -110,6 +137,13 @@ export const emptyInterviewValues: InterviewValues = {
 		hairColor: '',
 		ethnicity: '',
 		races: [],
+		locationAppliedVisa: '',
+		locationIssuedVisa: '',
+		becameResidentVia: '',
+		destinationAtAdmission: '',
+		portOfEntryCityState: '',
+		everInProceedings: '',
+		filedI407OrAbandoned: '',
 	},
 	form: {
 		previousEadCardNumber: '',
@@ -117,6 +151,26 @@ export const emptyInterviewValues: InterviewValues = {
 		ssn: '',
 		cardExpirationDate: '',
 		cardStatus: '',
+		nameChangedSinceIssuance: '',
+		previousFamilyName: '',
+		previousGivenName: '',
+		previousMiddleName: '',
+		physicalAddressSameAsMailing: '',
+		physicalAddress: {
+			street: '',
+			unit: '',
+			city: '',
+			state: '',
+			zipCode: '',
+			province: '',
+			postalCode: '',
+			country: '',
+		},
+		preparedSelfInEnglish: '',
+		requestingAccommodation: '',
+		accommodationDeafSignLanguage: '',
+		accommodationBlindDetail: '',
+		accommodationOtherDetail: '',
 	},
 }
 
@@ -131,7 +185,9 @@ type DraftAnswers = I765DraftAnswers | I90DraftAnswers
 /** Seed the form from the persisted draft (itself profile-seeded at creation). */
 export function seedFromDraft(answers: DraftAnswers): InterviewValues {
 	const pf = answers.personFacts
-	const form = answers.form as Partial<Record<keyof InterviewValues['form'], string>>
+	const form = answers.form as Partial<
+		Omit<Record<keyof InterviewValues['form'], string>, 'physicalAddress'>
+	> & { physicalAddress?: Partial<Record<string, string>> }
 	return {
 		personFacts: {
 			givenName: pf.givenName ?? '',
@@ -158,6 +214,13 @@ export function seedFromDraft(answers: DraftAnswers): InterviewValues {
 			hairColor: pf.hairColor ?? '',
 			ethnicity: pf.ethnicity ?? '',
 			races: pf.races !== undefined ? [...pf.races] : [],
+			locationAppliedVisa: pf.locationAppliedVisa ?? '',
+			locationIssuedVisa: pf.locationIssuedVisa ?? '',
+			becameResidentVia: pf.becameResidentVia ?? '',
+			destinationAtAdmission: pf.destinationAtAdmission ?? '',
+			portOfEntryCityState: pf.portOfEntryCityState ?? '',
+			everInProceedings: pf.everInProceedings ?? '',
+			filedI407OrAbandoned: pf.filedI407OrAbandoned ?? '',
 			mailingAddress: {
 				street: pf.mailingAddress?.street ?? '',
 				unit: pf.mailingAddress?.unit ?? '',
@@ -173,6 +236,26 @@ export function seedFromDraft(answers: DraftAnswers): InterviewValues {
 			ssn: form.ssn ?? '',
 			cardExpirationDate: form.cardExpirationDate ?? '',
 			cardStatus: form.cardStatus ?? '',
+			nameChangedSinceIssuance: form.nameChangedSinceIssuance ?? '',
+			previousFamilyName: form.previousFamilyName ?? '',
+			previousGivenName: form.previousGivenName ?? '',
+			previousMiddleName: form.previousMiddleName ?? '',
+			physicalAddressSameAsMailing: form.physicalAddressSameAsMailing ?? '',
+			physicalAddress: {
+				street: form.physicalAddress?.street ?? '',
+				unit: form.physicalAddress?.unit ?? '',
+				city: form.physicalAddress?.city ?? '',
+				state: form.physicalAddress?.state ?? '',
+				zipCode: form.physicalAddress?.zipCode ?? '',
+				province: form.physicalAddress?.province ?? '',
+				postalCode: form.physicalAddress?.postalCode ?? '',
+				country: form.physicalAddress?.country ?? '',
+			},
+			preparedSelfInEnglish: form.preparedSelfInEnglish ?? '',
+			requestingAccommodation: form.requestingAccommodation ?? '',
+			accommodationDeafSignLanguage: form.accommodationDeafSignLanguage ?? '',
+			accommodationBlindDetail: form.accommodationBlindDetail ?? '',
+			accommodationOtherDetail: form.accommodationOtherDetail ?? '',
 		},
 	}
 }
@@ -196,6 +279,17 @@ export const fieldValidators = {
 		.string()
 		.refine((value) => value.replace(/\D/g, '').length === 10, 'Enter a 10-digit U.S. phone number'),
 	email: orEmpty(z.email('Enter a valid email address')),
+	// i90 immigration-history / card-details / statement additions. Choice
+	// fields share one required-choice rule; the pickers enforce the value sets.
+	requiredChoice: z.string().min(1, 'Choose an option'),
+	locationAppliedVisa: personFactsShape.shape.locationAppliedVisa,
+	locationIssuedVisa: personFactsShape.shape.locationIssuedVisa,
+	destinationAtAdmission: personFactsShape.shape.destinationAtAdmission,
+	portOfEntryCityState: personFactsShape.shape.portOfEntryCityState,
+	previousFamilyName: z.string().min(1, 'Family name is required'),
+	previousGivenName: z.string().min(1, 'First name is required'),
+	physicalStreet: z.string().min(1, 'Street address is required'),
+	physicalCity: z.string().min(1, 'City is required'),
 	// i90 personal-details / physical-description (choice sets are enforced by
 	// the pickers; these gate required-ness and formats).
 	gender: z.string().min(1, 'Choose an option'),
@@ -305,9 +399,22 @@ const sharedSteps: StepDescriptor[] = [
 			'personFacts.mailingAddress.city',
 			'personFacts.mailingAddress.state',
 			'personFacts.mailingAddress.zipCode',
+			// i90-only (Part 1 Item 7): the physical-address question; the UI
+			// renders these only for I-90, so I-765 saves emit no form keys.
+			'form.physicalAddressSameAsMailing',
+			'form.physicalAddress.street',
+			'form.physicalAddress.unit',
+			'form.physicalAddress.city',
+			'form.physicalAddress.state',
+			'form.physicalAddress.zipCode',
+			'form.physicalAddress.province',
+			'form.physicalAddress.postalCode',
+			'form.physicalAddress.country',
 		],
 		buildStepData: (values) => {
 			const address = values.personFacts.mailingAddress
+			const same = values.form.physicalAddressSameAsMailing
+			const physical = values.form.physicalAddress
 			return {
 				personFacts: {
 					mailingAddress: {
@@ -318,6 +425,25 @@ const sharedSteps: StepDescriptor[] = [
 						zipCode: address.zipCode,
 					},
 				},
+				form: {
+					...dropEmpty({ physicalAddressSameAsMailing: same }),
+					...(same === 'no'
+						? {
+								physicalAddress: {
+									street: physical.street,
+									city: physical.city,
+									...dropEmpty({
+										unit: physical.unit,
+										state: physical.state,
+										zipCode: physical.zipCode,
+										province: physical.province,
+										postalCode: physical.postalCode,
+										country: physical.country,
+									}),
+								},
+							}
+						: {}),
+				} as StepData['form'],
 			}
 		},
 	},
@@ -377,6 +503,73 @@ const personalDetailsStep: StepDescriptor = {
 	}),
 }
 
+/** I-90 only: Part 3 Processing Information (Items 1-5). */
+const immigrationHistoryStep: StepDescriptor = {
+	key: 'immigration-history',
+	question: 'How you became a permanent resident',
+	help: 'These match your original immigrant-visa or adjustment-of-status record. If you don\'t remember an exact office name, use the city and country (for example "Ciudad Juarez, Mexico") or the USCIS office (for example "USCIS Chicago").',
+	fieldPaths: [
+		'personFacts.locationAppliedVisa',
+		'personFacts.locationIssuedVisa',
+		'personFacts.becameResidentVia',
+		'personFacts.destinationAtAdmission',
+		'personFacts.portOfEntryCityState',
+		'personFacts.everInProceedings',
+		'personFacts.filedI407OrAbandoned',
+	],
+	buildStepData: (values) => {
+		const via = values.personFacts.becameResidentVia
+		return {
+			personFacts: dropEmpty({
+				locationAppliedVisa: values.personFacts.locationAppliedVisa,
+				locationIssuedVisa: values.personFacts.locationIssuedVisa,
+				becameResidentVia: via,
+				// Items 3.A/3.A.1 apply only to immigrant-visa entries.
+				...(via === 'immigrantVisa'
+					? {
+							destinationAtAdmission: values.personFacts.destinationAtAdmission,
+							portOfEntryCityState: values.personFacts.portOfEntryCityState,
+						}
+					: {}),
+				everInProceedings: values.personFacts.everInProceedings,
+				filedI407OrAbandoned: values.personFacts.filedI407OrAbandoned,
+			}) as StepData['personFacts'],
+		}
+	},
+}
+
+/** I-90 only: Part 5 statement + Part 4 accommodations. */
+const applicantStatementStep: StepDescriptor = {
+	key: 'applicant-statement',
+	question: 'A few final declarations',
+	help: 'The official form asks how you prepared this application and whether you need an accommodation from USCIS because of a disability or impairment.',
+	fieldPaths: [
+		'form.preparedSelfInEnglish',
+		'form.requestingAccommodation',
+		'form.accommodationDeafSignLanguage',
+		'form.accommodationBlindDetail',
+		'form.accommodationOtherDetail',
+	],
+	buildStepData: (values) => {
+		const requesting = values.form.requestingAccommodation
+		return {
+			form: {
+				...dropEmpty({
+					preparedSelfInEnglish: values.form.preparedSelfInEnglish,
+					requestingAccommodation: requesting,
+				}),
+				...(requesting === 'yes'
+					? dropEmpty({
+							accommodationDeafSignLanguage: values.form.accommodationDeafSignLanguage,
+							accommodationBlindDetail: values.form.accommodationBlindDetail,
+							accommodationOtherDetail: values.form.accommodationOtherDetail,
+						})
+					: {}),
+			} as StepData['form'],
+		}
+	},
+}
+
 /** I-90 only: Part 3 Biographic Information. */
 const physicalDescriptionStep: StepDescriptor = {
 	key: 'physical-description',
@@ -426,14 +619,31 @@ const i765FinalStep: StepDescriptor = {
 const i90FinalStep: StepDescriptor = {
 	key: 'card-details',
 	question: 'Tell us about your current card',
-	help: 'Confirm what kind of card you have and find the expiration date on its front. If you\'re replacing the card, also tell us what happened to it.',
-	fieldPaths: ['form.cardStatus', 'form.cardExpirationDate', 'form.replacementReason'],
+	help: 'Confirm what kind of card you have and find the expiration date on its front. If your name has legally changed since the card was issued, we also need the name printed on it.',
+	fieldPaths: [
+		'form.cardStatus',
+		'form.cardExpirationDate',
+		'form.replacementReason',
+		'form.nameChangedSinceIssuance',
+		'form.previousFamilyName',
+		'form.previousGivenName',
+		'form.previousMiddleName',
+	],
 	buildStepData: (values, kind) => ({
 		form: {
 			...dropEmpty({
 				cardStatus: values.form.cardStatus,
 				cardExpirationDate: values.form.cardExpirationDate,
+				nameChangedSinceIssuance: values.form.nameChangedSinceIssuance,
 			}),
+			// Items 5.A-5.C apply only when the name has legally changed.
+			...(values.form.nameChangedSinceIssuance === 'yes'
+				? dropEmpty({
+						previousFamilyName: values.form.previousFamilyName,
+						previousGivenName: values.form.previousGivenName,
+						previousMiddleName: values.form.previousMiddleName,
+					})
+				: {}),
 			...(kind === 'replacement'
 				? dropEmpty({ replacementReason: values.form.replacementReason })
 				: {}),
@@ -455,10 +665,12 @@ const descriptorsByForm: Record<FormType, readonly StepDescriptor[]> = {
 	i90: [
 		...sharedSteps.slice(0, 3),
 		personalDetailsStep,
+		immigrationHistoryStep,
 		...sharedSteps.slice(3),
 		contactInfoStep,
 		physicalDescriptionStep,
 		i90FinalStep,
+		applicantStatementStep,
 	],
 }
 
@@ -567,6 +779,30 @@ export const raceOptions = [
 	{ value: 'blackOrAfricanAmerican', label: 'Black or African American' },
 	{ value: 'nativeHawaiianOrOtherPacificIslander', label: 'Native Hawaiian or Other Pacific Islander' },
 	{ value: 'white', label: 'White' },
+] as const
+
+export const yesNoOptions = [
+	{ value: 'yes', label: 'Yes' },
+	{ value: 'no', label: 'No' },
+] as const
+
+export const residencyPathOptions = [
+	{
+		value: 'immigrantVisa',
+		label: 'With an immigrant visa',
+		description: 'You entered the U.S. at a port of entry using an immigrant visa',
+	},
+	{
+		value: 'adjustmentOfStatus',
+		label: 'Adjustment of status',
+		description: 'You were already in the U.S. and USCIS granted your green card',
+	},
+] as const
+
+export const nameChangeOptions = [
+	{ value: 'no', label: 'No' },
+	{ value: 'yes', label: 'Yes', description: 'Attach evidence of the legal name change when you file' },
+	{ value: 'neverReceivedCard', label: 'Not applicable — I never received my previous card' },
 ] as const
 
 export const replacementReasonOptions = (formType: FormType) => [

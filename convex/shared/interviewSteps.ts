@@ -31,11 +31,13 @@ const i90Steps = [
 	'date-of-birth',
 	'country-of-birth',
 	'personal-details',
+	'immigration-history',
 	'a-number',
 	'mailing-address',
 	'contact-info',
 	'physical-description',
 	'card-details',
+	'applicant-statement',
 	REVIEW_STEP_KEY,
 ] as const
 
@@ -51,12 +53,11 @@ export function preReviewStepKeys(formType: FormType): readonly string[] {
 
 // Requirement-slot templates per supported situation (decision 7): slots are
 // materialized at application creation and reconciled after each Next-save.
-// These are STATIC per (formType, applicationKind): requirements do NOT vary by
-// interview answers today — replacementReason (lost/stolen/damaged/error) and
-// the i90 nameChange reason do not change the required-document set. Making them
-// answer-aware would thread the draft answers into requiredSlotKeys +
-// reconcileRequirements (which already add/delete slots idempotently); it is
-// deferred until the per-reason document sets are decided.
+// The base sets are static per (formType, applicationKind); ANSWER-AWARE
+// additions layer on top via requiredSlotKeys' answers parameter (the printed
+// I-90 Item 5 note requires attaching evidence for a legal name change).
+// reconcileRequirements adds/deletes slots idempotently, so flipping an
+// answer back removes a still-`needed` slot but never discards attachments.
 export const requirementTemplates: Record<FormType, Partial<Record<ApplicationKind, readonly string[]>>> = {
 	i765: {
 		initial: ['passportPhoto', 'i94'],
@@ -69,6 +70,21 @@ export const requirementTemplates: Record<FormType, Partial<Record<ApplicationKi
 	},
 }
 
-export function requiredSlotKeys(formType: FormType, applicationKind: ApplicationKind): readonly string[] {
-	return requirementTemplates[formType][applicationKind] ?? []
+// Loose on purpose: both draft-answer unions (and raw objects) are accepted;
+// the one key that matters is read defensively.
+type RequirementAnswers = { form?: unknown }
+
+export function requiredSlotKeys(
+	formType: FormType,
+	applicationKind: ApplicationKind,
+	answers?: RequirementAnswers,
+): readonly string[] {
+	const base = requirementTemplates[formType][applicationKind] ?? []
+	const form = (answers?.form ?? {}) as { nameChangedSinceIssuance?: unknown }
+	if (formType === 'i90' && form.nameChangedSinceIssuance === 'yes') {
+		// Printed Item 5 NOTE: "Attach all evidence of your legal name change
+		// with this application."
+		return [...base, 'nameChangeEvidence']
+	}
+	return base
 }

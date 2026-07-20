@@ -36,6 +36,8 @@ const requirementLabels: Record<string, string> = {
 	passport: 'Passport',
 	i94: 'I-94 record',
 	permanentResidentCard: 'Permanent Resident Card',
+	// Answer-aware (I-90 Item 5 NOTE): required when the name legally changed.
+	nameChangeEvidence: 'Legal name-change document (marriage certificate, court order, or decree)',
 }
 
 export function requirementLabel(requirementKey: string): string {

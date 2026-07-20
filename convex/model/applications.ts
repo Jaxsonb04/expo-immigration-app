@@ -46,13 +46,20 @@ export function computeProgress(
  * Ensure the application's requirement slots match its template (decision 7):
  * missing slots are created as `needed`; template-removed slots are dropped
  * only while still `needed` — attachments and waivers are never discarded.
- * Idempotent; called at creation and after each Next-save.
+ * Idempotent; called at creation and after each Next-save. Loads the draft so
+ * answer-aware requirements (an I-90 legal name change requires evidence)
+ * reconcile on every save.
  */
 export async function reconcileRequirements(
 	ctx: MutationCtx,
 	application: Doc<'applications'>,
 ): Promise<void> {
-	const wanted = requiredSlotKeys(application.formType, application.applicationKind)
+	const draft = await getDraftForApplication(ctx, application._id)
+	const wanted = requiredSlotKeys(
+		application.formType,
+		application.applicationKind,
+		draft.answers,
+	)
 	const existing = await ctx.db
 		.query('applicationDocuments')
 		.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))

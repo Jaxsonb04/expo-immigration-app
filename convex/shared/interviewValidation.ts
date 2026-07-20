@@ -2,6 +2,7 @@ import {
 	addressShape,
 	type ApplicationKind,
 	type FormType,
+	isUsStateCode,
 	personFactsShape,
 } from './applicationShapes'
 import { isI90CardStatus, isSupportedI765Category, screenI90 } from './screening'
@@ -64,12 +65,45 @@ export const stepOwnedKeys: Record<string, OwnedKeys> = {
 		],
 		form: [],
 	},
+	'immigration-history': {
+		personFacts: [
+			'locationAppliedVisa',
+			'locationIssuedVisa',
+			'becameResidentVia',
+			'destinationAtAdmission',
+			'portOfEntryCityState',
+			'everInProceedings',
+			'filedI407OrAbandoned',
+		],
+		form: [],
+	},
 	'a-number': { personFacts: ['aNumber'], form: [] },
-	'mailing-address': { personFacts: ['mailingAddress'], form: [] },
+	'mailing-address': {
+		personFacts: ['mailingAddress'],
+		form: ['physicalAddressSameAsMailing', 'physicalAddress'],
+	},
+	'applicant-statement': {
+		personFacts: [],
+		form: [
+			'preparedSelfInEnglish',
+			'requestingAccommodation',
+			'accommodationDeafSignLanguage',
+			'accommodationBlindDetail',
+			'accommodationOtherDetail',
+		],
+	},
 	'eligibility-category': { personFacts: ['eligibilityCategory'], form: ['replacementReason'] },
 	'card-details': {
 		personFacts: [],
-		form: ['cardStatus', 'cardExpirationDate', 'replacementReason'],
+		form: [
+			'cardStatus',
+			'cardExpirationDate',
+			'replacementReason',
+			'nameChangedSinceIssuance',
+			'previousFamilyName',
+			'previousGivenName',
+			'previousMiddleName',
+		],
 	},
 }
 
@@ -143,11 +177,26 @@ export function isStepComplete(
 		case 'mailing-address': {
 			const addr = (pf.mailingAddress ?? {}) as Record<string, unknown>
 			const a = addressShape.shape
-			return (
+			const mailingComplete =
 				a.street.safeParse(addr.street).success &&
 				a.city.safeParse(addr.city).success &&
 				a.state.safeParse(addr.state).success &&
 				a.zipCode.safeParse(addr.zipCode).success
+			if (formType !== 'i90') return mailingComplete
+			// i90 also asks Part 1 Item 7: physical address when different from
+			// mailing. 'no' requires street + city plus a US state+ZIP or a
+			// country (commuters normally live abroad).
+			if (!mailingComplete) return false
+			if (form.physicalAddressSameAsMailing === 'yes') return true
+			if (form.physicalAddressSameAsMailing !== 'no') return false
+			const phys = (form.physicalAddress ?? {}) as Record<string, unknown>
+			// The state must be a real dropdown option (a typo would otherwise
+			// only surface as a failed select at clean-export time).
+			const hasUsLocation = isUsStateCode(phys.state) && isNonEmptyString(phys.zipCode)
+			return (
+				isNonEmptyString(phys.street) &&
+				isNonEmptyString(phys.city) &&
+				(hasUsLocation || isNonEmptyString(phys.country))
 			)
 		}
 		case 'eligibility-category':
@@ -156,13 +205,61 @@ export function isStepComplete(
 			// can never complete the step); replacementReason only when replacing.
 			return isSupportedI765Category(pf.eligibilityCategory) &&
 				(applicationKind !== 'replacement' || isNonEmptyString(form.replacementReason))
-		case 'card-details':
-			// i90 final step: card status is required and the combination must pass
-			// eligibility screening (a conditional resident cannot renew via I-90);
-			// cardExpirationDate stays optional; reason only when replacing.
+		case 'immigration-history': {
+			// i90-only: Part 3 Processing Information. A 'yes' on the proceedings
+			// or I-407 questions requires a written Part 8 explanation this app
+			// does not prepare, so the step honestly cannot complete (the UI
+			// explains why and points at the official form).
+			if (
+				!shape.locationAppliedVisa.safeParse(pf.locationAppliedVisa).success ||
+				!shape.locationIssuedVisa.safeParse(pf.locationIssuedVisa).success ||
+				!shape.becameResidentVia.safeParse(pf.becameResidentVia).success
+			) {
+				return false
+			}
+			if (
+				pf.becameResidentVia === 'immigrantVisa' &&
+				(!shape.destinationAtAdmission.safeParse(pf.destinationAtAdmission).success ||
+					!shape.portOfEntryCityState.safeParse(pf.portOfEntryCityState).success)
+			) {
+				return false
+			}
+			return pf.everInProceedings === 'no' && pf.filedI407OrAbandoned === 'no'
+		}
+		case 'applicant-statement': {
+			// i90-only: Part 5 statement 1.A (self-prepared in English — 'no'
+			// needs interpreter/preparer Parts 6/7, which this app does not
+			// prepare) and Part 4 accommodations (explicit No box; 'yes' needs at
+			// least one accommodation with its detail text).
+			if (form.preparedSelfInEnglish !== 'yes') return false
+			if (form.requestingAccommodation === 'no') return true
+			if (form.requestingAccommodation !== 'yes') return false
+			return (
+				isNonEmptyString(form.accommodationDeafSignLanguage) ||
+				isNonEmptyString(form.accommodationBlindDetail) ||
+				isNonEmptyString(form.accommodationOtherDetail)
+			)
+		}
+		case 'card-details': {
+			// i90 final card step: card status is required and the combination must
+			// pass eligibility screening (a conditional resident cannot renew via
+			// I-90); cardExpirationDate stays optional; reason only when replacing.
 			if (!isI90CardStatus(form.cardStatus)) return false
 			if (!screenI90(form.cardStatus, applicationKind).supported) return false
+			// Part 1 Item 4: the name-change question must be answered; 'yes'
+			// requires the name as printed on the current card (Items 5.A-5.B).
+			const nameAnswer = form.nameChangedSinceIssuance
+			if (nameAnswer !== 'yes' && nameAnswer !== 'no' && nameAnswer !== 'neverReceivedCard') {
+				return false
+			}
+			if (
+				nameAnswer === 'yes' &&
+				(!isNonEmptyString(form.previousFamilyName) || !isNonEmptyString(form.previousGivenName))
+			) {
+				return false
+			}
 			return applicationKind !== 'replacement' || isNonEmptyString(form.replacementReason)
+		}
 		default:
 			// 'review' and any unknown key can never be marked complete.
 			return false

@@ -170,3 +170,18 @@ by deterministic screening (`convex/shared/screening.ts` → I-751/I-829).
 Correction to the biometrics row below: `P2_checkbox3[*]` is NOT part of the
 Part 3 biometrics family — it is the Section B reason block; the biometrics
 gap itself (height/weight/eye/hair/ethnicity/race) still stands.
+
+**Update 2026-07-20 (later): the I-90 field contract is COMPLETE.** Slices
+3a-3c closed every remaining I-90 gap this audit catalogued plus items it had
+missed: identity/contact (city/state of birth, phone, email), the full
+biographic block (gender, parents, class/date of admission, height/weight/
+eye/hair/ethnicity/races), Part 1 Item 4 name-changed (+Items 5.A-5.C
+previous name, with an answer-aware `nameChangeEvidence` document slot),
+Part 1 Item 7 physical address (incl. foreign fields), Part 3 Items 1-5
+(locations, entry details, proceedings/I-407 — a "Yes" on Items 4/5 needs a
+Part 8 explanation the app doesn't prepare and fail-closes the step), Part 4
+accommodations, and Part 5 statement 1.A. `I90_COVERAGE_GAPS` is now empty
+(see `convex/shared/readiness.ts` for the deliberately-blank optional items),
+so a complete I-90 with resolved documents reaches `isReadyToFile`. The I-765
+gaps below (citizenship/city/contact now CLOSED; SSN block, arrival details,
+and the Part 3 statement still OPEN) remain the live I-765 ledger.

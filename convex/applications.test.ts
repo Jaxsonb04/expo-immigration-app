@@ -375,6 +375,7 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 			stepData: {
 				form: {
 					cardStatus: 'permanentResident' as const,
+					nameChangedSinceIssuance: 'no' as const,
 					...(situation.applicationKind === 'replacement'
 						? reason
 						: { cardExpirationDate: '2030-01-01' }),
@@ -420,9 +421,29 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 									},
 								},
 							},
+							{
+								stepKey: 'immigration-history',
+								stepData: {
+									personFacts: {
+										locationAppliedVisa: 'Ciudad Juarez, Mexico',
+										locationIssuedVisa: 'Ciudad Juarez, Mexico',
+										becameResidentVia: 'adjustmentOfStatus' as const,
+										everInProceedings: 'no' as const,
+										filedI407OrAbandoned: 'no' as const,
+									},
+								},
+							},
 						]),
 				{ stepKey: 'a-number', stepData: { personFacts: { aNumber: '123456789' } } },
-				{ stepKey: 'mailing-address', stepData: { personFacts: { mailingAddress } } },
+				{
+					stepKey: 'mailing-address',
+					stepData: {
+						personFacts: { mailingAddress },
+						...(situation.formType === 'i90'
+							? { form: { physicalAddressSameAsMailing: 'yes' as const } }
+							: {}),
+					},
+				},
 				{ stepKey: 'contact-info', stepData: { personFacts: { daytimePhone: '5125550142' } } },
 				...(situation.formType === 'i90'
 					? [
@@ -443,6 +464,19 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 						]
 					: []),
 				finalStep(situation),
+				...(situation.formType === 'i90'
+					? [
+							{
+								stepKey: 'applicant-statement',
+								stepData: {
+									form: {
+										preparedSelfInEnglish: 'yes' as const,
+										requestingAccommodation: 'no' as const,
+									},
+								},
+							},
+						]
+					: []),
 			]
 
 			let result: { nextStepKey: string; completedStepCount: number; totalStepCount: number } | undefined
@@ -450,13 +484,164 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 				result = await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
 			}
 
-			const preReviewCount = situation.formType === 'i765' ? 8 : 9
+			const preReviewCount = situation.formType === 'i765' ? 8 : 11
 			expect(result).toBeDefined()
 			expect(result!.nextStepKey).toBe('review')
 			expect(result!.completedStepCount).toBe(preReviewCount)
 			expect(result!.totalStepCount).toBe(preReviewCount + 1)
 		},
 	)
+})
+
+// Slice 3c: the I-90 field contract is complete, so a fully-answered I-90 with
+// resolved documents must genuinely reach isReadyToFile through the real
+// mutations — and the name-change answer must drive its document requirement.
+describe('I-90 end-to-end readiness (milestone)', () => {
+	const i90Steps = [
+		{ stepKey: 'legal-name', stepData: { personFacts: { givenName: 'Ana', familyName: 'Diaz' } } },
+		{ stepKey: 'date-of-birth', stepData: { personFacts: { dateOfBirth: '1990-05-01' } } },
+		{
+			stepKey: 'country-of-birth',
+			stepData: { personFacts: { countryOfBirth: 'Mexico', cityOfBirth: 'Oaxaca' } },
+		},
+		{
+			stepKey: 'personal-details',
+			stepData: {
+				personFacts: {
+					gender: 'female' as const,
+					motherGivenName: 'Rosa',
+					fatherGivenName: 'Miguel',
+					classOfAdmission: 'IR1',
+					dateOfAdmission: '2015-06-10',
+				},
+			},
+		},
+		{
+			stepKey: 'immigration-history',
+			stepData: {
+				personFacts: {
+					locationAppliedVisa: 'Ciudad Juarez, Mexico',
+					locationIssuedVisa: 'Ciudad Juarez, Mexico',
+					becameResidentVia: 'immigrantVisa' as const,
+					destinationAtAdmission: 'San Francisco, CA',
+					portOfEntryCityState: 'San Ysidro, CA',
+					everInProceedings: 'no' as const,
+					filedI407OrAbandoned: 'no' as const,
+				},
+			},
+		},
+		{ stepKey: 'a-number', stepData: { personFacts: { aNumber: '123456789' } } },
+		{
+			stepKey: 'mailing-address',
+			stepData: {
+				personFacts: { mailingAddress },
+				form: { physicalAddressSameAsMailing: 'yes' as const },
+			},
+		},
+		{ stepKey: 'contact-info', stepData: { personFacts: { daytimePhone: '5125550142' } } },
+		{
+			stepKey: 'physical-description',
+			stepData: {
+				personFacts: {
+					heightFeet: '5' as const,
+					heightInches: '4' as const,
+					weightPounds: '130',
+					eyeColor: 'brown' as const,
+					hairColor: 'black' as const,
+					ethnicity: 'hispanicOrLatino' as const,
+					races: ['white' as const],
+				},
+			},
+		},
+		{
+			stepKey: 'card-details',
+			stepData: {
+				form: {
+					cardStatus: 'permanentResident' as const,
+					cardExpirationDate: '2030-01-01',
+					nameChangedSinceIssuance: 'no' as const,
+				},
+			},
+		},
+		{
+			stepKey: 'applicant-statement',
+			stepData: {
+				form: {
+					preparedSelfInEnglish: 'yes' as const,
+					requestingAccommodation: 'no' as const,
+				},
+			},
+		},
+	]
+
+	async function setupI90() {
+		const t = newT()
+		const alice = t.withIdentity({ subject: 'alice' })
+		const applicantId = await alice.mutation(api.applicants.createApplicant, {
+			displayName: 'Ana',
+			isSelf: true,
+		})
+		const applicationId = await alice.mutation(api.applications.createApplication, {
+			applicantId,
+			formType: 'i90',
+			applicationKind: 'renewal',
+			i90CardStatus: 'permanentResident',
+		})
+		return { t, alice, applicationId }
+	}
+
+	test('a fully answered I-90 renewal with resolved documents is ready to file', async () => {
+		const { t, alice, applicationId } = await setupI90()
+		for (const step of i90Steps) {
+			await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
+		}
+		await t.run(async (ctx) => {
+			const slots = await ctx.db
+				.query('applicationDocuments')
+				.withIndex('by_applicationId', (q) => q.eq('applicationId', applicationId))
+				.take(50)
+			for (const slot of slots) {
+				await ctx.db.patch('applicationDocuments', slot._id, { status: 'waived' })
+			}
+		})
+		const { readiness, application } = await alice.query(api.applications.getApplication, {
+			applicationId,
+		})
+		expect(application.currentStepKey).toBe('review')
+		expect(readiness.blockers).toEqual([])
+		expect(readiness.isReadyToFile).toBe(true)
+	})
+
+	test('answering "name changed" adds the evidence slot; flipping back removes it', async () => {
+		const { alice, applicationId } = await setupI90()
+		await alice.mutation(api.applications.saveApplicationStep, {
+			applicationId,
+			stepKey: 'card-details',
+			stepData: {
+				form: {
+					cardStatus: 'permanentResident' as const,
+					nameChangedSinceIssuance: 'yes' as const,
+					previousFamilyName: 'Diaz',
+					previousGivenName: 'Ana',
+				},
+			},
+		})
+		let detail = await alice.query(api.applications.getApplication, { applicationId })
+		expect(detail.requirements.map((r) => r.requirementKey)).toContain('nameChangeEvidence')
+
+		await alice.mutation(api.applications.saveApplicationStep, {
+			applicationId,
+			stepKey: 'card-details',
+			stepData: {
+				form: {
+					cardStatus: 'permanentResident' as const,
+					nameChangedSinceIssuance: 'no' as const,
+				},
+			},
+		})
+		detail = await alice.query(api.applications.getApplication, { applicationId })
+		expect(detail.requirements.map((r) => r.requirementKey)).not.toContain('nameChangeEvidence')
+	})
 })
 
 // Workflow-truth: getApplication carries a server-computed readiness contract,

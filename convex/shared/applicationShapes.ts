@@ -59,11 +59,46 @@ export const races = [
 ] as const
 export type Race = (typeof races)[number]
 
+/** Plain yes/no answers stored as enums so radios and checkbox pairs map 1:1. */
+export const yesNo = ['yes', 'no'] as const
+export type YesNo = (typeof yesNo)[number]
+
+// How the person became a permanent resident (I-90 Part 3 Item 3 note): an
+// immigrant visa at a port of entry, or adjustment of status inside the U.S.
+export const residencyPaths = ['immigrantVisa', 'adjustmentOfStatus'] as const
+export type ResidencyPath = (typeof residencyPaths)[number]
+
+// I-90 Part 1 Item 4 (Y/N/NA — the NA box is printed "I never received my
+// previous card").
+export const nameChangeAnswers = ['yes', 'no', 'neverReceivedCard'] as const
+export type NameChangeAnswer = (typeof nameChangeAnswers)[number]
+
+// The exact option list shared by EVERY state dropdown on both bundled
+// templates (verified identical across I-765 mailing and I-90 mailing +
+// physical): 50 states plus DC, territories, and AA/AE/AP military codes.
+// Validating against it up front keeps a typo from surfacing only as a
+// failed dropdown-select at clean-export time.
+export const usStateCodes = [
+	'AA', 'AE', 'AK', 'AL', 'AP', 'AR', 'AS', 'AZ', 'CA', 'CO', 'CT', 'DC', 'DE',
+	'FL', 'FM', 'GA', 'GU', 'HI', 'IA', 'ID', 'IL', 'IN', 'KS', 'KY', 'LA', 'MA',
+	'MD', 'ME', 'MH', 'MI', 'MN', 'MO', 'MP', 'MS', 'MT', 'NC', 'ND', 'NE', 'NH',
+	'NJ', 'NM', 'NV', 'NY', 'OH', 'OK', 'OR', 'PA', 'PR', 'PW', 'RI', 'SC', 'SD',
+	'TN', 'TX', 'UT', 'VA', 'VI', 'VT', 'WA', 'WI', 'WV', 'WY',
+] as const
+
+export function isUsStateCode(value: unknown): boolean {
+	return (
+		typeof value === 'string' && (usStateCodes as readonly string[]).includes(value.toUpperCase())
+	)
+}
+
 export const addressShape = z.object({
 	street: z.string().min(1, 'Street address is required'),
 	unit: z.string().optional(),
 	city: z.string().min(1, 'City is required'),
-	state: z.string().min(2, 'Use the 2-letter state code'),
+	// Stored as entered; validated case-insensitively against the dropdowns'
+	// real option list, emitted uppercased by the PDF maps.
+	state: z.string().refine(isUsStateCode, 'Use a valid 2-letter state code'),
 	zipCode: z.string().min(5, 'Enter a 5-digit ZIP code'),
 })
 
@@ -102,6 +137,14 @@ export const personFactsShape = z.object({
 	hairColor: z.enum(hairColors),
 	ethnicity: z.enum(ethnicities),
 	races: z.array(z.enum(races)).min(1, 'Select at least one'),
+	// I-90 Part 3 Processing Information — person-level immigration history.
+	locationAppliedVisa: z.string().min(1, 'This location is required'),
+	locationIssuedVisa: z.string().min(1, 'This location is required'),
+	becameResidentVia: z.enum(residencyPaths),
+	destinationAtAdmission: z.string().min(1, 'Your destination is required'),
+	portOfEntryCityState: z.string().min(1, 'City and state are required'),
+	everInProceedings: z.enum(yesNo),
+	filedI407OrAbandoned: z.enum(yesNo),
 	aNumber: z
 		.string()
 		.regex(/^\d{7,9}$/, 'An A-Number is 7 to 9 digits'),
@@ -125,10 +168,43 @@ export const i765SpecificsShape = z.object({
 export const i90CardStatuses = ['permanentResident', 'commuter', 'conditionalResident'] as const
 export type I90CardStatus = (typeof i90CardStatuses)[number]
 
+// I-90 Part 1 Item 7 physical address — only provided when different from the
+// mailing address. Commuters normally live abroad, so the foreign fields
+// (province/postal code/country) are first-class; the step-completion rule
+// requires street + city plus either a US state+ZIP or a country.
+export const i90PhysicalAddressShape = z.object({
+	street: z.string().min(1, 'Street address is required'),
+	unit: z.string().optional(),
+	city: z.string().min(1, 'City is required'),
+	state: z.string().optional(),
+	zipCode: z.string().optional(),
+	province: z.string().optional(),
+	postalCode: z.string().optional(),
+	country: z.string().optional(),
+})
+
 export const i90SpecificsShape = z.object({
 	cardStatus: z.enum(i90CardStatuses).optional(),
 	cardExpirationDate: isoDate.optional(),
 	replacementReason: z.enum(['lost', 'stolen', 'damaged', 'error', 'nameChange']).optional(),
+	// Part 1 Item 4 + Items 5.A-5.C (the name as printed on the CURRENT card,
+	// collected only when the name has legally changed since issuance).
+	nameChangedSinceIssuance: z.enum(nameChangeAnswers).optional(),
+	previousFamilyName: z.string().optional(),
+	previousGivenName: z.string().optional(),
+	previousMiddleName: z.string().optional(),
+	// Part 1 Item 7.
+	physicalAddressSameAsMailing: z.enum(yesNo).optional(),
+	physicalAddress: i90PhysicalAddressShape.optional(),
+	// Part 5 Applicant's Statement (1.A) — 'no' means an interpreter/preparer
+	// was involved, which needs Parts 6/7 this app does not prepare.
+	preparedSelfInEnglish: z.enum(yesNo).optional(),
+	// Part 4 Accommodations: an explicit No box exists on the printed form;
+	// detail text presence doubles as the 1.A/1.B/1.C checkbox signal.
+	requestingAccommodation: z.enum(yesNo).optional(),
+	accommodationDeafSignLanguage: z.string().optional(),
+	accommodationBlindDetail: z.string().optional(),
+	accommodationOtherDetail: z.string().optional(),
 })
 
 // Draft answers are partial by nature — steps fill them in incrementally and

@@ -84,6 +84,13 @@ const fullI90Draft: I90DraftAnswers = {
 		hairColor: 'sandy',
 		ethnicity: 'notHispanicOrLatino',
 		races: ['asian', 'white'],
+		locationAppliedVisa: 'Ciudad Juarez, Mexico',
+		locationIssuedVisa: 'Ciudad Juarez, Mexico',
+		becameResidentVia: 'immigrantVisa',
+		destinationAtAdmission: 'San Francisco, CA',
+		portOfEntryCityState: 'San Ysidro, CA',
+		everInProceedings: 'no',
+		filedI407OrAbandoned: 'no',
 		aNumber: 'A12345678',
 		mailingAddress: {
 			street: '2350 Mission St',
@@ -97,6 +104,10 @@ const fullI90Draft: I90DraftAnswers = {
 		cardStatus: 'permanentResident',
 		cardExpirationDate: '2027-03-15',
 		replacementReason: 'lost',
+		nameChangedSinceIssuance: 'no',
+		physicalAddressSameAsMailing: 'yes',
+		preparedSelfInEnglish: 'yes',
+		requestingAccommodation: 'no',
 	},
 }
 
@@ -349,6 +360,114 @@ describe('buildI90Ops', () => {
 		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.raceAsian })
 		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.raceWhite })
 		expect(ops).not.toContainEqual({ kind: 'check', field: I90_FIELDS.raceBlack })
+	})
+
+	test('maps the Part 3 processing items and Part 5 statement (slice 3c)', () => {
+		const ops = buildI90Ops(fullI90Draft, 'renewal')
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I90_FIELDS.locationAppliedVisa,
+			value: 'Ciudad Juarez, Mexico',
+		})
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I90_FIELDS.destinationAtAdmission,
+			value: 'San Francisco, CA',
+		})
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I90_FIELDS.portOfEntryCityState,
+			value: 'San Ysidro, CA',
+		})
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.proceedingsNo })
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.i407No })
+		expect(ops).not.toContainEqual({ kind: 'check', field: I90_FIELDS.proceedingsYes })
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.nameChangedNo })
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.accommodationNo })
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.statementSelfEnglish })
+	})
+
+	test('adjustment-of-status drafts emit no entry-detail ops', () => {
+		const ops = buildI90Ops(
+			{
+				...fullI90Draft,
+				personFacts: { ...fullI90Draft.personFacts, becameResidentVia: 'adjustmentOfStatus' },
+			},
+			'renewal',
+		)
+		expect(ops.some((op) => op.field === I90_FIELDS.destinationAtAdmission)).toBe(false)
+		expect(ops.some((op) => op.field === I90_FIELDS.portOfEntryCityState)).toBe(false)
+	})
+
+	test('a changed name maps the Y box and the name printed on the card', () => {
+		const ops = buildI90Ops(
+			{
+				...fullI90Draft,
+				form: {
+					...fullI90Draft.form,
+					nameChangedSinceIssuance: 'yes',
+					previousFamilyName: 'Santos',
+					previousGivenName: 'Maria',
+				},
+			},
+			'renewal',
+		)
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.nameChangedYes })
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I90_FIELDS.previousFamilyName,
+			value: 'Santos',
+		})
+	})
+
+	test('a differing physical address maps Item 7, foreign fields included', () => {
+		const ops = buildI90Ops(
+			{
+				...fullI90Draft,
+				form: {
+					...fullI90Draft.form,
+					physicalAddressSameAsMailing: 'no',
+					physicalAddress: {
+						street: '1 Calle Real',
+						unit: 'APT 2',
+						city: 'Tijuana',
+						province: 'Baja California',
+						postalCode: '22000',
+						country: 'Mexico',
+					},
+				},
+			},
+			'renewal',
+		)
+		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.physicalStreet, value: '1 Calle Real' })
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.physicalUnitApt })
+		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.physicalUnitNumber, value: '2' })
+		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.physicalCountry, value: 'Mexico' })
+		// Same-as-mailing drafts leave Item 7 blank (the printed convention).
+		const sameOps = buildI90Ops(fullI90Draft, 'renewal')
+		expect(sameOps.some((op) => op.field === I90_FIELDS.physicalStreet)).toBe(false)
+	})
+
+	test('a requested accommodation checks its box and carries the detail text', () => {
+		const ops = buildI90Ops(
+			{
+				...fullI90Draft,
+				form: {
+					...fullI90Draft.form,
+					requestingAccommodation: 'yes',
+					accommodationDeafSignLanguage: 'American Sign Language',
+				},
+			},
+			'renewal',
+		)
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.accommodationYes })
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.accommodationDeafBox })
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I90_FIELDS.accommodationDeafText,
+			value: 'American Sign Language',
+		})
+		expect(ops).not.toContainEqual({ kind: 'check', field: I90_FIELDS.accommodationBlindBox })
 	})
 
 	test('maps city of birth and contact info (slice 3a)', () => {

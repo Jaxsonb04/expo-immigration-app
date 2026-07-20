@@ -50,18 +50,19 @@ export type ApplicationReadiness = {
 const I765_COVERAGE_GAPS: readonly string[] = [
 	'Social Security number and card-request answers',
 	'Passport or travel document and most-recent-arrival details (I-94, place and date of last entry, immigration status), where your category requires them',
+	'Applicant statement declarations (English / interpreter / preparer)',
 ]
 
-// Slice 3b closed the I-90 biographic/admission gaps (gender, parents' given
-// names, class/date of admission, full physical description — all collected
-// and mapped to verified fields). Re-enumerating the template surfaced three
-// required printed items the original audit had NOT catalogued; they are the
-// remaining honest blockers.
-const I90_COVERAGE_GAPS: readonly string[] = [
-	'Whether your name has legally changed since your card was issued (Part 1, Item 4)',
-	'Where you applied for and were issued your immigrant visa, or adjusted status (Part 3)',
-	'Immigrant-visa entry details and any abandonment or removal-proceedings history (Part 3)',
-]
+// Slice 3c: EMPTY — the I-90 field contract is complete. Every required
+// applicant-facing printed item is either collected+mapped or has an explicit
+// honest stop (a 'yes' on proceedings/I-407 or a non-English preparation
+// needs Parts 6-8, and blocks the step with an explanation instead of
+// exporting an incomplete form). Optional-by-form items deliberately left
+// blank: USCIS online account number (Item 2, "if any"), SSN (Item 16,
+// "if any"), in-care-of name (Item 6.A, mail routing), mobile phone (Part 5
+// Item 4), commuter-POE reason 2.h.1 (not an offered situation).
+// Signature/date are wet-ink per the filing instructions.
+const I90_COVERAGE_GAPS: readonly string[] = []
 
 /**
  * The known-missing required items for a situation. An empty result means the

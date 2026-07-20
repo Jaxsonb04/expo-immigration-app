@@ -87,6 +87,13 @@ function filledValues(overrides?: Partial<InterviewValues['personFacts']>): Inte
 			hairColor: 'black',
 			ethnicity: 'hispanicOrLatino',
 			races: ['white'],
+			locationAppliedVisa: 'Ciudad Juarez, Mexico',
+			locationIssuedVisa: 'Ciudad Juarez, Mexico',
+			becameResidentVia: 'immigrantVisa',
+			destinationAtAdmission: 'San Francisco, CA',
+			portOfEntryCityState: 'San Ysidro, CA',
+			everInProceedings: 'no',
+			filedI407OrAbandoned: 'no',
 			...overrides,
 		},
 		form: {
@@ -95,6 +102,26 @@ function filledValues(overrides?: Partial<InterviewValues['personFacts']>): Inte
 			ssn: '',
 			cardExpirationDate: '',
 			cardStatus: 'permanentResident',
+			nameChangedSinceIssuance: 'no',
+			previousFamilyName: '',
+			previousGivenName: '',
+			previousMiddleName: '',
+			physicalAddressSameAsMailing: 'yes',
+			physicalAddress: {
+				street: '',
+				unit: '',
+				city: '',
+				state: '',
+				zipCode: '',
+				province: '',
+				postalCode: '',
+				country: '',
+			},
+			preparedSelfInEnglish: 'yes',
+			requestingAccommodation: 'no',
+			accommodationDeafSignLanguage: '',
+			accommodationBlindDetail: '',
+			accommodationOtherDetail: '',
 		},
 	}
 }
@@ -178,7 +205,83 @@ describe('buildStepData', () => {
 		const values = filledValues()
 		values.form.cardExpirationDate = ''
 		const data = stepDataFor('i90', 'card-details', values, 'replacement')
-		expect(data.form).toEqual({ cardStatus: 'permanentResident', replacementReason: 'lost' })
+		expect(data.form).toEqual({
+			cardStatus: 'permanentResident',
+			nameChangedSinceIssuance: 'no',
+			replacementReason: 'lost',
+		})
+	})
+
+	test('card-details includes the previous name only when the name changed', () => {
+		const values = filledValues()
+		values.form.cardExpirationDate = ''
+		values.form.nameChangedSinceIssuance = 'yes'
+		values.form.previousFamilyName = 'Santos'
+		values.form.previousGivenName = 'Maria'
+		const data = stepDataFor('i90', 'card-details', values, 'renewal')
+		expect(data.form).toEqual({
+			cardStatus: 'permanentResident',
+			nameChangedSinceIssuance: 'yes',
+			previousFamilyName: 'Santos',
+			previousGivenName: 'Maria',
+		})
+	})
+
+	test('immigration-history drops entry fields for adjustment-of-status', () => {
+		const values = filledValues()
+		values.personFacts.becameResidentVia = 'adjustmentOfStatus'
+		const data = stepDataFor('i90', 'immigration-history', values, 'renewal')
+		expect(data.personFacts).toEqual({
+			locationAppliedVisa: 'Ciudad Juarez, Mexico',
+			locationIssuedVisa: 'Ciudad Juarez, Mexico',
+			becameResidentVia: 'adjustmentOfStatus',
+			everInProceedings: 'no',
+			filedI407OrAbandoned: 'no',
+		})
+	})
+
+	test('mailing-address emits the physical address only when different (i90)', () => {
+		const same = stepDataFor('i90', 'mailing-address', filledValues(), 'renewal')
+		expect(same.form).toEqual({ physicalAddressSameAsMailing: 'yes' })
+
+		const values = filledValues()
+		values.form.physicalAddressSameAsMailing = 'no'
+		values.form.physicalAddress = {
+			street: '1 Calle Real',
+			unit: '',
+			city: 'Tijuana',
+			state: '',
+			zipCode: '',
+			province: 'Baja California',
+			postalCode: '22000',
+			country: 'Mexico',
+		}
+		const different = stepDataFor('i90', 'mailing-address', values, 'renewal')
+		expect(different.form).toEqual({
+			physicalAddressSameAsMailing: 'no',
+			physicalAddress: {
+				street: '1 Calle Real',
+				city: 'Tijuana',
+				province: 'Baja California',
+				postalCode: '22000',
+				country: 'Mexico',
+			},
+		})
+	})
+
+	test('applicant-statement drops accommodation details unless requested', () => {
+		const none = stepDataFor('i90', 'applicant-statement', filledValues(), 'renewal')
+		expect(none.form).toEqual({ preparedSelfInEnglish: 'yes', requestingAccommodation: 'no' })
+
+		const values = filledValues()
+		values.form.requestingAccommodation = 'yes'
+		values.form.accommodationDeafSignLanguage = 'American Sign Language'
+		const withDetail = stepDataFor('i90', 'applicant-statement', values, 'renewal')
+		expect(withDetail.form).toEqual({
+			preparedSelfInEnglish: 'yes',
+			requestingAccommodation: 'yes',
+			accommodationDeafSignLanguage: 'American Sign Language',
+		})
 	})
 
 	test('every step payload survives a Zod round-trip through the shared draft shapes', async () => {
@@ -265,10 +368,10 @@ describe('picker options stay in sync with the screening scope', () => {
 
 describe('initialStepIndex', () => {
 	test('resumes at the persisted current step', () => {
-		// Both forms insert a step after country-of-birth (citizenship on i765,
-		// personal-details on i90), so mailing-address sits at index 5 on both.
+		// i765: legal, dob, birth, citizenship, a-number, mailing → 5.
+		// i90: legal, dob, birth, personal, history, a-number, mailing → 6.
 		expect(initialStepIndex('i765', 'mailing-address')).toBe(5)
-		expect(initialStepIndex('i90', 'mailing-address')).toBe(5)
+		expect(initialStepIndex('i90', 'mailing-address')).toBe(6)
 	})
 
 	test('falls back to the first step for review or unknown keys', () => {

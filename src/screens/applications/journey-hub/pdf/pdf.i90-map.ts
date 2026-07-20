@@ -6,7 +6,14 @@ import type {
 	I90DraftAnswers,
 	Race,
 } from '@convex/shared/applicationShapes'
-import { formatUsDate, normalizeANumber, pushAddressOps, pushTextOp, type FillOp } from './pdf.fill'
+import {
+	formatUsDate,
+	normalizeANumber,
+	parseUnit,
+	pushAddressOps,
+	pushTextOp,
+	type FillOp,
+} from './pdf.fill'
 
 // Fully-qualified AcroForm paths verified against the bundled 2025-02-27
 // edition (assets/forms/i-90.pdf).
@@ -85,6 +92,49 @@ export const I90_FIELDS = {
 	hairSandy: `${S2}P3_checkbox11[3]`,
 	hairWhite: `${S2}P3_checkbox11[5]`,
 	hairUnknown: `${S2}P3_checkbox11[4]`,
+	// Part 1 Item 4 (Y/N/NA — export values verified) + Items 5.A-5.C (the
+	// name as printed on the current card, required only on Yes).
+	nameChangedYes: `${S0}P1_checkbox4[0]`,
+	nameChangedNo: `${S0}P1_checkbox4[1]`,
+	nameChangedNa: `${S0}P1_checkbox4[2]`,
+	previousFamilyName: `${S0}P1_Line5a_FamilyName[0]`,
+	previousGivenName: `${S0}P1_Line5b_GivenName[0]`,
+	previousMiddleName: `${S0}P1_Line5c_MiddleName[0]`,
+	// Part 1 Item 7 physical address ("only if different than mailing") —
+	// unit boxes in plain APT/STE/FLR order; 7.D is a State dropdown; 7.F-7.H
+	// are the foreign province/postal/country boxes.
+	physicalStreet: `${S0}P1_Line7a_StreetNumberName[0]`,
+	physicalUnitNumber: `${S0}P1_Line7b_AptSteFlrNumber[0]`,
+	physicalUnitApt: `${S0}P1_checkbox7b_Unit[0]`,
+	physicalUnitSte: `${S0}P1_checkbox7b_Unit[1]`,
+	physicalUnitFlr: `${S0}P1_checkbox7b_Unit[2]`,
+	physicalCity: `${S0}P1_Line7c_CityOrTown[0]`,
+	physicalState: `${S0}P1_Line7d_State[0]`,
+	physicalZip: `${S0}P1_Line7e_ZipCode[0]`,
+	physicalProvince: `${S0}P1_Line7f_Province[0]`,
+	physicalPostalCode: `${S0}P1_Line7g_PostalCode[0]`,
+	physicalCountry: `${S0}P1_Line7h_Country[0]`,
+	// Part 3 Items 1-5 (processing information; tooltips verified).
+	locationAppliedVisa: `${S2}P3_Line1_LocationAppliedVisa[0]`,
+	locationIssuedVisa: `${S2}P3_Line2_LocationIssuedVisa[0]`,
+	destinationAtAdmission: `${S2}P3_Line3a_Destination[0]`,
+	portOfEntryCityState: `${S2}P3_Line3a1_CityandState[0]`,
+	proceedingsYes: `${S2}P3_checkbox4[1]`,
+	proceedingsNo: `${S2}P3_checkbox4[0]`,
+	i407Yes: `${S2}P3_checkbox5[1]`,
+	i407No: `${S2}P3_checkbox5[0]`,
+	// Part 4 accommodations (Item 1 Y/N on page 3; the 1.A language box is on
+	// page 3, the 1.B/1.C boxes and texts on page 4) + Part 5 statement 1.A
+	// (note the capital C in P5_Checkbox1a on this edition).
+	accommodationYes: `${S2}P4_checkbox1[1]`,
+	accommodationNo: `${S2}P4_checkbox1[0]`,
+	accommodationDeafBox: `${S2}P4_checkbox1a[0]`,
+	accommodationDeafText: `${S2}P4_Line1a_AccomodationRequested[0]`,
+	accommodationBlindBox: `${S3}P4_checkbox1b[0]`,
+	accommodationBlindText: `${S3}P4_Line1b_AccomodationRequested[0]`,
+	accommodationOtherBox: `${S3}P4_checkbox1c[0]`,
+	accommodationOtherText: `${S3}P4_Line1c_AccomodationRequested[0]`,
+	statementSelfEnglish: `${S3}P5_Checkbox1a[0]`,
 	// Part 2 Item 1 "My status is", verified per checkbox against this
 	// edition's TU tooltips AND export values ('1a'/'1b'/'1c') AND widget
 	// y-geometry (211/193/163 top→bottom). Indices DO follow printed order
@@ -148,6 +198,15 @@ const HAIR_COLOR_FIELDS: Record<HairColor, string> = {
 	sandy: I90_FIELDS.hairSandy,
 	white: I90_FIELDS.hairWhite,
 	unknownOrOther: I90_FIELDS.hairUnknown,
+}
+
+const NAME_CHANGE_FIELDS: Record<
+	NonNullable<I90DraftAnswers['form']['nameChangedSinceIssuance']>,
+	string
+> = {
+	yes: I90_FIELDS.nameChangedYes,
+	no: I90_FIELDS.nameChangedNo,
+	neverReceivedCard: I90_FIELDS.nameChangedNa,
 }
 
 const RACE_FIELDS: Record<Race, string> = {
@@ -279,6 +338,96 @@ export function buildI90Ops(answers: I90DraftAnswers, applicationKind: Applicati
 	}
 	if (personFacts.hairColor !== undefined) {
 		ops.push({ kind: 'check', field: HAIR_COLOR_FIELDS[personFacts.hairColor] })
+	}
+
+	// Part 1 Item 4 + Items 5.A-5.C (slice 3c).
+	const nameChanged = answers.form.nameChangedSinceIssuance
+	if (nameChanged !== undefined) {
+		ops.push({ kind: 'check', field: NAME_CHANGE_FIELDS[nameChanged] })
+		if (nameChanged === 'yes') {
+			pushTextOp(ops, I90_FIELDS.previousFamilyName, answers.form.previousFamilyName)
+			pushTextOp(ops, I90_FIELDS.previousGivenName, answers.form.previousGivenName)
+			pushTextOp(ops, I90_FIELDS.previousMiddleName, answers.form.previousMiddleName)
+		}
+	}
+
+	// Part 1 Item 7: emitted only when the physical address differs — a blank
+	// Item 7 is the printed form's own "same as mailing" convention.
+	const physical = answers.form.physicalAddress
+	if (answers.form.physicalAddressSameAsMailing === 'no' && physical !== undefined) {
+		pushTextOp(ops, I90_FIELDS.physicalStreet, physical.street)
+		if (physical.unit !== undefined && physical.unit.trim() !== '') {
+			const { unitType, unitNumber } = parseUnit(physical.unit)
+			if (unitType === 'apt') ops.push({ kind: 'check', field: I90_FIELDS.physicalUnitApt })
+			if (unitType === 'ste') ops.push({ kind: 'check', field: I90_FIELDS.physicalUnitSte })
+			if (unitType === 'flr') ops.push({ kind: 'check', field: I90_FIELDS.physicalUnitFlr })
+			pushTextOp(ops, I90_FIELDS.physicalUnitNumber, unitNumber)
+		}
+		pushTextOp(ops, I90_FIELDS.physicalCity, physical.city)
+		if (physical.state !== undefined && physical.state.trim() !== '') {
+			ops.push({
+				kind: 'select',
+				field: I90_FIELDS.physicalState,
+				value: physical.state.trim().toUpperCase(),
+			})
+		}
+		pushTextOp(ops, I90_FIELDS.physicalZip, physical.zipCode)
+		pushTextOp(ops, I90_FIELDS.physicalProvince, physical.province)
+		pushTextOp(ops, I90_FIELDS.physicalPostalCode, physical.postalCode)
+		pushTextOp(ops, I90_FIELDS.physicalCountry, physical.country)
+	}
+
+	// Part 3 Items 1-5.
+	pushTextOp(ops, I90_FIELDS.locationAppliedVisa, personFacts.locationAppliedVisa)
+	pushTextOp(ops, I90_FIELDS.locationIssuedVisa, personFacts.locationIssuedVisa)
+	if (personFacts.becameResidentVia === 'immigrantVisa') {
+		pushTextOp(ops, I90_FIELDS.destinationAtAdmission, personFacts.destinationAtAdmission)
+		pushTextOp(ops, I90_FIELDS.portOfEntryCityState, personFacts.portOfEntryCityState)
+	}
+	if (personFacts.everInProceedings !== undefined) {
+		ops.push({
+			kind: 'check',
+			field:
+				personFacts.everInProceedings === 'yes'
+					? I90_FIELDS.proceedingsYes
+					: I90_FIELDS.proceedingsNo,
+		})
+	}
+	if (personFacts.filedI407OrAbandoned !== undefined) {
+		ops.push({
+			kind: 'check',
+			field: personFacts.filedI407OrAbandoned === 'yes' ? I90_FIELDS.i407Yes : I90_FIELDS.i407No,
+		})
+	}
+
+	// Part 4 accommodations: the printed form has an explicit No box; each
+	// selected accommodation checks its box and carries its detail text.
+	const requesting = answers.form.requestingAccommodation
+	if (requesting === 'no') {
+		ops.push({ kind: 'check', field: I90_FIELDS.accommodationNo })
+	} else if (requesting === 'yes') {
+		ops.push({ kind: 'check', field: I90_FIELDS.accommodationYes })
+		const deaf = answers.form.accommodationDeafSignLanguage
+		if (deaf !== undefined && deaf.trim() !== '') {
+			ops.push({ kind: 'check', field: I90_FIELDS.accommodationDeafBox })
+			pushTextOp(ops, I90_FIELDS.accommodationDeafText, deaf)
+		}
+		const blind = answers.form.accommodationBlindDetail
+		if (blind !== undefined && blind.trim() !== '') {
+			ops.push({ kind: 'check', field: I90_FIELDS.accommodationBlindBox })
+			pushTextOp(ops, I90_FIELDS.accommodationBlindText, blind)
+		}
+		const other = answers.form.accommodationOtherDetail
+		if (other !== undefined && other.trim() !== '') {
+			ops.push({ kind: 'check', field: I90_FIELDS.accommodationOtherBox })
+			pushTextOp(ops, I90_FIELDS.accommodationOtherText, other)
+		}
+	}
+
+	// Part 5 statement 1.A — checked only for a self-prepared English filing;
+	// interpreter/preparer cases are stopped upstream (they need Parts 6/7).
+	if (answers.form.preparedSelfInEnglish === 'yes') {
+		ops.push({ kind: 'check', field: I90_FIELDS.statementSelfEnglish })
 	}
 
 	return ops

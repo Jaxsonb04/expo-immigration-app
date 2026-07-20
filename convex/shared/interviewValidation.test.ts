@@ -32,10 +32,25 @@ const validPersonFacts = {
 	hairColor: 'black',
 	ethnicity: 'hispanicOrLatino',
 	races: ['white'],
+	locationAppliedVisa: 'Ciudad Juarez, Mexico',
+	locationIssuedVisa: 'Ciudad Juarez, Mexico',
+	becameResidentVia: 'immigrantVisa',
+	destinationAtAdmission: 'Austin, TX',
+	portOfEntryCityState: 'San Ysidro, CA',
+	everInProceedings: 'no',
+	filedI407OrAbandoned: 'no',
 }
 
 const formFor = (situation: { formType: string; applicationKind: string }) => ({
-	...(situation.formType === 'i90' ? { cardStatus: 'permanentResident' } : {}),
+	...(situation.formType === 'i90'
+		? {
+				cardStatus: 'permanentResident',
+				nameChangedSinceIssuance: 'no',
+				physicalAddressSameAsMailing: 'yes',
+				preparedSelfInEnglish: 'yes',
+				requestingAccommodation: 'no',
+			}
+		: {}),
 	...(situation.applicationKind === 'replacement' ? { replacementReason: 'lost' } : {}),
 })
 
@@ -158,8 +173,9 @@ describe('isStepComplete — kind-aware branches', () => {
 		expect(isStepComplete('i765', 'renewal', 'eligibility-category', noReason)).toBe(true)
 		expect(isStepComplete('i765', 'replacement', 'eligibility-category', noReason)).toBe(false)
 		expect(isStepComplete('i765', 'replacement', 'eligibility-category', withReason)).toBe(true)
-		// i90 final step (card-details) — status-gated always, reason-gated for replacement
-		const status = { cardStatus: 'permanentResident' }
+		// i90 final card step — status- and name-change-gated always, reason-gated
+		// for replacement
+		const status = { cardStatus: 'permanentResident', nameChangedSinceIssuance: 'no' }
 		expect(
 			isStepComplete('i90', 'renewal', 'card-details', { personFacts: validPersonFacts, form: status }),
 		).toBe(true)
@@ -187,7 +203,7 @@ describe('isStepComplete — kind-aware branches', () => {
 	})
 
 	test('a conditional resident can never complete a renewal card-details step', () => {
-		const conditional = { cardStatus: 'conditionalResident' }
+		const conditional = { cardStatus: 'conditionalResident', nameChangedSinceIssuance: 'no' }
 		expect(
 			isStepComplete('i90', 'renewal', 'card-details', {
 				personFacts: validPersonFacts,
@@ -199,6 +215,135 @@ describe('isStepComplete — kind-aware branches', () => {
 			isStepComplete('i90', 'replacement', 'card-details', {
 				personFacts: validPersonFacts,
 				form: { ...conditional, replacementReason: 'lost' },
+			}),
+		).toBe(true)
+	})
+
+	test('card-details name-change gate: Yes needs the name printed on the card', () => {
+		const base = { cardStatus: 'permanentResident' }
+		expect(
+			isStepComplete('i90', 'renewal', 'card-details', {
+				personFacts: validPersonFacts,
+				form: base,
+			}),
+		).toBe(false)
+		expect(
+			isStepComplete('i90', 'renewal', 'card-details', {
+				personFacts: validPersonFacts,
+				form: { ...base, nameChangedSinceIssuance: 'yes' },
+			}),
+		).toBe(false)
+		expect(
+			isStepComplete('i90', 'renewal', 'card-details', {
+				personFacts: validPersonFacts,
+				form: {
+					...base,
+					nameChangedSinceIssuance: 'yes',
+					previousFamilyName: 'Santos',
+					previousGivenName: 'Maria',
+				},
+			}),
+		).toBe(true)
+		expect(
+			isStepComplete('i90', 'renewal', 'card-details', {
+				personFacts: validPersonFacts,
+				form: { ...base, nameChangedSinceIssuance: 'neverReceivedCard' },
+			}),
+		).toBe(true)
+	})
+
+	test('immigration-history: conditional entry fields and fail-closed Part 8 answers', () => {
+		const complete = { personFacts: validPersonFacts, form: {} }
+		expect(isStepComplete('i90', 'renewal', 'immigration-history', complete)).toBe(true)
+		// Adjustment-of-status does not need destination/port of entry.
+		expect(
+			isStepComplete('i90', 'renewal', 'immigration-history', {
+				personFacts: {
+					...validPersonFacts,
+					becameResidentVia: 'adjustmentOfStatus',
+					destinationAtAdmission: '',
+					portOfEntryCityState: '',
+				},
+				form: {},
+			}),
+		).toBe(true)
+		// Immigrant-visa entry requires both.
+		expect(
+			isStepComplete('i90', 'renewal', 'immigration-history', {
+				personFacts: { ...validPersonFacts, destinationAtAdmission: '' },
+				form: {},
+			}),
+		).toBe(false)
+		// A 'yes' on proceedings or I-407 needs Part 8 — never completes.
+		for (const over of [{ everInProceedings: 'yes' }, { filedI407OrAbandoned: 'yes' }]) {
+			expect(
+				isStepComplete('i90', 'renewal', 'immigration-history', {
+					personFacts: { ...validPersonFacts, ...over },
+					form: {},
+				}),
+			).toBe(false)
+		}
+	})
+
+	test('mailing-address (i90): physical-address question gates completion', () => {
+		const mailingOnly = { personFacts: validPersonFacts, form: {} }
+		// i765 does not ask the physical-address question.
+		expect(isStepComplete('i765', 'renewal', 'mailing-address', mailingOnly)).toBe(true)
+		expect(isStepComplete('i90', 'renewal', 'mailing-address', mailingOnly)).toBe(false)
+		expect(
+			isStepComplete('i90', 'renewal', 'mailing-address', {
+				personFacts: validPersonFacts,
+				form: { physicalAddressSameAsMailing: 'yes' },
+			}),
+		).toBe(true)
+		// Different address needs street + city plus US state+ZIP or a country.
+		const differing = (physicalAddress: Record<string, string>) =>
+			isStepComplete('i90', 'renewal', 'mailing-address', {
+				personFacts: validPersonFacts,
+				form: { physicalAddressSameAsMailing: 'no', physicalAddress },
+			})
+		expect(differing({ street: '1 Calle Real', city: 'Tijuana', country: 'Mexico' })).toBe(true)
+		expect(differing({ street: '9 Elm St', city: 'Austin', state: 'TX', zipCode: '78701' })).toBe(
+			true,
+		)
+		expect(differing({ street: '9 Elm St', city: 'Austin' })).toBe(false)
+		// A code missing from the printed dropdown must not count as a US state
+		// (it would only fail later, at clean-export select time).
+		expect(differing({ street: '9 Elm St', city: 'Austin', state: 'ZZ', zipCode: '78701' })).toBe(
+			false,
+		)
+	})
+
+	test('mailing state must be a real dropdown option (case-insensitive)', () => {
+		const withState = (state: string) =>
+			isStepComplete('i765', 'renewal', 'mailing-address', {
+				personFacts: {
+					...validPersonFacts,
+					mailingAddress: { street: '1 Main St', city: 'Austin', state, zipCode: '78701' },
+				},
+				form: {},
+			})
+		expect(withState('TX')).toBe(true)
+		expect(withState('tx')).toBe(true)
+		expect(withState('ZZ')).toBe(false)
+	})
+
+	test('applicant-statement: English self-preparation and accommodations gate', () => {
+		const withForm = (form: Record<string, unknown>) =>
+			isStepComplete('i90', 'renewal', 'applicant-statement', {
+				personFacts: validPersonFacts,
+				form,
+			})
+		expect(withForm({ preparedSelfInEnglish: 'yes', requestingAccommodation: 'no' })).toBe(true)
+		// Interpreter/preparer cases need Parts 6/7 — never complete.
+		expect(withForm({ preparedSelfInEnglish: 'no', requestingAccommodation: 'no' })).toBe(false)
+		expect(withForm({ preparedSelfInEnglish: 'yes' })).toBe(false)
+		expect(withForm({ preparedSelfInEnglish: 'yes', requestingAccommodation: 'yes' })).toBe(false)
+		expect(
+			withForm({
+				preparedSelfInEnglish: 'yes',
+				requestingAccommodation: 'yes',
+				accommodationDeafSignLanguage: 'American Sign Language',
 			}),
 		).toBe(true)
 	})

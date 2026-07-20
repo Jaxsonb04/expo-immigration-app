@@ -2,7 +2,12 @@ import { withForm } from '@/components/form'
 import { ScreeningStopNotice } from '@/components/screening-stop'
 import { isI90CardStatus, screenI90 } from '@convex/shared/screening'
 import { View } from 'react-native'
-import { cardStatusOptions, fieldValidators, replacementReasonOptions } from '../interview.form'
+import {
+	cardStatusOptions,
+	fieldValidators,
+	nameChangeOptions,
+	replacementReasonOptions,
+} from '../interview.form'
 import { stepBodyOptions } from './steps.options'
 
 export const CardDetailsStep = withForm({
@@ -65,6 +70,67 @@ export const CardDetailsStep = withForm({
 						)}
 					</form.AppField>
 				)}
+				<form.AppField
+					name="form.nameChangedSinceIssuance"
+					validators={{
+						onBlur: fieldValidators.requiredChoice,
+						onSubmit: fieldValidators.requiredChoice,
+					}}
+				>
+					{(field) => (
+						<field.RadioGroupField
+							label="Has your name legally changed since this card was issued?"
+							options={[...nameChangeOptions]}
+							isRequired
+						/>
+					)}
+				</form.AppField>
+				<form.Subscribe selector={(state) => state.values.form.nameChangedSinceIssuance}>
+					{(answer) =>
+						answer === 'yes' ? (
+							<View className="gap-card">
+								<form.AppField
+									name="form.previousFamilyName"
+									validators={{
+										onBlur: fieldValidators.previousFamilyName,
+										onSubmit: fieldValidators.previousFamilyName,
+									}}
+								>
+									{(field) => (
+										<field.TextField
+											label="Family name printed on your current card"
+											autoCapitalize="words"
+											isRequired
+										/>
+									)}
+								</form.AppField>
+								<form.AppField
+									name="form.previousGivenName"
+									validators={{
+										onBlur: fieldValidators.previousGivenName,
+										onSubmit: fieldValidators.previousGivenName,
+									}}
+								>
+									{(field) => (
+										<field.TextField
+											label="First name printed on your current card"
+											autoCapitalize="words"
+											isRequired
+										/>
+									)}
+								</form.AppField>
+								<form.AppField name="form.previousMiddleName">
+									{(field) => (
+										<field.TextField
+											label="Middle name printed on your current card"
+											autoCapitalize="words"
+										/>
+									)}
+								</form.AppField>
+							</View>
+						) : null
+					}
+				</form.Subscribe>
 			</View>
 		)
 	},

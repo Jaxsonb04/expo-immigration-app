@@ -103,9 +103,56 @@ describe('computeReadiness — document blockers', () => {
 	})
 })
 
-describe('computeReadiness — coverage fails closed', () => {
-	test('no supported situation is fileable while its field contract is incomplete', () => {
+// Every pre-Review i90 answer, valid — the fixture that must reach
+// isReadyToFile once documents are attached (slice 3c milestone).
+const completeI90Answers = {
+	personFacts: {
+		givenName: 'Maria',
+		familyName: 'Santos',
+		dateOfBirth: '1990-01-05',
+		countryOfBirth: 'Mexico',
+		cityOfBirth: 'Oaxaca',
+		daytimePhone: '4155550123',
+		aNumber: '12345678',
+		mailingAddress: {
+			street: '2350 Mission St',
+			city: 'San Francisco',
+			state: 'CA',
+			zipCode: '94110',
+		},
+		gender: 'female' as const,
+		motherGivenName: 'Rosa',
+		fatherGivenName: 'Miguel',
+		classOfAdmission: 'IR1',
+		dateOfAdmission: '2015-06-10',
+		heightFeet: '5' as const,
+		heightInches: '4' as const,
+		weightPounds: '130',
+		eyeColor: 'brown' as const,
+		hairColor: 'black' as const,
+		ethnicity: 'hispanicOrLatino' as const,
+		races: ['white' as const],
+		locationAppliedVisa: 'Ciudad Juarez, Mexico',
+		locationIssuedVisa: 'Ciudad Juarez, Mexico',
+		becameResidentVia: 'immigrantVisa' as const,
+		destinationAtAdmission: 'San Francisco, CA',
+		portOfEntryCityState: 'San Ysidro, CA',
+		everInProceedings: 'no' as const,
+		filedI407OrAbandoned: 'no' as const,
+	},
+	form: {
+		cardStatus: 'permanentResident' as const,
+		nameChangedSinceIssuance: 'no' as const,
+		physicalAddressSameAsMailing: 'yes' as const,
+		preparedSelfInEnglish: 'yes' as const,
+		requestingAccommodation: 'no' as const,
+	},
+}
+
+describe('computeReadiness — coverage', () => {
+	test('every I-765 situation stays coverage-blocked (contract incomplete)', () => {
 		for (const { formType, applicationKind } of supportedSituations) {
+			if (formType !== 'i765') continue
 			expect(formCoverageGaps(formType, applicationKind).length).toBeGreaterThan(0)
 			const readiness = computeReadiness({
 				formType,
@@ -116,6 +163,49 @@ describe('computeReadiness — coverage fails closed', () => {
 			expect(readiness.formCoverageComplete).toBe(false)
 			expect(readiness.isReadyToFile).toBe(false)
 		}
+	})
+
+	test('the I-90 field contract is complete — coverage no longer blocks', () => {
+		expect(formCoverageGaps('i90', 'renewal')).toEqual([])
+		expect(formCoverageGaps('i90', 'replacement')).toEqual([])
+	})
+
+	test('MILESTONE: a complete I-90 renewal with resolved documents is ready to file', () => {
+		const readiness = computeReadiness({
+			formType: 'i90',
+			applicationKind: 'renewal',
+			answers: completeI90Answers,
+			requirements: [
+				{ requirementKey: 'permanentResidentCard', status: 'attached' },
+				{ requirementKey: 'passportPhoto', status: 'attached' },
+			],
+		})
+		expect(readiness.answersComplete).toBe(true)
+		expect(readiness.documentsComplete).toBe(true)
+		expect(readiness.formCoverageComplete).toBe(true)
+		expect(readiness.blockers).toEqual([])
+		expect(readiness.isReadyToFile).toBe(true)
+	})
+
+	test('an I-90 with a Part 8-requiring answer is NOT ready to file', () => {
+		const readiness = computeReadiness({
+			formType: 'i90',
+			applicationKind: 'renewal',
+			answers: {
+				...completeI90Answers,
+				personFacts: { ...completeI90Answers.personFacts, everInProceedings: 'yes' as const },
+			},
+			requirements: [
+				{ requirementKey: 'permanentResidentCard', status: 'attached' },
+				{ requirementKey: 'passportPhoto', status: 'attached' },
+			],
+		})
+		expect(readiness.isReadyToFile).toBe(false)
+		expect(
+			readiness.blockers.some(
+				(blocker) => blocker.kind === 'answers' && blocker.stepKey === 'immigration-history',
+			),
+		).toBe(true)
 	})
 
 	test('complete answers + documents still leave only coverage blockers', () => {
