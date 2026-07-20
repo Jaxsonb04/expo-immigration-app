@@ -1,4 +1,5 @@
 import { createFormHook } from '@tanstack/react-form'
+import CheckboxGroupField from './form.checkbox-group-field'
 import DateField from './form.date-field'
 import NumberField from './form.number-field'
 import RadioGroupField from './form.radio-group-field'
@@ -20,6 +21,7 @@ export const { useAppForm, withForm, withFieldGroup } = createFormHook({
 		TextAreaField,
 		SelectField,
 		RadioGroupField,
+		CheckboxGroupField,
 		NumberField,
 		DateField,
 		SwitchField,

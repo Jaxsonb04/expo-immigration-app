@@ -5,6 +5,10 @@ export { AddressFieldGroup } from './form.address-group'
 export { fieldErrorText } from './form.utils'
 
 // Field component prop types.
+export type {
+	CheckboxGroupFieldOption,
+	CheckboxGroupFieldProps,
+} from './form.checkbox-group-field'
 export type { DateFieldProps } from './form.date-field'
 export type { NumberFieldProps } from './form.number-field'
 export type { RadioGroupFieldOption, RadioGroupFieldProps } from './form.radio-group-field'

@@ -72,6 +72,18 @@ const fullI90Draft: I90DraftAnswers = {
 		cityOfBirth: 'Oaxaca',
 		daytimePhone: '4155550134',
 		email: 'maria@example.com',
+		gender: 'female',
+		motherGivenName: 'Rosa',
+		fatherGivenName: 'Miguel',
+		classOfAdmission: 'IR1',
+		dateOfAdmission: '2015-06-10',
+		heightFeet: '5',
+		heightInches: '4',
+		weightPounds: '85',
+		eyeColor: 'hazel',
+		hairColor: 'sandy',
+		ethnicity: 'notHispanicOrLatino',
+		races: ['asian', 'white'],
 		aNumber: 'A12345678',
 		mailingAddress: {
 			street: '2350 Mission St',
@@ -305,6 +317,38 @@ describe('buildI90Ops', () => {
 		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.familyName, value: 'Santos' })
 		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.givenName, value: 'Maria' })
 		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.aNumber, value: '012345678' })
+	})
+
+	test('maps the Part 1 additional-information items (slice 3b)', () => {
+		const ops = buildI90Ops(fullI90Draft, 'renewal')
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.genderFemale })
+		expect(ops).not.toContainEqual({ kind: 'check', field: I90_FIELDS.genderMale })
+		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.motherGivenName, value: 'Rosa' })
+		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.fatherGivenName, value: 'Miguel' })
+		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.classOfAdmission, value: 'IR1' })
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I90_FIELDS.dateOfAdmission,
+			value: '06/10/2015',
+		})
+	})
+
+	test('maps the biographic block: height selects, padded weight, exact color boxes', () => {
+		const ops = buildI90Ops(fullI90Draft, 'renewal')
+		expect(ops).toContainEqual({ kind: 'select', field: I90_FIELDS.heightFeet, value: '5' })
+		expect(ops).toContainEqual({ kind: 'select', field: I90_FIELDS.heightInches, value: '4' })
+		// 85 lbs prints as 0|8|5 across the three misnamed weight combs.
+		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.weightDigit1, value: '0' })
+		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.weightDigit2, value: '8' })
+		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.weightDigit3, value: '5' })
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.eyeHazel })
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.hairSandy })
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.ethnicityNotHispanic })
+		expect(ops).not.toContainEqual({ kind: 'check', field: I90_FIELDS.ethnicityHispanic })
+		// Race is multi-select: both chosen boxes, no others.
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.raceAsian })
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.raceWhite })
+		expect(ops).not.toContainEqual({ kind: 'check', field: I90_FIELDS.raceBlack })
 	})
 
 	test('maps city of birth and contact info (slice 3a)', () => {

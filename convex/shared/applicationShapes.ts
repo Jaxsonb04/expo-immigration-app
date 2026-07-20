@@ -25,6 +25,40 @@ export const isSupportedSituation = (formType: FormType, applicationKind: Applic
 
 const isoDate = z.iso.date('Enter a valid date')
 
+// I-90 biographic value sets, matched 1:1 to the printed form's checkbox and
+// dropdown options (edition 2025-02-27; the PDF maps pin the destinations).
+// The printed sex item offers exactly two boxes; the height dropdowns offer
+// 2-8 feet / 0-11 inches.
+export const genders = ['male', 'female'] as const
+export type Gender = (typeof genders)[number]
+
+export const heightFeetValues = ['2', '3', '4', '5', '6', '7', '8'] as const
+export const heightInchesValues = [
+	'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11',
+] as const
+
+export const eyeColors = [
+	'black', 'blue', 'brown', 'gray', 'green', 'hazel', 'maroon', 'pink', 'unknownOrOther',
+] as const
+export type EyeColor = (typeof eyeColors)[number]
+
+export const hairColors = [
+	'bald', 'black', 'blond', 'brown', 'gray', 'red', 'sandy', 'white', 'unknownOrOther',
+] as const
+export type HairColor = (typeof hairColors)[number]
+
+export const ethnicities = ['hispanicOrLatino', 'notHispanicOrLatino'] as const
+export type Ethnicity = (typeof ethnicities)[number]
+
+export const races = [
+	'americanIndianOrAlaskaNative',
+	'asian',
+	'blackOrAfricanAmerican',
+	'nativeHawaiianOrOtherPacificIslander',
+	'white',
+] as const
+export type Race = (typeof races)[number]
+
 export const addressShape = z.object({
 	street: z.string().min(1, 'Street address is required'),
 	unit: z.string().optional(),
@@ -54,6 +88,20 @@ export const personFactsShape = z.object({
 	// Contact (I-765 Part 3, I-90 Part 5): stored digits-only, 10 digits.
 	daytimePhone: z.string().regex(/^\d{10}$/, 'Enter a 10-digit U.S. phone number'),
 	email: z.email('Enter a valid email address').optional(),
+	// I-90 Part 1 Additional Information + Part 3 Biographic Information
+	// (currently collected only by I-90 interviews; person-level, promotable).
+	gender: z.enum(genders),
+	motherGivenName: z.string().min(1, "Mother's given (first) name is required"),
+	fatherGivenName: z.string().min(1, "Father's given (first) name is required"),
+	classOfAdmission: z.string().min(1, 'Class of admission is required'),
+	dateOfAdmission: isoDate,
+	heightFeet: z.enum(heightFeetValues),
+	heightInches: z.enum(heightInchesValues),
+	weightPounds: z.string().regex(/^\d{1,3}$/, 'Enter your weight in pounds'),
+	eyeColor: z.enum(eyeColors),
+	hairColor: z.enum(hairColors),
+	ethnicity: z.enum(ethnicities),
+	races: z.array(z.enum(races)).min(1, 'Select at least one'),
 	aNumber: z
 		.string()
 		.regex(/^\d{7,9}$/, 'An A-Number is 7 to 9 digits'),

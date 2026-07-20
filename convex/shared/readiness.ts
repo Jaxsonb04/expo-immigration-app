@@ -52,11 +52,15 @@ const I765_COVERAGE_GAPS: readonly string[] = [
 	'Passport or travel document and most-recent-arrival details (I-94, place and date of last entry, immigration status), where your category requires them',
 ]
 
+// Slice 3b closed the I-90 biographic/admission gaps (gender, parents' given
+// names, class/date of admission, full physical description — all collected
+// and mapped to verified fields). Re-enumerating the template surfaced three
+// required printed items the original audit had NOT catalogued; they are the
+// remaining honest blockers.
 const I90_COVERAGE_GAPS: readonly string[] = [
-	'Gender',
-	"Mother's and father's given names",
-	'Class and date of admission',
-	'Physical description (height, weight, eye and hair color, ethnicity, race)',
+	'Whether your name has legally changed since your card was issued (Part 1, Item 4)',
+	'Where you applied for and were issued your immigrant visa, or adjusted status (Part 3)',
+	'Immigrant-visa entry details and any abandonment or removal-proceedings history (Part 3)',
 ]
 
 /**

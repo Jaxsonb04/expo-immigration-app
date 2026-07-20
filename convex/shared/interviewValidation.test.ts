@@ -20,6 +20,18 @@ const validPersonFacts = {
 	aNumber: '123456789',
 	mailingAddress: { street: '1 Main St', city: 'Austin', state: 'TX', zipCode: '78701' },
 	eligibilityCategory: 'C08',
+	gender: 'female',
+	motherGivenName: 'Rosa',
+	fatherGivenName: 'Miguel',
+	classOfAdmission: 'IR1',
+	dateOfAdmission: '2015-06-10',
+	heightFeet: '5',
+	heightInches: '4',
+	weightPounds: '130',
+	eyeColor: 'brown',
+	hairColor: 'black',
+	ethnicity: 'hispanicOrLatino',
+	races: ['white'],
 }
 
 const formFor = (situation: { formType: string; applicationKind: string }) => ({
@@ -88,6 +100,36 @@ describe('isStepComplete — required fields enforced', () => {
 		expect(
 			isStepComplete('i765', 'renewal', 'citizenship', answers({ countryOfCitizenship: '' })),
 		).toBe(false)
+	})
+
+	test('personal-details needs every Part 1 additional-information item', () => {
+		expect(isStepComplete('i90', 'renewal', 'personal-details', answers({}))).toBe(true)
+		for (const missing of [
+			{ gender: '' },
+			{ motherGivenName: '' },
+			{ fatherGivenName: '' },
+			{ classOfAdmission: '' },
+			{ dateOfAdmission: 'not-a-date' },
+		]) {
+			expect(isStepComplete('i90', 'renewal', 'personal-details', answers(missing))).toBe(false)
+		}
+	})
+
+	test('physical-description needs the full biographic block, races non-empty', () => {
+		expect(isStepComplete('i90', 'renewal', 'physical-description', answers({}))).toBe(true)
+		for (const missing of [
+			{ heightFeet: '' },
+			{ heightInches: '12' },
+			{ weightPounds: 'abc' },
+			{ eyeColor: 'purple' },
+			{ hairColor: '' },
+			{ ethnicity: '' },
+			{ races: [] },
+		]) {
+			expect(isStepComplete('i90', 'renewal', 'physical-description', answers(missing))).toBe(
+				false,
+			)
+		}
 	})
 
 	test('contact-info needs a 10-digit phone; email is optional', () => {

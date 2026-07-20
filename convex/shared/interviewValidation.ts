@@ -42,6 +42,28 @@ export const stepOwnedKeys: Record<string, OwnedKeys> = {
 		form: [],
 	},
 	'contact-info': { personFacts: ['daytimePhone', 'email'], form: [] },
+	'personal-details': {
+		personFacts: [
+			'gender',
+			'motherGivenName',
+			'fatherGivenName',
+			'classOfAdmission',
+			'dateOfAdmission',
+		],
+		form: [],
+	},
+	'physical-description': {
+		personFacts: [
+			'heightFeet',
+			'heightInches',
+			'weightPounds',
+			'eyeColor',
+			'hairColor',
+			'ethnicity',
+			'races',
+		],
+		form: [],
+	},
 	'a-number': { personFacts: ['aNumber'], form: [] },
 	'mailing-address': { personFacts: ['mailingAddress'], form: [] },
 	'eligibility-category': { personFacts: ['eligibilityCategory'], form: ['replacementReason'] },
@@ -95,6 +117,26 @@ export function isStepComplete(
 		case 'contact-info':
 			// Daytime phone is required; email is optional on both printed forms.
 			return shape.daytimePhone.safeParse(pf.daytimePhone).success
+		case 'personal-details':
+			// i90-only: Part 1 Additional Information (all required printed items).
+			return (
+				shape.gender.safeParse(pf.gender).success &&
+				shape.motherGivenName.safeParse(pf.motherGivenName).success &&
+				shape.fatherGivenName.safeParse(pf.fatherGivenName).success &&
+				shape.classOfAdmission.safeParse(pf.classOfAdmission).success &&
+				shape.dateOfAdmission.safeParse(pf.dateOfAdmission).success
+			)
+		case 'physical-description':
+			// i90-only: Part 3 Biographic Information (all required; races multi).
+			return (
+				shape.heightFeet.safeParse(pf.heightFeet).success &&
+				shape.heightInches.safeParse(pf.heightInches).success &&
+				shape.weightPounds.safeParse(pf.weightPounds).success &&
+				shape.eyeColor.safeParse(pf.eyeColor).success &&
+				shape.hairColor.safeParse(pf.hairColor).success &&
+				shape.ethnicity.safeParse(pf.ethnicity).success &&
+				shape.races.safeParse(pf.races).success
+			)
 		case 'a-number':
 			if (formType === 'i765' && applicationKind === 'initial') return true
 			return shape.aNumber.safeParse(pf.aNumber).success

@@ -42,6 +42,18 @@ export type InterviewValues = {
 		aNumber: string
 		mailingAddress: { street: string; unit: string; city: string; state: string; zipCode: string }
 		eligibilityCategory: string
+		gender: string
+		motherGivenName: string
+		fatherGivenName: string
+		classOfAdmission: string
+		dateOfAdmission: string
+		heightFeet: string
+		heightInches: string
+		weightPounds: string
+		eyeColor: string
+		hairColor: string
+		ethnicity: string
+		races: string[]
 	}
 	form: {
 		previousEadCardNumber: string
@@ -86,6 +98,18 @@ export const emptyInterviewValues: InterviewValues = {
 		aNumber: '',
 		mailingAddress: { street: '', unit: '', city: '', state: '', zipCode: '' },
 		eligibilityCategory: '',
+		gender: '',
+		motherGivenName: '',
+		fatherGivenName: '',
+		classOfAdmission: '',
+		dateOfAdmission: '',
+		heightFeet: '',
+		heightInches: '',
+		weightPounds: '',
+		eyeColor: '',
+		hairColor: '',
+		ethnicity: '',
+		races: [],
 	},
 	form: {
 		previousEadCardNumber: '',
@@ -122,6 +146,18 @@ export function seedFromDraft(answers: DraftAnswers): InterviewValues {
 			daytimePhone: pf.daytimePhone ?? '',
 			email: pf.email ?? '',
 			aNumber: pf.aNumber ?? '',
+			gender: pf.gender ?? '',
+			motherGivenName: pf.motherGivenName ?? '',
+			fatherGivenName: pf.fatherGivenName ?? '',
+			classOfAdmission: pf.classOfAdmission ?? '',
+			dateOfAdmission: pf.dateOfAdmission ?? '',
+			heightFeet: pf.heightFeet ?? '',
+			heightInches: pf.heightInches ?? '',
+			weightPounds: pf.weightPounds ?? '',
+			eyeColor: pf.eyeColor ?? '',
+			hairColor: pf.hairColor ?? '',
+			ethnicity: pf.ethnicity ?? '',
+			races: pf.races !== undefined ? [...pf.races] : [],
 			mailingAddress: {
 				street: pf.mailingAddress?.street ?? '',
 				unit: pf.mailingAddress?.unit ?? '',
@@ -160,6 +196,20 @@ export const fieldValidators = {
 		.string()
 		.refine((value) => value.replace(/\D/g, '').length === 10, 'Enter a 10-digit U.S. phone number'),
 	email: orEmpty(z.email('Enter a valid email address')),
+	// i90 personal-details / physical-description (choice sets are enforced by
+	// the pickers; these gate required-ness and formats).
+	gender: z.string().min(1, 'Choose an option'),
+	motherGivenName: personFactsShape.shape.motherGivenName,
+	fatherGivenName: personFactsShape.shape.fatherGivenName,
+	classOfAdmission: personFactsShape.shape.classOfAdmission,
+	dateOfAdmission: personFactsShape.shape.dateOfAdmission,
+	heightFeet: z.string().min(1, 'Feet'),
+	heightInches: z.string().min(1, 'Inches'),
+	weightPounds: personFactsShape.shape.weightPounds,
+	eyeColor: z.string().min(1, 'Choose your eye color'),
+	hairColor: z.string().min(1, 'Choose your hair color'),
+	ethnicity: z.string().min(1, 'Choose an option'),
+	races: z.array(z.string()).min(1, 'Select at least one'),
 	// Conditional validators return one widened type so TanStack's per-field
 	// validator generic unifies across both branches.
 	aNumber: (kind: ApplicationKind): z.ZodType<string, string> =>
@@ -302,6 +352,63 @@ const contactInfoStep: StepDescriptor = {
 	}),
 }
 
+/** I-90 only: Part 1 Additional Information (all required printed items). */
+const personalDetailsStep: StepDescriptor = {
+	key: 'personal-details',
+	question: 'A few details about you',
+	help: 'USCIS uses these to match your immigration record. Your class of admission is the category code printed on your Green Card under "Category" (for example IR1); your date of admission is the "Resident Since" date.',
+	fieldPaths: [
+		'personFacts.gender',
+		'personFacts.motherGivenName',
+		'personFacts.fatherGivenName',
+		'personFacts.classOfAdmission',
+		'personFacts.dateOfAdmission',
+	],
+	buildStepData: (values) => ({
+		// The pickers restrict the values to the shared enums; the string-typed
+		// form state needs the cast back to the shaped slice.
+		personFacts: dropEmpty({
+			gender: values.personFacts.gender,
+			motherGivenName: values.personFacts.motherGivenName,
+			fatherGivenName: values.personFacts.fatherGivenName,
+			classOfAdmission: values.personFacts.classOfAdmission.trim().toUpperCase(),
+			dateOfAdmission: values.personFacts.dateOfAdmission,
+		}) as StepData['personFacts'],
+	}),
+}
+
+/** I-90 only: Part 3 Biographic Information. */
+const physicalDescriptionStep: StepDescriptor = {
+	key: 'physical-description',
+	question: 'Your physical description',
+	help: 'USCIS collects this biographic information for identity verification. Answer as it would appear on official records.',
+	fieldPaths: [
+		'personFacts.heightFeet',
+		'personFacts.heightInches',
+		'personFacts.weightPounds',
+		'personFacts.eyeColor',
+		'personFacts.hairColor',
+		'personFacts.ethnicity',
+		'personFacts.races',
+	],
+	buildStepData: (values) => {
+		const races = values.personFacts.races
+		return {
+			personFacts: {
+				...dropEmpty({
+					heightFeet: values.personFacts.heightFeet,
+					heightInches: values.personFacts.heightInches,
+					weightPounds: values.personFacts.weightPounds.replace(/\D/g, ''),
+					eyeColor: values.personFacts.eyeColor,
+					hairColor: values.personFacts.hairColor,
+					ethnicity: values.personFacts.ethnicity,
+				}),
+				...(races.length > 0 ? { races } : {}),
+			} as StepData['personFacts'],
+		}
+	},
+}
+
 const i765FinalStep: StepDescriptor = {
 	key: 'eligibility-category',
 	question: 'What is your eligibility category?',
@@ -345,7 +452,14 @@ const descriptorsByForm: Record<FormType, readonly StepDescriptor[]> = {
 		contactInfoStep,
 		i765FinalStep,
 	],
-	i90: [...sharedSteps, contactInfoStep, i90FinalStep],
+	i90: [
+		...sharedSteps.slice(0, 3),
+		personalDetailsStep,
+		...sharedSteps.slice(3),
+		contactInfoStep,
+		physicalDescriptionStep,
+		i90FinalStep,
+	],
 }
 
 /**
@@ -399,6 +513,60 @@ export const cardStatusOptions = [
 		label: '2-year conditional card',
 		description: 'Conditional permanent resident (for example CR1, CR2, CF1, CF2)',
 	},
+] as const
+
+// I-90 biographic pickers — values mirror the applicationShapes enums (pinned
+// by unit test), labels mirror the printed form's option text.
+export const genderOptions = [
+	{ value: 'male', label: 'Male' },
+	{ value: 'female', label: 'Female' },
+] as const
+
+export const heightFeetOptions = ['2', '3', '4', '5', '6', '7', '8'].map((value) => ({
+	value,
+	label: `${value} ft`,
+}))
+
+export const heightInchesOptions = Array.from({ length: 12 }, (_, index) => ({
+	value: String(index),
+	label: `${index} in`,
+}))
+
+export const eyeColorOptions = [
+	{ value: 'black', label: 'Black' },
+	{ value: 'blue', label: 'Blue' },
+	{ value: 'brown', label: 'Brown' },
+	{ value: 'gray', label: 'Gray' },
+	{ value: 'green', label: 'Green' },
+	{ value: 'hazel', label: 'Hazel' },
+	{ value: 'maroon', label: 'Maroon' },
+	{ value: 'pink', label: 'Pink' },
+	{ value: 'unknownOrOther', label: 'Unknown / other' },
+] as const
+
+export const hairColorOptions = [
+	{ value: 'bald', label: 'Bald (no hair)' },
+	{ value: 'black', label: 'Black' },
+	{ value: 'blond', label: 'Blond' },
+	{ value: 'brown', label: 'Brown' },
+	{ value: 'gray', label: 'Gray' },
+	{ value: 'red', label: 'Red' },
+	{ value: 'sandy', label: 'Sandy' },
+	{ value: 'white', label: 'White' },
+	{ value: 'unknownOrOther', label: 'Unknown / other' },
+] as const
+
+export const ethnicityOptions = [
+	{ value: 'hispanicOrLatino', label: 'Hispanic or Latino' },
+	{ value: 'notHispanicOrLatino', label: 'Not Hispanic or Latino' },
+] as const
+
+export const raceOptions = [
+	{ value: 'americanIndianOrAlaskaNative', label: 'American Indian or Alaska Native' },
+	{ value: 'asian', label: 'Asian' },
+	{ value: 'blackOrAfricanAmerican', label: 'Black or African American' },
+	{ value: 'nativeHawaiianOrOtherPacificIslander', label: 'Native Hawaiian or Other Pacific Islander' },
+	{ value: 'white', label: 'White' },
 ] as const
 
 export const replacementReasonOptions = (formType: FormType) => [

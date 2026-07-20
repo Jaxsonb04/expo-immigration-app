@@ -407,10 +407,41 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 				},
 				...(situation.formType === 'i765'
 					? [{ stepKey: 'citizenship', stepData: { personFacts: { countryOfCitizenship: 'Mexico' } } }]
-					: []),
+					: [
+							{
+								stepKey: 'personal-details',
+								stepData: {
+									personFacts: {
+										gender: 'female' as const,
+										motherGivenName: 'Rosa',
+										fatherGivenName: 'Miguel',
+										classOfAdmission: 'IR1',
+										dateOfAdmission: '2015-06-10',
+									},
+								},
+							},
+						]),
 				{ stepKey: 'a-number', stepData: { personFacts: { aNumber: '123456789' } } },
 				{ stepKey: 'mailing-address', stepData: { personFacts: { mailingAddress } } },
 				{ stepKey: 'contact-info', stepData: { personFacts: { daytimePhone: '5125550142' } } },
+				...(situation.formType === 'i90'
+					? [
+							{
+								stepKey: 'physical-description',
+								stepData: {
+									personFacts: {
+										heightFeet: '5' as const,
+										heightInches: '4' as const,
+										weightPounds: '130',
+										eyeColor: 'brown' as const,
+										hairColor: 'black' as const,
+										ethnicity: 'hispanicOrLatino' as const,
+										races: ['white' as const],
+									},
+								},
+							},
+						]
+					: []),
 				finalStep(situation),
 			]
 
@@ -419,7 +450,7 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 				result = await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
 			}
 
-			const preReviewCount = situation.formType === 'i765' ? 8 : 7
+			const preReviewCount = situation.formType === 'i765' ? 8 : 9
 			expect(result).toBeDefined()
 			expect(result!.nextStepKey).toBe('review')
 			expect(result!.completedStepCount).toBe(preReviewCount)

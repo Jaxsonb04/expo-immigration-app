@@ -30,9 +30,11 @@ const i90Steps = [
 	'legal-name',
 	'date-of-birth',
 	'country-of-birth',
+	'personal-details',
 	'a-number',
 	'mailing-address',
 	'contact-info',
+	'physical-description',
 	'card-details',
 	REVIEW_STEP_KEY,
 ] as const

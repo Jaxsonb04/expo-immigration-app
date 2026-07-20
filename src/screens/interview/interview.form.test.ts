@@ -75,6 +75,18 @@ function filledValues(overrides?: Partial<InterviewValues['personFacts']>): Inte
 			aNumber: '012345678',
 			mailingAddress: { street: '2350 Mission St', unit: '', city: 'SF', state: 'CA', zipCode: '94110' },
 			eligibilityCategory: 'C09',
+			gender: 'female',
+			motherGivenName: 'Rosa',
+			fatherGivenName: 'Miguel',
+			classOfAdmission: 'ir1',
+			dateOfAdmission: '2015-06-10',
+			heightFeet: '5',
+			heightInches: '4',
+			weightPounds: '130',
+			eyeColor: 'brown',
+			hairColor: 'black',
+			ethnicity: 'hispanicOrLatino',
+			races: ['white'],
 			...overrides,
 		},
 		form: {
@@ -134,6 +146,32 @@ describe('buildStepData', () => {
 	test('citizenship drops an empty second country', () => {
 		const data = stepDataFor('i765', 'citizenship', filledValues(), 'renewal')
 		expect(data.personFacts).toEqual({ countryOfCitizenship: 'Mexico' })
+	})
+
+	test('personal-details uppercases the class of admission', () => {
+		const data = stepDataFor('i90', 'personal-details', filledValues(), 'renewal')
+		expect(data.personFacts).toEqual({
+			gender: 'female',
+			motherGivenName: 'Rosa',
+			fatherGivenName: 'Miguel',
+			classOfAdmission: 'IR1',
+			dateOfAdmission: '2015-06-10',
+		})
+	})
+
+	test('physical-description strips weight to digits and keeps the races array', () => {
+		const values = filledValues()
+		values.personFacts.weightPounds = '130 lbs'
+		const data = stepDataFor('i90', 'physical-description', values, 'renewal')
+		expect(data.personFacts).toEqual({
+			heightFeet: '5',
+			heightInches: '4',
+			weightPounds: '130',
+			eyeColor: 'brown',
+			hairColor: 'black',
+			ethnicity: 'hispanicOrLatino',
+			races: ['white'],
+		})
 	})
 
 	test('card-details drops empty expiration, keeps status, includes reason for replacements', () => {
@@ -227,10 +265,10 @@ describe('picker options stay in sync with the screening scope', () => {
 
 describe('initialStepIndex', () => {
 	test('resumes at the persisted current step', () => {
-		// i765 order: legal-name, date-of-birth, country-of-birth, citizenship,
-		// a-number, mailing-address, …
+		// Both forms insert a step after country-of-birth (citizenship on i765,
+		// personal-details on i90), so mailing-address sits at index 5 on both.
 		expect(initialStepIndex('i765', 'mailing-address')).toBe(5)
-		expect(initialStepIndex('i90', 'mailing-address')).toBe(4)
+		expect(initialStepIndex('i90', 'mailing-address')).toBe(5)
 	})
 
 	test('falls back to the first step for review or unknown keys', () => {

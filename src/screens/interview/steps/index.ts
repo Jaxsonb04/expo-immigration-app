@@ -7,6 +7,8 @@ import { DateOfBirthStep } from './steps.date-of-birth'
 import { EligibilityCategoryStep } from './steps.eligibility-category'
 import { LegalNameStep } from './steps.legal-name'
 import { MailingAddressStep } from './steps.mailing-address'
+import { PersonalDetailsStep } from './steps.personal-details'
+import { PhysicalDescriptionStep } from './steps.physical-description'
 
 /**
  * Step bodies joined to the step metadata (interview.form.ts) by key. Every
@@ -18,9 +20,11 @@ export const stepBodies = {
 	'date-of-birth': DateOfBirthStep,
 	'country-of-birth': CountryOfBirthStep,
 	citizenship: CitizenshipStep,
+	'personal-details': PersonalDetailsStep,
 	'a-number': ANumberStep,
 	'mailing-address': MailingAddressStep,
 	'contact-info': ContactInfoStep,
+	'physical-description': PhysicalDescriptionStep,
 	'eligibility-category': EligibilityCategoryStep,
 	'card-details': CardDetailsStep,
 } as const
