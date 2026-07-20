@@ -1,11 +1,19 @@
 import { SectionHeading } from '@/components/core'
 import { StyledLucideIcon } from '@/components/styled-icon'
 import { requirementLabel } from '@/lib/application-labels'
+import { isDocumentCompatible } from '@convex/shared/documentCompatibility'
 import { Button, Spinner, Typography } from 'heroui-native'
 import { useState } from 'react'
 import { Pressable, View } from 'react-native'
 import { useJourneyHub } from './journey-hub.context'
 import { documentTypeLabel, useDocumentActions } from './journey-hub.documents.data'
+
+/** Past its expiry date. Expired ≠ unusable — an I-765 renewal attaches the
+ * very card that's expiring — so this only drives an honest tag, not a block. */
+function isExpired(expiryDate: string | undefined): boolean {
+	if (!expiryDate) return false
+	return new Date(`${expiryDate}T23:59:59`).getTime() < Date.now()
+}
 
 type Requirement = ReturnType<typeof useJourneyHub>['requirements'][number]
 type ApplicantDocument = ReturnType<typeof useJourneyHub>['applicantDocuments'][number]
@@ -41,6 +49,11 @@ function ReuseList(props: {
 						{doc.label ?? documentTypeLabel(doc.type)}
 						{doc.expiryDate ? ` · exp ${doc.expiryDate}` : ''}
 					</Typography.Paragraph>
+					{isExpired(doc.expiryDate) ? (
+						<Typography.Paragraph className="text-xs font-medium text-danger">
+							Expired
+						</Typography.Paragraph>
+					) : null}
 				</Pressable>
 			))}
 		</View>
@@ -71,6 +84,7 @@ function SlotRow(props: {
 						<Typography.Paragraph color="muted" className="text-sm">
 							{attachedDoc.label ?? documentTypeLabel(attachedDoc.type)}
 							{attachedDoc.expiryDate ? ` · exp ${attachedDoc.expiryDate}` : ''}
+							{isExpired(attachedDoc.expiryDate) ? ' (expired)' : ''}
 						</Typography.Paragraph>
 					) : null}
 				</View>
@@ -132,8 +146,13 @@ export function Documents() {
 					slot.documentId === undefined
 						? undefined
 						: applicantDocuments.find((doc) => doc._id === slot.documentId)
-				// Don't offer a document already attached to this slot as a reuse option.
-				const reusable = applicantDocuments.filter((doc) => doc._id !== slot.documentId)
+				// Offer only documents this requirement can actually accept
+				// (same map the server enforces on attach), minus the one
+				// already attached to this slot.
+				const reusable = applicantDocuments.filter(
+					(doc) =>
+						doc._id !== slot.documentId && isDocumentCompatible(slot.requirementKey, doc.type),
+				)
 				return (
 					<SlotRow
 						key={slot._id}

@@ -5,6 +5,7 @@ import { type MutationCtx, mutation } from './_generated/server'
 import { requireOwnerId } from './lib/auth'
 import { getOwnedApplication } from './model/applications'
 import { documentTypes } from './shared/applicationShapes'
+import { compatibleDocumentTypes, isDocumentCompatible } from './shared/documentCompatibility'
 
 // M2-T3 document saver. Real uploads, versioning, requirement attachment, and
 // expiry metadata for the append-only Vault (schema `documents` +
@@ -122,8 +123,11 @@ export const saveDocument = mutation({
  * Attach an existing Vault document to a requirement slot. This is the reuse
  * path (ADR / decision 7): a document uploaded for an applicant can satisfy the
  * matching requirement on ANY of that applicant's applications with no
- * re-upload — the only rule is the document must belong to the same person the
- * application is for. Idempotent.
+ * re-upload. Rules, enforced server-side: same applicant, a document TYPE the
+ * requirement actually accepts (shared/documentCompatibility.ts — a photo can
+ * never satisfy "current EAD card"), the current version (not superseded), and
+ * a draft application (a filed application's checklist is part of its filing
+ * record). Idempotent.
  */
 export const attachDocument = mutation({
 	args: { slotId: v.id('applicationDocuments'), documentId: v.id('documents') },
@@ -132,8 +136,18 @@ export const attachDocument = mutation({
 		const slot = await getOwnedSlot(ctx, ownerId, args.slotId)
 		const document = await getOwnedDocument(ctx, ownerId, args.documentId)
 		const application = await getOwnedApplication(ctx, ownerId, slot.applicationId)
+		if (application.status !== 'draft') {
+			throw new Error('Only draft applications can change their documents')
+		}
 		if (document.applicantId !== application.applicantId) {
 			throw new Error('That document belongs to a different applicant')
+		}
+		if (document.supersededById !== undefined) {
+			throw new Error('That document has a newer version — attach the newest one instead')
+		}
+		if (!isDocumentCompatible(slot.requirementKey, document.type)) {
+			const accepted = compatibleDocumentTypes[slot.requirementKey]?.join(', ') ?? 'none'
+			throw new Error(`That document type can't satisfy this requirement (accepts: ${accepted})`)
 		}
 		await ctx.db.patch('applicationDocuments', slot._id, {
 			status: 'attached',
@@ -143,12 +157,17 @@ export const attachDocument = mutation({
 	},
 })
 
-/** Return a slot to `needed`, clearing its document link. */
+/** Return a slot to `needed`, clearing its document link. Draft-only, like
+ * attach: a filed application's checklist is frozen with its filing record. */
 export const detachDocument = mutation({
 	args: { slotId: v.id('applicationDocuments') },
 	handler: async (ctx, args) => {
 		const ownerId = await requireOwnerId(ctx)
 		const slot = await getOwnedSlot(ctx, ownerId, args.slotId)
+		const application = await getOwnedApplication(ctx, ownerId, slot.applicationId)
+		if (application.status !== 'draft') {
+			throw new Error('Only draft applications can change their documents')
+		}
 		await ctx.db.patch('applicationDocuments', slot._id, {
 			status: 'needed',
 			documentId: undefined,

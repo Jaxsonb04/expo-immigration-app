@@ -1,6 +1,7 @@
 import { api } from '@convex/_generated/api'
 import type { Id } from '@convex/_generated/dataModel'
 import type { DocumentType } from '@convex/shared/applicationShapes'
+import { uploadDocumentType } from '@convex/shared/documentCompatibility'
 import { useMutation } from 'convex/react'
 import * as DocumentPicker from 'expo-document-picker'
 import { useState } from 'react'
@@ -9,20 +10,9 @@ import { Alert } from 'react-native'
 // M2-T3 document actions for the Journey Hub's Documents section: pick + upload
 // a real file and attach it to a requirement slot, reuse an existing Vault
 // document, or detach. Every mutation is owner-scoped on the server
-// (convex/documents.ts); this is just the client orchestration.
-
-const REQUIREMENT_DOCUMENT_TYPE: Record<string, DocumentType> = {
-	eadCard: 'ead',
-	passportPhoto: 'photo',
-	i94: 'i94',
-	passport: 'passport',
-	permanentResidentCard: 'permanentResidentCard',
-}
-
-/** Best-guess Vault document type for a requirement slot (default 'other'). */
-export function requirementDocumentType(requirementKey: string): DocumentType {
-	return REQUIREMENT_DOCUMENT_TYPE[requirementKey] ?? 'other'
-}
+// (convex/documents.ts); this is just the client orchestration. The
+// requirement→type mapping lives in convex/shared/documentCompatibility.ts —
+// the same map the server enforces on attach, so they can't drift.
 
 const DOCUMENT_TYPE_LABEL: Record<DocumentType, string> = {
 	passport: 'Passport',
@@ -84,7 +74,7 @@ export function useDocumentActions(applicantId: Id<'applicants'>) {
 
 			const documentId = await saveDocument({
 				applicantId,
-				type: requirementDocumentType(slot.requirementKey),
+				type: uploadDocumentType(slot.requirementKey),
 				storageId,
 				label: file.name,
 			})

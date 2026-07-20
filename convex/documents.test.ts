@@ -104,7 +104,7 @@ describe('attachDocument', () => {
 	})
 
 	test("rejects a document belonging to a different applicant", async () => {
-		const { t, alice, applicantId, applicationId, storageId } = await setup()
+		const { alice, applicationId, storageId } = await setup()
 		// A second applicant + their own document.
 		const otherApplicantId = await alice.mutation(api.applicants.createApplicant, {
 			displayName: 'Bianca',
@@ -131,12 +131,13 @@ describe('attachDocument', () => {
 		const slot1 = await firstSlot(alice, applicationId)
 		await alice.mutation(api.documents.attachDocument, { slotId: slot1._id, documentId })
 
-		// A brand-new application for the SAME applicant — its requirement slot
-		// can attach the existing Vault document with no new upload.
+		// A brand-new application for the SAME applicant — its matching
+		// requirement slot (eadCard again, so the EAD is type-compatible) can
+		// attach the existing Vault document with no new upload.
 		const laterApplicationId = await alice.mutation(api.applications.createApplication, {
 			applicantId,
 			formType: 'i765',
-			applicationKind: 'replacement',
+			applicationKind: 'renewal',
 		})
 		const laterSlot = await firstSlot(alice, laterApplicationId)
 		await alice.mutation(api.documents.attachDocument, { slotId: laterSlot._id, documentId })
@@ -212,5 +213,91 @@ describe('uploadNewVersion', () => {
 		await expect(
 			alice.mutation(api.documents.uploadNewVersion, { supersedesId: oldId, storageId: s3 }),
 		).rejects.toThrow('newer version')
+	})
+})
+
+// Workflow-repair P1: the attach rule now checks more than ownership. A photo
+// can never satisfy "current EAD card", stale versions can't be attached, and
+// a filed application's checklist is frozen.
+describe('attach rules: type compatibility, versions, and filed freeze', () => {
+	test('rejects a type-incompatible document with an honest message', async () => {
+		const { alice, applicantId, applicationId, storageId } = await setup()
+		const photoId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'photo',
+			storageId,
+		})
+		// First slot of an i765 renewal is eadCard — a photo can't satisfy it.
+		const slot = await firstSlot(alice, applicationId)
+		expect(slot.requirementKey).toBe('eadCard')
+		await expect(
+			alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId: photoId }),
+		).rejects.toThrow(/can't satisfy this requirement \(accepts: ead\)/)
+	})
+
+	test('accepts the matching type for each slot of the renewal template', async () => {
+		const { alice, applicantId, applicationId, storageId } = await setup()
+		const detail = await alice.query(api.applications.getApplication, { applicationId })
+		const bySlot = { eadCard: 'ead', passportPhoto: 'photo' } as const
+		for (const slot of detail.requirements) {
+			const documentId = await alice.mutation(api.documents.saveDocument, {
+				applicantId,
+				type: bySlot[slot.requirementKey as keyof typeof bySlot],
+				storageId,
+			})
+			await alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId })
+		}
+		const after = await alice.query(api.applications.getApplication, { applicationId })
+		expect(after.requirements.every((r) => r.status === 'attached')).toBe(true)
+	})
+
+	test('rejects a superseded document version', async () => {
+		const { t, alice, applicantId, applicationId, storageId } = await setup()
+		const oldId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'ead',
+			storageId,
+		})
+		const s2 = await t.run((ctx) => ctx.storage.store(new Blob(['v2'], { type: 'image/jpeg' })))
+		await alice.mutation(api.documents.uploadNewVersion, { supersedesId: oldId, storageId: s2 })
+		const slot = await firstSlot(alice, applicationId)
+		await expect(
+			alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId: oldId }),
+		).rejects.toThrow(/newer version/)
+	})
+
+	test('attach and detach are refused once the application is filed', async () => {
+		const { alice, applicantId, applicationId, storageId } = await setup()
+		const documentId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'ead',
+			storageId,
+		})
+		const slot = await firstSlot(alice, applicationId)
+		await alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId })
+
+		await alice.mutation(api.applications.markFiled, {
+			applicationId,
+			filedAt: Date.now(),
+			acknowledgeNotReady: true,
+		})
+		await expect(alice.mutation(api.documents.detachDocument, { slotId: slot._id })).rejects.toThrow(
+			/only draft applications/i,
+		)
+		const secondDocId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'ead',
+			storageId,
+		})
+		await expect(
+			alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId: secondDocId }),
+		).rejects.toThrow(/only draft applications/i)
+
+		// The filed record kept its attachment untouched.
+		const detail = await alice.query(api.applications.getApplication, { applicationId })
+		expect(detail.requirements.find((r) => r._id === slot._id)).toMatchObject({
+			status: 'attached',
+			documentId,
+		})
 	})
 })
