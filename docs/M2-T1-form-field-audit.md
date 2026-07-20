@@ -156,3 +156,17 @@ The "highest-priority gap" language above is historical. Part 2 **Item 1**
 (status: LPR / commuter / conditional) remains deliberately unmapped — the
 interview does not collect status, and defaulting to 1.a would mis-file
 commuter/conditional residents (see TODO(M2-T2) in the map).
+
+**Update 2026-07-20:** Part 2 **Item 1** is now COLLECTED and MAPPED. The
+card status is asked at application creation (new-application pre-screen,
+enforced in `createApplication`) and editable on the `card-details` step;
+`pdf.i90-map.ts` maps `P2_checkbox1[0/1/2]` = 1.a LPR / 1.b commuter / 1.c
+conditional (verified via TU tooltips + export values `1a/1b/1c` + widget
+y-geometry). Section B conditional-resident replacement reasons are also
+mapped (`P2_checkbox3`: 3.a=[4], 3.c=[1], 3.d=[2], 3.e=[3], export values
+`3a`–`3e` — note the shuffled indices), and `buildI90Ops` routes replacement
+reasons to Section A or B by status. Conditional-resident RENEWAL is blocked
+by deterministic screening (`convex/shared/screening.ts` → I-751/I-829).
+Correction to the biometrics row below: `P2_checkbox3[*]` is NOT part of the
+Part 3 biometrics family — it is the Section B reason block; the biometrics
+gap itself (height/weight/eye/hair/ethnicity/race) still stands.

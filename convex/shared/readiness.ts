@@ -49,7 +49,6 @@ const I765_COVERAGE_GAPS: readonly string[] = [
 ]
 
 const I90_COVERAGE_GAPS: readonly string[] = [
-	'Current status (permanent resident, commuter, or conditional resident)',
 	'Gender',
 	'City or town of birth',
 	"Mother's and father's given names",

@@ -131,6 +131,47 @@ describe('createApplication', () => {
 		).rejects.toThrow(/not supported/)
 	})
 
+	test('i90 requires a card status and screens out conditional-resident renewal', async () => {
+		const t = newT()
+		const alice = t.withIdentity({ subject: 'alice' })
+		const applicantId = await alice.mutation(api.applicants.createApplicant, {
+			displayName: 'Alice',
+			isSelf: true,
+		})
+		// No status at all → refused before anything is created.
+		await expect(
+			alice.mutation(api.applications.createApplication, {
+				applicantId,
+				formType: 'i90',
+				applicationKind: 'renewal',
+			}),
+		).rejects.toThrow(/what kind of card/)
+		// The one blocked combination: conditional resident renewing a 2-year card.
+		await expect(
+			alice.mutation(api.applications.createApplication, {
+				applicantId,
+				formType: 'i90',
+				applicationKind: 'renewal',
+				i90CardStatus: 'conditionalResident',
+			}),
+		).rejects.toThrow(/I-751/)
+		expect(await alice.query(api.applications.listApplications, {})).toHaveLength(0)
+
+		// A conditional-resident REPLACEMENT is supported, and the screened
+		// status lands in the draft as a real answer.
+		const applicationId = await alice.mutation(api.applications.createApplication, {
+			applicantId,
+			formType: 'i90',
+			applicationKind: 'replacement',
+			i90CardStatus: 'conditionalResident',
+		})
+		const detail = await alice.query(api.applications.getApplication, { applicationId })
+		expect(detail.draft.formType).toBe('i90')
+		if (detail.draft.formType === 'i90') {
+			expect(detail.draft.answers.form.cardStatus).toBe('conditionalResident')
+		}
+	})
+
 	test("rejects another owner's applicant", async () => {
 		const t = newT()
 		const alice = t.withIdentity({ subject: 'alice' })
@@ -324,8 +365,12 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 		return {
 			stepKey: 'card-details',
 			stepData: {
-				form:
-					situation.applicationKind === 'replacement' ? reason : { cardExpirationDate: '2030-01-01' },
+				form: {
+					cardStatus: 'permanentResident' as const,
+					...(situation.applicationKind === 'replacement'
+						? reason
+						: { cardExpirationDate: '2030-01-01' }),
+				},
 			},
 		}
 	}
@@ -342,6 +387,7 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 			const applicationId = await alice.mutation(api.applications.createApplication, {
 				applicantId,
 				...situation,
+				...(situation.formType === 'i90' ? { i90CardStatus: 'permanentResident' as const } : {}),
 			})
 
 			const steps = [

@@ -6,6 +6,12 @@ import type {
 } from '@convex/shared/applicationShapes'
 import { addressShape, personFactsShape } from '@convex/shared/applicationShapes'
 import { preReviewStepKeys } from '@convex/shared/interviewSteps'
+import {
+	I765_CATEGORY_NOT_LISTED,
+	isI90CardStatus,
+	isSupportedI765Category,
+	screenI90,
+} from '@convex/shared/screening'
 import type { DeepKeys } from '@tanstack/react-form'
 import { formOptions } from '@tanstack/react-form'
 import { z } from 'zod/v4'
@@ -36,6 +42,7 @@ export type InterviewValues = {
 		replacementReason: string
 		ssn: string
 		cardExpirationDate: string
+		cardStatus: string
 	}
 }
 
@@ -73,6 +80,7 @@ export const emptyInterviewValues: InterviewValues = {
 		replacementReason: '',
 		ssn: '',
 		cardExpirationDate: '',
+		cardStatus: '',
 	},
 }
 
@@ -110,6 +118,7 @@ export function seedFromDraft(answers: DraftAnswers): InterviewValues {
 			replacementReason: form.replacementReason ?? '',
 			ssn: form.ssn ?? '',
 			cardExpirationDate: form.cardExpirationDate ?? '',
+			cardStatus: form.cardStatus ?? '',
 		},
 	}
 }
@@ -134,12 +143,29 @@ export const fieldValidators = {
 	city: addressShape.shape.city,
 	state: addressShape.shape.state,
 	zipCode: addressShape.shape.zipCode,
-	eligibilityCategory: z.string().min(1, 'Choose your category'),
+	eligibilityCategory: z
+		.string()
+		.min(1, 'Choose your category')
+		.refine(
+			(value) => isSupportedI765Category(value),
+			"This app doesn't prepare that category yet — see the note below.",
+		),
 	replacementReason: (kind: ApplicationKind): z.ZodType<string, string> =>
 		kind === 'replacement'
 			? z.string().min(1, 'Choose what happened to your card')
 			: orEmpty(z.string()),
 	cardExpirationDate: orEmpty(personFactsShape.shape.dateOfBirth),
+	// Kind-aware: the value set is enforced by the radio options; the refine
+	// blocks the one unsupported combination (conditional resident + renewal,
+	// shared/screening.ts) with an inline explanation below the field.
+	cardStatus: (kind: ApplicationKind): z.ZodType<string, string> =>
+		z
+			.string()
+			.min(1, 'Choose your card type')
+			.refine(
+				(value) => !isI90CardStatus(value) || screenI90(value, kind).supported,
+				"A 2-year conditional card can't be renewed with Form I-90 — see the note below.",
+			),
 }
 
 const dropEmpty = <T extends Record<string, string>>(record: T): Partial<T> =>
@@ -231,11 +257,14 @@ const i765FinalStep: StepDescriptor = {
 const i90FinalStep: StepDescriptor = {
 	key: 'card-details',
 	question: 'Tell us about your current card',
-	help: 'Find the expiration date on the front of your Permanent Resident Card. If you\'re replacing the card, also tell us what happened to it.',
-	fieldPaths: ['form.cardExpirationDate', 'form.replacementReason'],
+	help: 'Confirm what kind of card you have and find the expiration date on its front. If you\'re replacing the card, also tell us what happened to it.',
+	fieldPaths: ['form.cardStatus', 'form.cardExpirationDate', 'form.replacementReason'],
 	buildStepData: (values, kind) => ({
 		form: {
-			...dropEmpty({ cardExpirationDate: values.form.cardExpirationDate }),
+			...dropEmpty({
+				cardStatus: values.form.cardStatus,
+				cardExpirationDate: values.form.cardExpirationDate,
+			}),
 			...(kind === 'replacement'
 				? dropEmpty({ replacementReason: values.form.replacementReason })
 				: {}),
@@ -266,6 +295,9 @@ export function initialStepIndex(formType: FormType, currentStepKey: string | un
 // Re-export so tests can assert descriptor/blueprint alignment through one import.
 export { preReviewStepKeys }
 
+// The picker mirrors shared/screening.ts supportedI765Categories exactly (a
+// unit test pins the two in sync) plus the "not listed" stop, which can never
+// validate — it exists to explain the boundary instead of hiding it.
 export const eligibilityCategoryOptions = [
 	{ value: 'C08', label: 'C08 — Pending asylum application' },
 	{ value: 'C09', label: 'C09 — Pending green card application' },
@@ -275,6 +307,27 @@ export const eligibilityCategoryOptions = [
 	{ value: 'A03', label: 'A03 — Refugee' },
 	{ value: 'A17', label: 'A17 — Spouse of E visa holder' },
 	{ value: 'C26', label: 'C26 — Spouse of H-1B holder' },
+	{ value: I765_CATEGORY_NOT_LISTED, label: "My category isn't listed" },
+] as const
+
+/** I-90 card/status options (Part 2 Item 1), shared by the new-application
+ * pre-screen and the card-details step. */
+export const cardStatusOptions = [
+	{
+		value: 'permanentResident',
+		label: '10-year Permanent Resident Card',
+		description: 'Lawful permanent resident',
+	},
+	{
+		value: 'commuter',
+		label: 'Commuter Green Card',
+		description: 'Permanent resident in commuter status',
+	},
+	{
+		value: 'conditionalResident',
+		label: '2-year conditional card',
+		description: 'Conditional permanent resident (for example CR1, CR2, CF1, CF2)',
+	},
 ] as const
 
 export const replacementReasonOptions = (formType: FormType) => [

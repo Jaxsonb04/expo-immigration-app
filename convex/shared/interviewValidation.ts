@@ -4,6 +4,7 @@ import {
 	type FormType,
 	personFactsShape,
 } from './applicationShapes'
+import { isI90CardStatus, isSupportedI765Category, screenI90 } from './screening'
 
 // M2-T2 server-side backstop. The interview wizard validates each step before
 // it calls saveApplicationStep, but that guarantee lived ONLY on the client —
@@ -36,7 +37,10 @@ export const stepOwnedKeys: Record<string, OwnedKeys> = {
 	'a-number': { personFacts: ['aNumber'], form: [] },
 	'mailing-address': { personFacts: ['mailingAddress'], form: [] },
 	'eligibility-category': { personFacts: ['eligibilityCategory'], form: ['replacementReason'] },
-	'card-details': { personFacts: [], form: ['cardExpirationDate', 'replacementReason'] },
+	'card-details': {
+		personFacts: [],
+		form: ['cardStatus', 'cardExpirationDate', 'replacementReason'],
+	},
 }
 
 // Accepts the validated draft (Partial<PersonFacts> etc.) as well as loose
@@ -89,11 +93,17 @@ export function isStepComplete(
 			)
 		}
 		case 'eligibility-category':
-			// i765 final step: eligibility is required; replacementReason only when replacing.
-			return isNonEmptyString(pf.eligibilityCategory) &&
+			// i765 final step: the category must be one this app actually prepares
+			// (screening.ts single-source list — "notListed" and free-text values
+			// can never complete the step); replacementReason only when replacing.
+			return isSupportedI765Category(pf.eligibilityCategory) &&
 				(applicationKind !== 'replacement' || isNonEmptyString(form.replacementReason))
 		case 'card-details':
-			// i90 final step: cardExpirationDate is optional; reason only when replacing.
+			// i90 final step: card status is required and the combination must pass
+			// eligibility screening (a conditional resident cannot renew via I-90);
+			// cardExpirationDate stays optional; reason only when replacing.
+			if (!isI90CardStatus(form.cardStatus)) return false
+			if (!screenI90(form.cardStatus, applicationKind).supported) return false
 			return applicationKind !== 'replacement' || isNonEmptyString(form.replacementReason)
 		default:
 			// 'review' and any unknown key can never be marked complete.

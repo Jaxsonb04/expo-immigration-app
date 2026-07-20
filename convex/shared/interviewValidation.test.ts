@@ -19,8 +19,10 @@ const validPersonFacts = {
 	eligibilityCategory: 'C08',
 }
 
-const formFor = (situation: { formType: string; applicationKind: string }) =>
-	situation.applicationKind === 'replacement' ? { replacementReason: 'lost' } : {}
+const formFor = (situation: { formType: string; applicationKind: string }) => ({
+	...(situation.formType === 'i90' ? { cardStatus: 'permanentResident' } : {}),
+	...(situation.applicationKind === 'replacement' ? { replacementReason: 'lost' } : {}),
+})
 
 describe('stepOwnedKeys stays in sync with the blueprint', () => {
 	test('covers exactly the union of both forms pre-Review steps', () => {
@@ -84,19 +86,62 @@ describe('isStepComplete — kind-aware branches', () => {
 		expect(isStepComplete('i765', 'renewal', 'eligibility-category', noReason)).toBe(true)
 		expect(isStepComplete('i765', 'replacement', 'eligibility-category', noReason)).toBe(false)
 		expect(isStepComplete('i765', 'replacement', 'eligibility-category', withReason)).toBe(true)
-		// i90 final step (card-details) — vacuous for renewal, reason-gated for replacement
-		expect(isStepComplete('i90', 'renewal', 'card-details', { personFacts: validPersonFacts, form: {} })).toBe(true)
-		expect(isStepComplete('i90', 'replacement', 'card-details', noReason)).toBe(false)
-		expect(isStepComplete('i90', 'replacement', 'card-details', withReason)).toBe(true)
+		// i90 final step (card-details) — status-gated always, reason-gated for replacement
+		const status = { cardStatus: 'permanentResident' }
+		expect(
+			isStepComplete('i90', 'renewal', 'card-details', { personFacts: validPersonFacts, form: status }),
+		).toBe(true)
+		expect(
+			isStepComplete('i90', 'replacement', 'card-details', { personFacts: validPersonFacts, form: status }),
+		).toBe(false)
+		expect(
+			isStepComplete('i90', 'replacement', 'card-details', {
+				personFacts: validPersonFacts,
+				form: { ...status, replacementReason: 'lost' },
+			}),
+		).toBe(true)
 	})
 
-	test('i765 eligibility-category needs a category', () => {
+	test('i90 card-details requires a card status (screening slice 2)', () => {
 		expect(
-			isStepComplete('i765', 'renewal', 'eligibility-category', {
-				personFacts: { ...validPersonFacts, eligibilityCategory: '' },
-				form: {},
+			isStepComplete('i90', 'renewal', 'card-details', { personFacts: validPersonFacts, form: {} }),
+		).toBe(false)
+		expect(
+			isStepComplete('i90', 'renewal', 'card-details', {
+				personFacts: validPersonFacts,
+				form: { cardStatus: 'not-a-status' },
 			}),
 		).toBe(false)
+	})
+
+	test('a conditional resident can never complete a renewal card-details step', () => {
+		const conditional = { cardStatus: 'conditionalResident' }
+		expect(
+			isStepComplete('i90', 'renewal', 'card-details', {
+				personFacts: validPersonFacts,
+				form: conditional,
+			}),
+		).toBe(false)
+		// …but a conditional-resident REPLACEMENT is supported.
+		expect(
+			isStepComplete('i90', 'replacement', 'card-details', {
+				personFacts: validPersonFacts,
+				form: { ...conditional, replacementReason: 'lost' },
+			}),
+		).toBe(true)
+	})
+
+	test('i765 eligibility-category needs a SUPPORTED category', () => {
+		const withCategory = (eligibilityCategory: string) => ({
+			personFacts: { ...validPersonFacts, eligibilityCategory },
+			form: {},
+		})
+		expect(isStepComplete('i765', 'renewal', 'eligibility-category', withCategory(''))).toBe(false)
+		// "Not listed" and unknown codes can never complete the step — the app
+		// only prepares the categories in shared/screening.ts.
+		expect(isStepComplete('i765', 'renewal', 'eligibility-category', withCategory('notListed'))).toBe(false)
+		expect(isStepComplete('i765', 'renewal', 'eligibility-category', withCategory('C99'))).toBe(false)
+		expect(isStepComplete('i765', 'renewal', 'eligibility-category', withCategory('A17'))).toBe(true)
 	})
 })
 

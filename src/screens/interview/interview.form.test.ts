@@ -76,6 +76,7 @@ function filledValues(overrides?: Partial<InterviewValues['personFacts']>): Inte
 			replacementReason: 'lost',
 			ssn: '',
 			cardExpirationDate: '',
+			cardStatus: 'permanentResident',
 		},
 	}
 }
@@ -114,11 +115,11 @@ describe('buildStepData', () => {
 		expect(replacement.form).toEqual({ replacementReason: 'lost' })
 	})
 
-	test('card-details drops empty expiration and includes reason for replacements', () => {
+	test('card-details drops empty expiration, keeps status, includes reason for replacements', () => {
 		const values = filledValues()
 		values.form.cardExpirationDate = ''
 		const data = stepDataFor('i90', 'card-details', values, 'replacement')
-		expect(data.form).toEqual({ replacementReason: 'lost' })
+		expect(data.form).toEqual({ cardStatus: 'permanentResident', replacementReason: 'lost' })
 	})
 
 	test('every step payload survives a Zod round-trip through the shared draft shapes', async () => {
@@ -167,6 +168,39 @@ describe('field validators', () => {
 		expect(fieldValidators.cardExpirationDate.safeParse('').success).toBe(true)
 		expect(fieldValidators.cardExpirationDate.safeParse('2033-01-01').success).toBe(true)
 		expect(fieldValidators.cardExpirationDate.safeParse('soon').success).toBe(false)
+	})
+
+	test('eligibilityCategory accepts only supported categories (screening slice 2)', () => {
+		expect(fieldValidators.eligibilityCategory.safeParse('C08').success).toBe(true)
+		expect(fieldValidators.eligibilityCategory.safeParse('').success).toBe(false)
+		expect(fieldValidators.eligibilityCategory.safeParse('notListed').success).toBe(false)
+		expect(fieldValidators.eligibilityCategory.safeParse('C99').success).toBe(false)
+	})
+
+	test('cardStatus blocks only the conditional-resident renewal combination', () => {
+		expect(fieldValidators.cardStatus('renewal').safeParse('permanentResident').success).toBe(true)
+		expect(fieldValidators.cardStatus('renewal').safeParse('').success).toBe(false)
+		expect(fieldValidators.cardStatus('renewal').safeParse('conditionalResident').success).toBe(false)
+		expect(fieldValidators.cardStatus('replacement').safeParse('conditionalResident').success).toBe(
+			true,
+		)
+	})
+})
+
+describe('picker options stay in sync with the screening scope', () => {
+	test('eligibility picker offers exactly the supported categories plus "not listed"', async () => {
+		const { eligibilityCategoryOptions } = await import('./interview.form')
+		const { supportedI765Categories, I765_CATEGORY_NOT_LISTED } = await import(
+			'@convex/shared/screening'
+		)
+		const values = eligibilityCategoryOptions.map((option) => option.value)
+		expect(values).toEqual([...supportedI765Categories, I765_CATEGORY_NOT_LISTED])
+	})
+
+	test('card-status picker offers exactly the shared status values', async () => {
+		const { cardStatusOptions } = await import('./interview.form')
+		const { i90CardStatuses } = await import('@convex/shared/applicationShapes')
+		expect(cardStatusOptions.map((option) => option.value)).toEqual([...i90CardStatuses])
 	})
 })
 

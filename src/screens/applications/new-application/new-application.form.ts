@@ -4,6 +4,8 @@ export type NewApplicationValues = {
 	applicantChoice: string
 	dependentName: string
 	situationKey: string
+	/** I-90 pre-screen answer (Part 2 Item 1); '' unless an I-90 situation is chosen. */
+	i90CardStatus: string
 }
 
 // Shared form options so each withForm part binds to the same form shape
@@ -14,6 +16,7 @@ export const newApplicationFormOptions = formOptions({
 		applicantChoice: '',
 		dependentName: '',
 		situationKey: '',
+		i90CardStatus: '',
 	} as NewApplicationValues,
 })
 

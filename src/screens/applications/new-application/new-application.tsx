@@ -1,4 +1,5 @@
 import { ApplicantField } from './new-application.applicant-field'
+import { CardStatusField } from './new-application.card-status-field'
 import { DependentNameField } from './new-application.dependent-name-field'
 import { Header } from './new-application.header'
 import { SituationField } from './new-application.situation-field'
@@ -14,5 +15,6 @@ export const NewApplication = {
 	ApplicantField,
 	DependentNameField,
 	SituationField,
+	CardStatusField,
 	Submit,
 }

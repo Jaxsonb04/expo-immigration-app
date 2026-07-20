@@ -1,5 +1,7 @@
 import { api } from '@convex/_generated/api'
 import type { Id } from '@convex/_generated/dataModel'
+import type { I90CardStatus } from '@convex/shared/applicationShapes'
+import { isI90CardStatus, screenI90 } from '@convex/shared/screening'
 import { useMutation, useQuery } from 'convex/react'
 import { useRouter } from 'expo-router'
 import type { NewApplicationValues } from './new-application.form'
@@ -37,7 +39,22 @@ export function useNewApplicationSubmit() {
 			applicantId = values.applicantChoice as Id<'applicants'>
 		}
 
-		const applicationId = await createApplication({ applicantId, ...situation })
+		// I-90 pre-screen (shared/screening.ts): the same rule the server
+		// enforces, checked here so the user gets the honest stop copy instead
+		// of a raw mutation error. Alerts fall back to the server message.
+		let i90CardStatus: I90CardStatus | undefined
+		if (situation.formType === 'i90') {
+			if (!isI90CardStatus(values.i90CardStatus)) {
+				throw new Error('Choose what kind of card you have')
+			}
+			const screening = screenI90(values.i90CardStatus, situation.applicationKind)
+			if (!screening.supported) {
+				throw new Error(`${screening.title}. ${screening.explanation}`)
+			}
+			i90CardStatus = values.i90CardStatus
+		}
+
+		const applicationId = await createApplication({ applicantId, ...situation, i90CardStatus })
 		router.dismiss()
 		router.push(`/application/${applicationId}`)
 	}

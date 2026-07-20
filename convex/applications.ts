@@ -14,10 +14,12 @@ import {
 	applicationKinds,
 	formTypes,
 	i765DraftAnswersShape,
+	i90CardStatuses,
 	i90DraftAnswersShape,
 	isSupportedSituation,
 	type PersonFacts,
 } from './shared/applicationShapes'
+import { screenI90 } from './shared/screening'
 import { interviewStepKeys, preReviewStepKeys } from './shared/interviewSteps'
 import { isStepComplete, stepOwnedKeys } from './shared/interviewValidation'
 import { computeReadiness } from './shared/readiness'
@@ -32,17 +34,34 @@ function definedEntries<T extends Record<string, unknown>>(value: T): Partial<T>
  * Create an application for one of the five supported situations. Seeds the
  * draft's person-facts from the applicant profile (autofill, ADR-0014) and
  * materializes the requirement slots.
+ *
+ * Eligibility screening (shared/screening.ts) is enforced HERE, at the single
+ * server choke point every start flow uses (new-application modal and the
+ * assistant deep link both call this mutation), so no client can create an
+ * application for a situation the app cannot honestly support.
  */
 export const createApplication = mutation({
 	args: {
 		applicantId: v.id('applicants'),
 		formType: literals(...formTypes),
 		applicationKind: literals(...applicationKinds),
+		// Required for I-90: drives conditional-resident screening and the
+		// Part 2 Item 1 status boxes on the printed form.
+		i90CardStatus: v.optional(literals(...i90CardStatuses)),
 	},
 	handler: async (ctx, args) => {
 		const ownerId = await requireOwnerId(ctx)
 		if (!isSupportedSituation(args.formType, args.applicationKind)) {
 			throw new Error('This form and situation combination is not supported')
+		}
+		if (args.formType === 'i90') {
+			if (args.i90CardStatus === undefined) {
+				throw new Error('Tell us what kind of card you have before starting')
+			}
+			const screening = screenI90(args.i90CardStatus, args.applicationKind)
+			if (!screening.supported) {
+				throw new Error(`${screening.title}. ${screening.explanation}`)
+			}
 		}
 		const applicant = await ctx.db.get('applicants', args.applicantId)
 		if (applicant === null || applicant.ownerId !== ownerId) {
@@ -64,13 +83,13 @@ export const createApplication = mutation({
 		})
 
 		// Autofill: the profile is the only conduit between applications.
-		const seededAnswers = { personFacts: definedEntries(applicant.profile), form: {} }
+		const seededPersonFacts = definedEntries(applicant.profile)
 		if (args.formType === 'i765') {
 			await ctx.db.insert('applicationDrafts', {
 				ownerId,
 				applicationId,
 				formType: 'i765',
-				answers: seededAnswers,
+				answers: { personFacts: seededPersonFacts, form: {} },
 				stepCompletion: {},
 				updatedAt: now,
 			})
@@ -79,7 +98,9 @@ export const createApplication = mutation({
 				ownerId,
 				applicationId,
 				formType: 'i90',
-				answers: seededAnswers,
+				// The screened card status is a real draft answer from day one; the
+				// card-details step re-shows it for confirmation and edit.
+				answers: { personFacts: seededPersonFacts, form: { cardStatus: args.i90CardStatus } },
 				stepCompletion: {},
 				updatedAt: now,
 			})

@@ -279,11 +279,13 @@ facts, all CONFIRMED by an independent verifier re-fetching the live pages:
   before finalizing options.
 - **I-90** edition **01/20/25**; fee **$465 paper / $415 online**, **$0** separate
   biometrics (folded in since the 04/01/2024 fee rule). Source: uscis.gov/i-90, G-1055.
-- **I-90 Part 2 Item 1 "My status is"** (the unmapped `P2_checkbox1[0..2]` TODO), exact
-  printed order/text — CONFIRMED verbatim: **1.** Lawful Permanent Resident (Proceed to
-  Section A.) · **2.** Permanent Resident - In Commuter Status (Proceed to Section A.) ·
-  **3.** Conditional Permanent Resident (Proceed to Section B.). Closing the TODO needs a
-  new i90-only interview step collecting this status, then a checkbox mapping.
+- **I-90 Part 2 Item 1 "My status is"** — RESOLVED 2026-07-20: status is now collected
+  (new-application pre-screen + `card-details` step) and mapped (`P2_checkbox1[0/1/2]` =
+  1.a/1.b/1.c, verified via TU tooltips + export values). Printed order/text CONFIRMED
+  verbatim: **1.** Lawful Permanent Resident (Proceed to Section A.) · **2.** Permanent
+  Resident - In Commuter Status (Proceed to Section A.) · **3.** Conditional Permanent
+  Resident (Proceed to Section B.). Section B reasons (`P2_checkbox3`, shuffled indices)
+  are mapped too; conditional-resident renewal is screened out (`shared/screening.ts`).
 - **A-Number** on both forms: USCIS specifies only that it "begins with an A"; it is
   labeled "(if any)" and instructions say enter "N/A" if none. The app's digits-only
   7–9 regex is close but not the official phrasing — revisit in M8-T5.

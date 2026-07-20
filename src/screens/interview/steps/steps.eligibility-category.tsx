@@ -1,4 +1,6 @@
 import { withForm } from '@/components/form'
+import { ScreeningStopNotice } from '@/components/screening-stop'
+import { I765_CATEGORY_NOT_LISTED, I765_CATEGORY_STOP } from '@convex/shared/screening'
 import { View } from 'react-native'
 import {
 	eligibilityCategoryOptions,
@@ -30,6 +32,15 @@ export const EligibilityCategoryStep = withForm({
 						/>
 					)}
 				</form.AppField>
+				{/* Explicit category boundary: "not listed" never validates — it
+				    stops here with the official next step instead of guessing. */}
+				<form.Subscribe selector={(state) => state.values.personFacts.eligibilityCategory}>
+					{(category) =>
+						category === I765_CATEGORY_NOT_LISTED ? (
+							<ScreeningStopNotice stop={I765_CATEGORY_STOP} />
+						) : null
+					}
+				</form.Subscribe>
 				{applicationKind === 'replacement' && (
 					<form.AppField
 						name="form.replacementReason"

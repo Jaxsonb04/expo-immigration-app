@@ -64,6 +64,7 @@ export function NewApplicationScreen() {
 			<NewApplication.ApplicantField form={form} options={applicantOptions} />
 			<NewApplication.DependentNameField form={form} />
 			<NewApplication.SituationField form={form} options={situationOptions} />
+			<NewApplication.CardStatusField form={form} />
 			<NewApplication.Submit form={form} />
 		</BodyScrollView>
 	)

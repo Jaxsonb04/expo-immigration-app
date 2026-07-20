@@ -58,7 +58,15 @@ export const i765SpecificsShape = z.object({
 	ssn: z.string().optional(),
 })
 
+// I-90 Part 2 Item 1 "My status is": determines eligibility screening (a
+// conditional resident cannot renew via I-90, shared/screening.ts) and which
+// reason section the PDF checks (Section A vs B). Collected at application
+// creation and editable on the card-details step.
+export const i90CardStatuses = ['permanentResident', 'commuter', 'conditionalResident'] as const
+export type I90CardStatus = (typeof i90CardStatuses)[number]
+
 export const i90SpecificsShape = z.object({
+	cardStatus: z.enum(i90CardStatuses).optional(),
 	cardExpirationDate: isoDate.optional(),
 	replacementReason: z.enum(['lost', 'stolen', 'damaged', 'error', 'nameChange']).optional(),
 })

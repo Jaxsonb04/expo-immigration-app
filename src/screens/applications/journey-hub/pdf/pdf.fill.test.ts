@@ -72,7 +72,11 @@ const fullI90Draft: I90DraftAnswers = {
 			zipCode: '94110',
 		},
 	},
-	form: { cardExpirationDate: '2027-03-15', replacementReason: 'lost' },
+	form: {
+		cardStatus: 'permanentResident',
+		cardExpirationDate: '2027-03-15',
+		replacementReason: 'lost',
+	},
 }
 
 describe('I-765 field map against the bundled template', () => {
@@ -146,19 +150,40 @@ describe('I-90 field map against the bundled template', () => {
 		expect(I90_FIELDS.reasonExpiring).toBe('form1[0].#subform[1].P2_checkbox2[1]')
 	})
 
-	test('every mapped Part 2 reason box is checkable on the real template', async () => {
+	// Same tripwire for Part 2 Item 1 (status) and the Section B (conditional
+	// resident, Item 3) reasons — both verified against TU tooltips + export
+	// values ('1a'-'1c', '3a'-'3e'). Item 1 follows printed order; Section B
+	// does not (3.a is [4]).
+	test('pins the status and Section B reason checkbox indices to literal paths', () => {
+		expect(I90_FIELDS.statusPermanentResident).toBe('form1[0].#subform[1].P2_checkbox1[0]')
+		expect(I90_FIELDS.statusCommuter).toBe('form1[0].#subform[1].P2_checkbox1[1]')
+		expect(I90_FIELDS.statusConditionalResident).toBe('form1[0].#subform[1].P2_checkbox1[2]')
+		expect(I90_FIELDS.reasonCrLostStolenDestroyed).toBe('form1[0].#subform[2].P2_checkbox3[4]')
+		expect(I90_FIELDS.reasonCrMutilated).toBe('form1[0].#subform[2].P2_checkbox3[1]')
+		expect(I90_FIELDS.reasonCrDhsError).toBe('form1[0].#subform[2].P2_checkbox3[2]')
+		expect(I90_FIELDS.reasonCrNameChanged).toBe('form1[0].#subform[2].P2_checkbox3[3]')
+	})
+
+	test('every mapped status and reason box is checkable on the real template', async () => {
 		const doc = await PDFDocument.load(i90Template, { ignoreEncryption: true })
 		const form = doc.getForm()
-		const reasonFields = [
+		const checkboxFields = [
+			I90_FIELDS.statusPermanentResident,
+			I90_FIELDS.statusCommuter,
+			I90_FIELDS.statusConditionalResident,
 			I90_FIELDS.reasonLostStolenDestroyed,
 			I90_FIELDS.reasonMutilated,
 			I90_FIELDS.reasonDhsError,
 			I90_FIELDS.reasonNameChanged,
 			I90_FIELDS.reasonExpiring,
+			I90_FIELDS.reasonCrLostStolenDestroyed,
+			I90_FIELDS.reasonCrMutilated,
+			I90_FIELDS.reasonCrDhsError,
+			I90_FIELDS.reasonCrNameChanged,
 		]
-		const ops: FillOp[] = reasonFields.map((field) => ({ kind: 'check', field }))
-		expect(applyOps(form, ops)).toEqual({ filledCount: reasonFields.length, failedFields: [] })
-		for (const field of reasonFields) {
+		const ops: FillOp[] = checkboxFields.map((field) => ({ kind: 'check', field }))
+		expect(applyOps(form, ops)).toEqual({ filledCount: checkboxFields.length, failedFields: [] })
+		for (const field of checkboxFields) {
 			expect(form.getCheckBox(field).isChecked()).toBe(true)
 		}
 	})
@@ -294,6 +319,74 @@ describe('buildI90Ops', () => {
 			expect(ops).not.toContainEqual({ kind: 'check', field })
 		}
 	})
+
+	test.each([
+		['permanentResident', I90_FIELDS.statusPermanentResident],
+		['commuter', I90_FIELDS.statusCommuter],
+		['conditionalResident', I90_FIELDS.statusConditionalResident],
+	] as const)('checks the Part 2 Item 1 box for a %s draft', (cardStatus, expected) => {
+		const ops = buildI90Ops(
+			{ ...fullI90Draft, form: { ...fullI90Draft.form, cardStatus } },
+			'replacement',
+		)
+		expect(ops).toContainEqual({ kind: 'check', field: expected })
+	})
+
+	test('a self-contradictory conditional-resident renewal draft emits no reason box', () => {
+		// Screening (shared/screening.ts) blocks this combination from every UI
+		// path; if a raw write ever produces it anyway, the render must not
+		// check Section A's expiring box (2.f) a conditional resident cannot use.
+		const ops = buildI90Ops(
+			{ ...fullI90Draft, form: { cardStatus: 'conditionalResident' } },
+			'renewal',
+		)
+		expect(ops).toContainEqual({ kind: 'check', field: I90_FIELDS.statusConditionalResident })
+		for (const field of [...i90ReasonFields, I90_FIELDS.reasonCrLostStolenDestroyed]) {
+			expect(ops).not.toContainEqual({ kind: 'check', field })
+		}
+	})
+
+	test('a draft without a card status checks no status box (no guessing)', () => {
+		const ops = buildI90Ops(
+			{ ...fullI90Draft, form: { ...fullI90Draft.form, cardStatus: undefined } },
+			'renewal',
+		)
+		for (const field of [
+			I90_FIELDS.statusPermanentResident,
+			I90_FIELDS.statusCommuter,
+			I90_FIELDS.statusConditionalResident,
+		]) {
+			expect(ops).not.toContainEqual({ kind: 'check', field })
+		}
+	})
+
+	test.each([
+		['lost', I90_FIELDS.reasonCrLostStolenDestroyed],
+		['stolen', I90_FIELDS.reasonCrLostStolenDestroyed],
+		['damaged', I90_FIELDS.reasonCrMutilated],
+		['error', I90_FIELDS.reasonCrDhsError],
+		['nameChange', I90_FIELDS.reasonCrNameChanged],
+	] as const)(
+		'a conditional-resident %s replacement uses Section B, not Section A',
+		(reason, expected) => {
+			const ops = buildI90Ops(
+				{
+					...fullI90Draft,
+					form: {
+						...fullI90Draft.form,
+						cardStatus: 'conditionalResident',
+						replacementReason: reason,
+					},
+				},
+				'replacement',
+			)
+			expect(ops).toContainEqual({ kind: 'check', field: expected })
+			// Nothing lands in Section A when the status routes to Section B.
+			for (const field of i90ReasonFields) {
+				expect(ops).not.toContainEqual({ kind: 'check', field })
+			}
+		},
+	)
 
 	test('an empty draft emits no empty-valued ops and never throws', () => {
 		const empty = buildI90Ops(emptyDraftAnswers, 'renewal')
