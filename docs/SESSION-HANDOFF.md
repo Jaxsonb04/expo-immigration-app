@@ -192,9 +192,11 @@ Sim QA for all of this UI is still owed (see §7).
 
 ## 6. NEXT UP — the P1 backlog (original order)
 
-- **P1 documents**: `convex/documents.ts` attach rule only checks owner — it does **not**
-  validate document type vs requirement. "Use saved" offers every document regardless of
-  type. Add type-compatibility + freshness.
+- ~~**P1 documents**~~ DONE 2026-07-20 (`e7297e9`): `convex/shared/documentCompatibility.ts`
+  is the ONE requirement→type map (server attach rule + reuse picker; fails closed for
+  unmapped keys, drift-guard test pins every producible key). attach/detach are draft-only
+  now (a filed application's checklist is frozen). Expired documents are tagged in the
+  picker but not blocked — an I-765 renewal legitimately attaches the expiring EAD.
 - **P1 vault**: rows aren't pressable, no preview/replace/delete/expiry capture;
   `uploadNewVersion` exists in the backend with no UI.
 - **P1 extraction autofill**: needs owner approval before any paid OCR provider.
