@@ -78,7 +78,7 @@ describe('createApplication', () => {
 		const detail = await alice.query(api.applications.getApplication, { applicationId })
 		expect(detail.application.status).toBe('draft')
 		expect(detail.application.completedStepCount).toBe(0)
-		expect(detail.application.totalStepCount).toBe(9)
+		expect(detail.application.totalStepCount).toBe(11)
 		expect(detail.application.currentStepKey).toBe('legal-name')
 		// Draft seeded from the profile, steps still incomplete.
 		expect(detail.draft.answers.personFacts).toMatchObject({
@@ -214,7 +214,7 @@ describe('saveApplicationStep', () => {
 			stepKey: 'legal-name',
 			stepData: { personFacts: { givenName: 'Alice', familyName: 'Anders' } },
 		})
-		expect(result).toEqual({ nextStepKey: 'date-of-birth', completedStepCount: 1, totalStepCount: 9 })
+		expect(result).toEqual({ nextStepKey: 'date-of-birth', completedStepCount: 1, totalStepCount: 11 })
 
 		const detail = await alice.query(api.applications.getApplication, { applicationId })
 		expect(detail.application.currentStepKey).toBe('date-of-birth')
@@ -276,9 +276,20 @@ describe('saveApplicationStep', () => {
 				stepData: { personFacts: { countryOfBirth: 'Brazil', cityOfBirth: 'Salvador' } },
 			},
 			{ stepKey: 'citizenship', stepData: { personFacts: { countryOfCitizenship: 'Brazil' } } },
+			{
+				stepKey: 'other-information',
+				stepData: {
+					personFacts: { gender: 'female', maritalStatus: 'single' },
+					form: { previouslyFiledI765: 'no' },
+				},
+			},
 			{ stepKey: 'a-number', stepData: { personFacts: { aNumber: '01234567' } } },
 			{ stepKey: 'mailing-address', stepData: { personFacts: { mailingAddress } } },
 			{ stepKey: 'contact-info', stepData: { personFacts: { daytimePhone: '5105550101' } } },
+			{
+				stepKey: 'eligibility-category',
+				stepData: { personFacts: { eligibilityCategory: 'C08' } },
+			},
 		]
 		for (const step of steps) {
 			await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
@@ -289,8 +300,8 @@ describe('saveApplicationStep', () => {
 
 		const result = await alice.mutation(api.applications.saveApplicationStep, {
 			applicationId,
-			stepKey: 'eligibility-category',
-			stepData: { personFacts: { eligibilityCategory: 'C08' } },
+			stepKey: 'applicant-statement',
+			stepData: { form: { preparedSelfInEnglish: 'yes' } },
 		})
 		expect(result.nextStepKey).toBe('review')
 
@@ -305,6 +316,8 @@ describe('saveApplicationStep', () => {
 			daytimePhone: '5105550101',
 			aNumber: '01234567',
 			eligibilityCategory: 'C08',
+			gender: 'female',
+			maritalStatus: 'single',
 		})
 	})
 
@@ -407,7 +420,16 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 					stepData: { personFacts: { countryOfBirth: 'Mexico', cityOfBirth: 'Oaxaca' } },
 				},
 				...(situation.formType === 'i765'
-					? [{ stepKey: 'citizenship', stepData: { personFacts: { countryOfCitizenship: 'Mexico' } } }]
+					? [
+							{ stepKey: 'citizenship', stepData: { personFacts: { countryOfCitizenship: 'Mexico' } } },
+							{
+								stepKey: 'other-information',
+								stepData: {
+									personFacts: { gender: 'female' as const, maritalStatus: 'single' as const },
+									form: { previouslyFiledI765: 'no' as const },
+								},
+							},
+						]
 					: [
 							{
 								stepKey: 'personal-details',
@@ -464,19 +486,17 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 						]
 					: []),
 				finalStep(situation),
-				...(situation.formType === 'i90'
-					? [
-							{
-								stepKey: 'applicant-statement',
-								stepData: {
-									form: {
-										preparedSelfInEnglish: 'yes' as const,
-										requestingAccommodation: 'no' as const,
-									},
-								},
-							},
-						]
-					: []),
+				{
+					stepKey: 'applicant-statement',
+					stepData: {
+						form: {
+							preparedSelfInEnglish: 'yes' as const,
+							...(situation.formType === 'i90'
+								? { requestingAccommodation: 'no' as const }
+								: {}),
+						},
+					},
+				},
 			]
 
 			let result: { nextStepKey: string; completedStepCount: number; totalStepCount: number } | undefined
@@ -484,7 +504,7 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 				result = await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
 			}
 
-			const preReviewCount = situation.formType === 'i765' ? 8 : 11
+			const preReviewCount = situation.formType === 'i765' ? 10 : 11
 			expect(result).toBeDefined()
 			expect(result!.nextStepKey).toBe('review')
 			expect(result!.completedStepCount).toBe(preReviewCount)
@@ -671,10 +691,21 @@ describe('getApplication readiness', () => {
 			stepData: { personFacts: { countryOfBirth: 'Mexico', cityOfBirth: 'Oaxaca' } },
 		},
 		{ stepKey: 'citizenship', stepData: { personFacts: { countryOfCitizenship: 'Mexico' } } },
+		{
+			stepKey: 'other-information',
+			stepData: {
+				personFacts: { gender: 'female' as const, maritalStatus: 'single' as const },
+				form: { previouslyFiledI765: 'no' as const },
+			},
+		},
 		{ stepKey: 'a-number', stepData: { personFacts: { aNumber: '123456789' } } },
 		{ stepKey: 'mailing-address', stepData: { personFacts: { mailingAddress } } },
 		{ stepKey: 'contact-info', stepData: { personFacts: { daytimePhone: '5125550142' } } },
 		{ stepKey: 'eligibility-category', stepData: { personFacts: { eligibilityCategory: 'C08' } } },
+		{
+			stepKey: 'applicant-statement',
+			stepData: { form: { preparedSelfInEnglish: 'yes' as const } },
+		},
 	]
 
 	test('a fresh application reports answer, document, and coverage blockers', async () => {

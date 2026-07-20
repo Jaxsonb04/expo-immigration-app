@@ -58,8 +58,15 @@ const fullI765Draft: I765DraftAnswers = {
 			zipCode: '94110',
 		},
 		eligibilityCategory: 'C08',
+		gender: 'female',
+		maritalStatus: 'single',
 	},
-	form: { previousEadCardNumber: 'ABC1234567890', replacementReason: 'lost', ssn: '123-45-6789' },
+	form: {
+		previousEadCardNumber: 'ABC1234567890',
+		replacementReason: 'lost',
+		previouslyFiledI765: 'no',
+		preparedSelfInEnglish: 'yes',
+	},
 }
 
 const fullI90Draft: I90DraftAnswers = {
@@ -243,6 +250,55 @@ describe('buildI765Ops', () => {
 			field: I765_FIELDS.email,
 			value: 'maria@example.com',
 		})
+	})
+
+	test('maps Part 2 Other Information and the Part 3 statement (I-765 remainder)', () => {
+		expect(ops).toContainEqual({ kind: 'check', field: I765_FIELDS.sexFemale })
+		expect(ops).not.toContainEqual({ kind: 'check', field: I765_FIELDS.sexMale })
+		expect(ops).toContainEqual({ kind: 'check', field: I765_FIELDS.maritalSingle })
+		expect(ops).toContainEqual({ kind: 'check', field: I765_FIELDS.previouslyFiledNo })
+		expect(ops).not.toContainEqual({ kind: 'check', field: I765_FIELDS.previouslyFiledYes })
+		expect(ops).toContainEqual({ kind: 'check', field: I765_FIELDS.statementSelfEnglish })
+	})
+
+	test('pins the Other Information checkbox indices to literal paths', () => {
+		// Line9_* is Item 10 SEX and Line10_* is Item 11 MARITAL STATUS on this
+		// edition — verified from its own tooltips + export values.
+		expect(I765_FIELDS.sexFemale).toBe('form1[0].Page2[0].Line9_Checkbox[0]')
+		expect(I765_FIELDS.sexMale).toBe('form1[0].Page2[0].Line9_Checkbox[1]')
+		expect(I765_FIELDS.maritalWidowed).toBe('form1[0].Page2[0].Line10_Checkbox[0]')
+		expect(I765_FIELDS.maritalDivorced).toBe('form1[0].Page2[0].Line10_Checkbox[1]')
+		expect(I765_FIELDS.maritalSingle).toBe('form1[0].Page2[0].Line10_Checkbox[2]')
+		expect(I765_FIELDS.maritalMarried).toBe('form1[0].Page2[0].Line10_Checkbox[3]')
+		expect(I765_FIELDS.statementSelfEnglish).toBe('form1[0].Page4[0].Pt3Line1Checkbox[1]')
+	})
+
+	test('never fills the SSN box — the app deliberately does not collect it', () => {
+		// The SSN is not in the stored shape at all, and no op may ever target
+		// Item 13 even if a draft were hand-written with one.
+		expect(ops.some((op) => op.field === I765_FIELDS.ssn)).toBe(false)
+		const forced = buildI765Ops(
+			{ ...fullI765Draft, form: { ...fullI765Draft.form, ssn: '123456789' } as never },
+			'renewal',
+		)
+		expect(forced.some((op) => op.field === I765_FIELDS.ssn)).toBe(false)
+	})
+
+	test('every marital-status option maps to a distinct checkable box', async () => {
+		const names = await fieldNamesOf(i765Template)
+		const doc = await PDFDocument.load(i765Template, { ignoreEncryption: true })
+		const form = doc.getForm()
+		const maritalFields = [
+			I765_FIELDS.maritalSingle,
+			I765_FIELDS.maritalMarried,
+			I765_FIELDS.maritalDivorced,
+			I765_FIELDS.maritalWidowed,
+		]
+		expect(new Set(maritalFields).size).toBe(4)
+		for (const field of maritalFields) expect(names).toContain(field)
+		expect(
+			applyOps(form, maritalFields.map((field) => ({ kind: 'check', field }) as FillOp)),
+		).toEqual({ filledCount: 4, failedFields: [] })
 	})
 
 	test('formats the date of birth as MM/DD/YYYY', () => {

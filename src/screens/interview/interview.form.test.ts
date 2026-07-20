@@ -76,6 +76,7 @@ function filledValues(overrides?: Partial<InterviewValues['personFacts']>): Inte
 			mailingAddress: { street: '2350 Mission St', unit: '', city: 'SF', state: 'CA', zipCode: '94110' },
 			eligibilityCategory: 'C09',
 			gender: 'female',
+			maritalStatus: 'single',
 			motherGivenName: 'Rosa',
 			fatherGivenName: 'Miguel',
 			classOfAdmission: 'ir1',
@@ -117,6 +118,7 @@ function filledValues(overrides?: Partial<InterviewValues['personFacts']>): Inte
 				postalCode: '',
 				country: '',
 			},
+			previouslyFiledI765: 'no',
 			preparedSelfInEnglish: 'yes',
 			requestingAccommodation: 'no',
 			accommodationDeafSignLanguage: '',
@@ -368,9 +370,9 @@ describe('picker options stay in sync with the screening scope', () => {
 
 describe('initialStepIndex', () => {
 	test('resumes at the persisted current step', () => {
-		// i765: legal, dob, birth, citizenship, a-number, mailing → 5.
+		// i765: legal, dob, birth, citizenship, other-info, a-number, mailing → 6.
 		// i90: legal, dob, birth, personal, history, a-number, mailing → 6.
-		expect(initialStepIndex('i765', 'mailing-address')).toBe(5)
+		expect(initialStepIndex('i765', 'mailing-address')).toBe(6)
 		expect(initialStepIndex('i90', 'mailing-address')).toBe(6)
 	})
 

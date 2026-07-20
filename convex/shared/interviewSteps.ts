@@ -19,10 +19,12 @@ const i765Steps = [
 	'date-of-birth',
 	'country-of-birth',
 	'citizenship',
+	'other-information',
 	'a-number',
 	'mailing-address',
 	'contact-info',
 	'eligibility-category',
+	'applicant-statement',
 	REVIEW_STEP_KEY,
 ] as const
 

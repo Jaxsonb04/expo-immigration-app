@@ -226,7 +226,7 @@ export const insertDemoData = internalMutation({
 			status: 'draft',
 			currentStepKey: 'country-of-birth',
 			completedStepCount: 2,
-			totalStepCount: 9,
+			totalStepCount: 11,
 			updatedAt: now,
 		})
 		await ctx.db.insert('applicationDrafts', {
@@ -338,8 +338,8 @@ export const insertDemoData = internalMutation({
 			applicationKind: 'replacement',
 			status: 'draft',
 			currentStepKey: 'review',
-			completedStepCount: 9,
-			totalStepCount: 9,
+			completedStepCount: 11,
+			totalStepCount: 11,
 			updatedAt: now,
 		})
 		await ctx.db.insert('applicationDrafts', {
@@ -358,8 +358,14 @@ export const insertDemoData = internalMutation({
 					aNumber: '012345678',
 					mailingAddress,
 					eligibilityCategory: 'C09',
+					gender: 'female',
+					maritalStatus: 'married',
 				},
-				form: { replacementReason: 'lost' },
+				form: {
+					replacementReason: 'lost',
+					previouslyFiledI765: 'yes',
+					preparedSelfInEnglish: 'yes',
+				},
 			},
 			stepCompletion: completeAllSteps('i765'),
 			updatedAt: now,
@@ -396,8 +402,8 @@ export const insertDemoData = internalMutation({
 			applicationKind: 'initial',
 			status: 'filed',
 			currentStepKey: 'review',
-			completedStepCount: 9,
-			totalStepCount: 9,
+			completedStepCount: 11,
+			totalStepCount: 11,
 			filedAt: now - 14 * DAY_MS,
 			updatedAt: now,
 		})
@@ -417,8 +423,10 @@ export const insertDemoData = internalMutation({
 					aNumber: '076543210',
 					mailingAddress,
 					eligibilityCategory: 'C09',
+					gender: 'female',
+					maritalStatus: 'single',
 				},
-				form: {},
+				form: { previouslyFiledI765: 'no', preparedSelfInEnglish: 'yes' },
 			},
 			stepCompletion: completeAllSteps('i765'),
 			updatedAt: now,

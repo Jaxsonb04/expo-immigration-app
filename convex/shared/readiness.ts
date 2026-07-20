@@ -47,10 +47,12 @@ export type ApplicationReadiness = {
 // was removed as NOT a filing gap: the printed I-765 has no what-happened
 // field — its Part 1 replacement checkbox is mapped — so the app-collected
 // reason is app-side context only.
+// The I-765 Item 13 SSN box is "if known" and is DELIBERATELY left blank —
+// the app never collects an SSN (this edition has no SSA card-request or
+// consent items at all), which is a valid complete filing, so it is not a gap.
 const I765_COVERAGE_GAPS: readonly string[] = [
-	'Social Security number and card-request answers',
-	'Passport or travel document and most-recent-arrival details (I-94, place and date of last entry, immigration status), where your category requires them',
-	'Applicant statement declarations (English / interpreter / preparer)',
+	'Your most recent arrival in the U.S. (I-94 number, passport or travel document, date and place of last entry, and your status then and now)',
+	'The extra questions a few eligibility categories require (for example the receipt number for a spouse of an H-1B holder, or the asylum-filing question for a pending asylum application)',
 ]
 
 // Slice 3c: EMPTY — the I-90 field contract is complete. Every required

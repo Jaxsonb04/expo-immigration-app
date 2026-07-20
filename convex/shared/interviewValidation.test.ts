@@ -21,6 +21,7 @@ const validPersonFacts = {
 	mailingAddress: { street: '1 Main St', city: 'Austin', state: 'TX', zipCode: '78701' },
 	eligibilityCategory: 'C08',
 	gender: 'female',
+	maritalStatus: 'single',
 	motherGivenName: 'Rosa',
 	fatherGivenName: 'Miguel',
 	classOfAdmission: 'IR1',
@@ -42,6 +43,9 @@ const validPersonFacts = {
 }
 
 const formFor = (situation: { formType: string; applicationKind: string }) => ({
+	...(situation.formType === 'i765'
+		? { previouslyFiledI765: 'no', preparedSelfInEnglish: 'yes' }
+		: {}),
 	...(situation.formType === 'i90'
 		? {
 				cardStatus: 'permanentResident',

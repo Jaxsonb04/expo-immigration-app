@@ -33,6 +33,7 @@ const basePersonFacts = {
 	eligibilityCategory: 'C08',
 	// i90-only person facts
 	gender: 'female',
+	maritalStatus: 'single',
 	motherGivenName: 'Rosa',
 	fatherGivenName: 'Miguel',
 	classOfAdmission: 'IR1',
@@ -56,6 +57,10 @@ const basePersonFacts = {
 function completeFor(formType: FormType, applicationKind: ApplicationKind) {
 	const form: Record<string, unknown> = {}
 	if (applicationKind === 'replacement') form.replacementReason = 'lost'
+	if (formType === 'i765') {
+		form.previouslyFiledI765 = 'no'
+		form.preparedSelfInEnglish = 'yes'
+	}
 	if (formType === 'i90') {
 		form.cardStatus = 'permanentResident'
 		form.nameChangedSinceIssuance = 'no'

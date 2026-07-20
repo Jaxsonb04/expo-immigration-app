@@ -24,8 +24,10 @@ const completeI765Answers = {
 			zipCode: '94110',
 		},
 		eligibilityCategory: 'C08',
+		gender: 'female' as const,
+		maritalStatus: 'single' as const,
 	},
-	form: {},
+	form: { previouslyFiledI765: 'no' as const, preparedSelfInEnglish: 'yes' as const },
 }
 
 const attachedSlots = [

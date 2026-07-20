@@ -9,6 +9,7 @@ import { DateOfBirthStep } from './steps.date-of-birth'
 import { EligibilityCategoryStep } from './steps.eligibility-category'
 import { LegalNameStep } from './steps.legal-name'
 import { MailingAddressStep } from './steps.mailing-address'
+import { OtherInformationStep } from './steps.other-information'
 import { PersonalDetailsStep } from './steps.personal-details'
 import { PhysicalDescriptionStep } from './steps.physical-description'
 
@@ -23,6 +24,7 @@ export const stepBodies = {
 	'country-of-birth': CountryOfBirthStep,
 	citizenship: CitizenshipStep,
 	'personal-details': PersonalDetailsStep,
+	'other-information': OtherInformationStep,
 	'immigration-history': ImmigrationHistoryStep,
 	'a-number': ANumberStep,
 	'mailing-address': MailingAddressStep,

@@ -129,11 +129,14 @@ function rowApplies(
 		case 'previousGivenName':
 		case 'previousMiddleName':
 			return previousNameApplies(answers.form)
+		// Accommodations are an I-90-only part (its Part 4); I-765 has none.
+		case 'requestingAccommodation':
+			return formType === 'i90'
 		// Accommodation details, only when an accommodation is requested.
 		case 'accommodationDeafSignLanguage':
 		case 'accommodationBlindDetail':
 		case 'accommodationOtherDetail':
-			return accommodationDetailsApply(answers.form)
+			return formType === 'i90' && accommodationDetailsApply(answers.form)
 		default:
 			return true
 	}
@@ -242,6 +245,7 @@ function groupBlocker(
 		case 'applicant-statement':
 			if (form.preparedSelfInEnglish === 'no') return 'needs-preparer-parts'
 			if (
+				formType === 'i90' &&
 				form.requestingAccommodation === 'yes' &&
 				isEmptyValue(form.accommodationDeafSignLanguage) &&
 				isEmptyValue(form.accommodationBlindDetail) &&
