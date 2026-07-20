@@ -85,8 +85,8 @@ export default function WelcomeScreen() {
 					</Text>
 					<Text className="font-normal text-[17px] leading-relaxed text-muted">
 						Immifile walks you through your work permit or green card renewal — deadlines,
-						documents, and a print-ready filing, step by step. Create an account only when
-						you’re ready.
+						documents, and your form filled from your answers, step by step. Create an account
+						only when you’re ready.
 					</Text>
 				</Animated.View>
 			</View>

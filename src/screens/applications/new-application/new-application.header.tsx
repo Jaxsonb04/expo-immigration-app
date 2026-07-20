@@ -5,7 +5,8 @@ export function Header() {
 	return (
 		<View className="gap-hairline">
 			<Typography.Paragraph color="muted">
-				Your print-ready filing package is included. The USCIS filing fee is separate, paid to USCIS directly.
+				Answer plain-language questions and preview your form as you go. The USCIS filing fee is
+				separate, paid to USCIS directly.
 			</Typography.Paragraph>
 		</View>
 	)

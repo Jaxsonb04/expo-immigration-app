@@ -4,7 +4,7 @@ import { View } from 'react-native'
 import { useJourneyHub } from './journey-hub.context'
 
 export function Header() {
-	const { application, applicant, isUnlocked } = useJourneyHub()
+	const { application, applicant } = useJourneyHub()
 	const label = situationLabel(application.formType, application.applicationKind)
 	return (
 		<View className="gap-hairline">
@@ -15,7 +15,7 @@ export function Header() {
 					{label.secondary}
 				</Typography.Paragraph>
 				<Chip size="sm" variant="soft">
-					<Chip.Label>{progressLabel({ ...application, isUnlocked })}</Chip.Label>
+					<Chip.Label>{progressLabel(application)}</Chip.Label>
 				</Chip>
 			</View>
 		</View>

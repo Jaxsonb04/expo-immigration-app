@@ -20,6 +20,7 @@ import {
 } from './shared/applicationShapes'
 import { interviewStepKeys, preReviewStepKeys } from './shared/interviewSteps'
 import { isStepComplete, stepOwnedKeys } from './shared/interviewValidation'
+import { computeReadiness } from './shared/readiness'
 
 const draftShapeFor = { i765: i765DraftAnswersShape, i90: i90DraftAnswersShape } as const
 
@@ -149,6 +150,15 @@ export const getApplication = query({
 			applicant,
 			draft,
 			requirements,
+			// Server-authoritative export gate: derived from the persisted draft and
+			// slots here, never from client state, so "ready"/clean-export claims
+			// cannot outrun the data (workflow-repair safety slice).
+			readiness: computeReadiness({
+				formType: application.formType,
+				applicationKind: application.applicationKind,
+				answers: draft.answers,
+				requirements,
+			}),
 			isUnlocked: isEntitledToCleanExport(entitlement.some((e) => e.status === 'active')),
 			case: linkedCase,
 			// Only current (non-superseded) documents are reusable.

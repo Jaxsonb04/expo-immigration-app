@@ -49,8 +49,8 @@ export default function FormsTab() {
 						},
 						{
 							icon: 'printer',
-							title: 'Print-ready filing',
-							detail: 'Export a clean, USCIS-ready packet the moment your answers are done.',
+							title: 'See your form take shape',
+							detail: 'Preview your answers on the official form as you go — export unlocks only when everything checks out.',
 						},
 					]}
 				>

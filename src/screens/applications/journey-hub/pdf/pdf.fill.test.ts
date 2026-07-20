@@ -13,7 +13,7 @@ import {
 	splitEligibilityCategory,
 	type FillOp,
 } from './pdf.fill'
-import { renderDraftPreview } from './pdf.render'
+import { renderDraftPreview, renderFilingPackage } from './pdf.render'
 import { buildI765Ops, I765_FIELDS } from './pdf.i765-map'
 import { buildI90Ops, I90_FIELDS } from './pdf.i90-map'
 
@@ -157,7 +157,7 @@ describe('I-90 field map against the bundled template', () => {
 			I90_FIELDS.reasonExpiring,
 		]
 		const ops: FillOp[] = reasonFields.map((field) => ({ kind: 'check', field }))
-		expect(applyOps(form, ops)).toBe(reasonFields.length)
+		expect(applyOps(form, ops)).toEqual({ filledCount: reasonFields.length, failedFields: [] })
 		for (const field of reasonFields) {
 			expect(form.getCheckBox(field).isChecked()).toBe(true)
 		}
@@ -306,19 +306,22 @@ describe('buildI90Ops', () => {
 })
 
 describe('applyOps', () => {
-	test('skips ops for fields absent from this edition without throwing', async () => {
+	test('skips ops for fields absent from this edition and reports them as failed', async () => {
 		const doc = await PDFDocument.load(i765Template, { ignoreEncryption: true })
 		const ops: FillOp[] = [
 			{ kind: 'text', field: 'form1[0].Page1[0].No_Such_Field[0]', value: 'x' },
 			{ kind: 'text', field: I765_FIELDS.familyName, value: 'Santos' },
 		]
-		expect(applyOps(doc.getForm(), ops)).toBe(1)
+		expect(applyOps(doc.getForm(), ops)).toEqual({
+			filledCount: 1,
+			failedFields: ['form1[0].Page1[0].No_Such_Field[0]'],
+		})
 	})
 
 	test('truncates overflowing text to the field maxLength', async () => {
 		const doc = await PDFDocument.load(i765Template, { ignoreEncryption: true })
 		const form = doc.getForm()
-		const filledCount = applyOps(form, [
+		const { filledCount } = applyOps(form, [
 			{ kind: 'text', field: I765_FIELDS.mailingZip, value: '12345-6789' },
 		])
 		expect(filledCount).toBe(1)
@@ -352,6 +355,46 @@ describe('renderDraftPreview', () => {
 		expect(rendered.getPageCount()).toBeGreaterThan(0)
 		expect(rendered.getForm().getFields().length).toBe(0)
 		expect(filledCount).toBe(buildI90Ops(fullI90Draft, 'renewal').length)
+	})
+})
+
+describe('renderFilingPackage fails closed', () => {
+	// A template with none of the expected AcroForm fields — the stand-in for a
+	// future USCIS edition that renames fields out from under the maps.
+	async function blankTemplateBase64(): Promise<string> {
+		const doc = await PDFDocument.create()
+		doc.addPage()
+		return doc.saveAsBase64()
+	}
+
+	test('renders a clean, flattened package when every op lands', async () => {
+		const { base64, filledCount } = await renderFilingPackage(i765Template.toString('base64'), {
+			formType: 'i765',
+			answers: fullI765Draft,
+			applicationKind: 'renewal',
+		})
+		const rendered = await PDFDocument.load(base64)
+		expect(rendered.getForm().getFields().length).toBe(0)
+		expect(filledCount).toBe(buildI765Ops(fullI765Draft, 'renewal').length)
+	})
+
+	test('rejects instead of sharing a partially filled clean form', async () => {
+		await expect(
+			renderFilingPackage(await blankTemplateBase64(), {
+				formType: 'i765',
+				answers: fullI765Draft,
+				applicationKind: 'renewal',
+			}),
+		).rejects.toThrow(/not created|could not/)
+	})
+
+	test('the watermarked draft preview stays fail-open on the same template', async () => {
+		const { filledCount } = await renderDraftPreview(await blankTemplateBase64(), {
+			formType: 'i765',
+			answers: fullI765Draft,
+			applicationKind: 'renewal',
+		})
+		expect(filledCount).toBe(0)
 	})
 })
 

@@ -102,7 +102,7 @@ function Wizard(props: { applicationId: Id<'applications'>; detail: ApplicationD
 			})
 			if (isLast) {
 				// All pre-Review steps saved; the server has promoted person-facts
-				// (ADR-0014) and the Journey Hub now shows "Ready to review".
+				// (ADR-0014) and the Journey Hub now shows "Answers complete".
 				router.back()
 			} else {
 				setIndex(index + 1)

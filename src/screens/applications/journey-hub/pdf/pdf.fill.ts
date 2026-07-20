@@ -95,12 +95,18 @@ export function pushAddressOps(
 	pushTextOp(ops, fields.zip, address.zipCode)
 }
 
+export type ApplyOpsResult = { filledCount: number; failedFields: string[] }
+
 /**
  * Apply every op in its own try/catch: a USCIS edition that renames or drops
- * one field must never abort the whole render. Returns how many ops landed.
+ * one field must never abort the render mid-way. Every op that does not land
+ * is reported in `failedFields` — the caller decides whether that is
+ * survivable (watermarked draft preview) or fatal (a clean filing package
+ * must fail closed rather than ship with an answer silently missing).
  */
-export function applyOps(form: PDFForm, ops: FillOp[]): number {
+export function applyOps(form: PDFForm, ops: FillOp[]): ApplyOpsResult {
 	let filledCount = 0
+	const failedFields: string[] = []
 	for (const op of ops) {
 		try {
 			if (op.kind === 'text') {
@@ -119,10 +125,10 @@ export function applyOps(form: PDFForm, ops: FillOp[]): number {
 			}
 			filledCount += 1
 		} catch {
-			// Field absent or retyped in this edition — skip it and keep rendering.
+			failedFields.push(op.field)
 		}
 	}
-	return filledCount
+	return { filledCount, failedFields }
 }
 
 const WATERMARK_TEXT = 'DRAFT — NOT FOR FILING'

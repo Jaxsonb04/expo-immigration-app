@@ -366,6 +366,88 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 	)
 })
 
+// Workflow-truth: getApplication carries a server-computed readiness contract,
+// and "ready to file" can never be claimed while any answer, document, or
+// form-coverage blocker exists (workflow-repair safety slice 1).
+describe('getApplication readiness', () => {
+	async function setup() {
+		const t = newT()
+		const alice = t.withIdentity({ subject: 'alice' })
+		const applicantId = await alice.mutation(api.applicants.createApplicant, {
+			displayName: 'Alice',
+			isSelf: true,
+		})
+		const applicationId = await alice.mutation(api.applications.createApplication, {
+			applicantId,
+			formType: 'i765',
+			applicationKind: 'renewal',
+		})
+		return { t, alice, applicationId }
+	}
+
+	const completeSteps = [
+		{ stepKey: 'legal-name', stepData: { personFacts: { givenName: 'Ana', familyName: 'Diaz' } } },
+		{ stepKey: 'date-of-birth', stepData: { personFacts: { dateOfBirth: '1990-05-01' } } },
+		{ stepKey: 'country-of-birth', stepData: { personFacts: { countryOfBirth: 'Mexico' } } },
+		{ stepKey: 'a-number', stepData: { personFacts: { aNumber: '123456789' } } },
+		{ stepKey: 'mailing-address', stepData: { personFacts: { mailingAddress } } },
+		{ stepKey: 'eligibility-category', stepData: { personFacts: { eligibilityCategory: 'C08' } } },
+	]
+
+	test('a fresh application reports answer, document, and coverage blockers', async () => {
+		const { alice, applicationId } = await setup()
+		const { readiness } = await alice.query(api.applications.getApplication, { applicationId })
+		expect(readiness.isReadyToFile).toBe(false)
+		expect(readiness.answersComplete).toBe(false)
+		expect(readiness.documentsComplete).toBe(false)
+		expect(readiness.formCoverageComplete).toBe(false)
+		const kinds = new Set(readiness.blockers.map((blocker) => blocker.kind))
+		expect(kinds).toEqual(new Set(['answers', 'document', 'coverage']))
+	})
+
+	test('complete answers + resolved documents still fail closed on form coverage', async () => {
+		const { t, alice, applicationId } = await setup()
+		for (const step of completeSteps) {
+			await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
+		}
+		// Resolve every requirement slot (waived counts as resolved).
+		await t.run(async (ctx) => {
+			const slots = await ctx.db
+				.query('applicationDocuments')
+				.withIndex('by_applicationId', (q) => q.eq('applicationId', applicationId))
+				.take(50)
+			for (const slot of slots) {
+				await ctx.db.patch('applicationDocuments', slot._id, { status: 'waived' })
+			}
+		})
+
+		const { readiness } = await alice.query(api.applications.getApplication, { applicationId })
+		expect(readiness.answersComplete).toBe(true)
+		expect(readiness.documentsComplete).toBe(true)
+		// The app's own field contract is still incomplete (M2-T1 audit), so a
+		// clean "filing package" claim would be false — readiness must say so.
+		expect(readiness.formCoverageComplete).toBe(false)
+		expect(readiness.isReadyToFile).toBe(false)
+		expect(readiness.blockers.every((blocker) => blocker.kind === 'coverage')).toBe(true)
+	})
+
+	test('forged stepCompletion flags cannot unlock readiness (re-derived from data)', async () => {
+		const { t, alice, applicationId } = await setup()
+		await t.run(async (ctx) => {
+			const draft = await ctx.db
+				.query('applicationDrafts')
+				.withIndex('by_applicationId', (q) => q.eq('applicationId', applicationId))
+				.unique()
+			await ctx.db.patch('applicationDrafts', draft!._id, {
+				stepCompletion: Object.fromEntries(completeSteps.map((step) => [step.stepKey, true])),
+			})
+		})
+		const { readiness } = await alice.query(api.applications.getApplication, { applicationId })
+		expect(readiness.answersComplete).toBe(false)
+		expect(readiness.blockers.some((blocker) => blocker.kind === 'answers')).toBe(true)
+	})
+})
+
 describe('home dashboard + vault', () => {
 	test('empty owner gets a calm zero state', async () => {
 		const t = newT()

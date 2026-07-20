@@ -21,7 +21,10 @@ export type RenderDraftArgs = (
  * Fill the bundled template from the application's own draft (ADR-0014) and
  * flatten so the values are baked page content (not a clean editable form).
  * The free preview stamps a DRAFT watermark AFTER flatten (so baked values sit
- * under the stamp); the entitlement-gated filing package renders clean.
+ * under the stamp); the filing package renders clean and FAILS CLOSED: if any
+ * expected fill op does not land (renamed/dropped field on a template
+ * edition), the clean render throws instead of sharing a partially filled
+ * form that looks fileable.
  */
 export async function renderFilledForm(
 	templateBase64: string,
@@ -33,7 +36,18 @@ export async function renderFilledForm(
 		args.formType === 'i765'
 			? buildI765Ops(args.answers, args.applicationKind)
 			: buildI90Ops(args.answers, args.applicationKind)
-	const filledCount = applyOps(doc.getForm(), ops)
+	const { filledCount, failedFields } = applyOps(doc.getForm(), ops)
+	if (!options.watermark && failedFields.length > 0) {
+		const count = failedFields.length
+		// User-facing message stays plain; the raw AcroForm paths ride along in
+		// `cause` for debugging without leaking internals into the alert.
+		throw new Error(
+			`The filing package was not created: ${count} answer${count === 1 ? '' : 's'} could not ` +
+				'be written to the official form. The bundled form edition may be out of date — ' +
+				'nothing was exported.',
+			{ cause: { failedFields } },
+		)
+	}
 	doc.getForm().flatten()
 	if (options.watermark) {
 		const boldFont = await doc.embedFont(StandardFonts.HelveticaBold)
@@ -42,7 +56,7 @@ export async function renderFilledForm(
 	return { base64: await doc.saveAsBase64(), filledCount }
 }
 
-/** Free watermarked draft preview (ADR-0007). */
+/** Free watermarked draft preview (ADR-0007) — fail-open under the watermark. */
 export function renderDraftPreview(
 	templateBase64: string,
 	args: RenderDraftArgs,
@@ -50,7 +64,7 @@ export function renderDraftPreview(
 	return renderFilledForm(templateBase64, args, { watermark: true })
 }
 
-/** Entitlement-gated clean render for the print-ready filing package. */
+/** Clean render for the filing package — rejects unless every op landed. */
 export function renderFilingPackage(
 	templateBase64: string,
 	args: RenderDraftArgs,

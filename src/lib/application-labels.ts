@@ -56,12 +56,15 @@ export function progressLabel(application: {
 	status: 'draft' | 'filed' | 'closed'
 	completedStepCount: number
 	totalStepCount: number
-	isUnlocked?: boolean
 }): string {
 	if (application.status === 'filed') return 'Filed — tracking'
 	if (application.status === 'closed') return 'Closed'
 	if (application.completedStepCount >= application.totalStepCount - 1) {
-		return application.isUnlocked ? 'Ready to file' : 'Ready to review'
+		// Deliberately NOT "Ready to file/review": step count only proves the
+		// interview answers, not documents or the app's own form coverage. The
+		// server-owned readiness contract (convex/shared/readiness.ts) is the
+		// only thing allowed to claim filing readiness.
+		return 'Answers complete'
 	}
 	return `Step ${Math.min(application.completedStepCount + 1, application.totalStepCount)} of ${application.totalStepCount}`
 }
