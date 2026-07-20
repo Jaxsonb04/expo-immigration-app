@@ -14,6 +14,9 @@ const validPersonFacts = {
 	familyName: 'Diaz',
 	dateOfBirth: '1990-05-01',
 	countryOfBirth: 'Mexico',
+	cityOfBirth: 'Oaxaca',
+	countryOfCitizenship: 'Mexico',
+	daytimePhone: '5125550142',
 	aNumber: '123456789',
 	mailingAddress: { street: '1 Main St', city: 'Austin', state: 'TX', zipCode: '78701' },
 	eligibilityCategory: 'C08',
@@ -68,6 +71,33 @@ describe('isStepComplete — required fields enforced', () => {
 
 	test('middleName is optional — blank still completes legal-name', () => {
 		expect(isStepComplete('i90', 'renewal', 'legal-name', answers({ middleName: '' }))).toBe(true)
+	})
+
+	test('country-of-birth needs the city too (slice 3a); state/province stays optional', () => {
+		expect(isStepComplete('i765', 'renewal', 'country-of-birth', answers({}))).toBe(true)
+		expect(isStepComplete('i765', 'renewal', 'country-of-birth', answers({ cityOfBirth: '' }))).toBe(
+			false,
+		)
+		expect(isStepComplete('i90', 'renewal', 'country-of-birth', answers({ cityOfBirth: '' }))).toBe(
+			false,
+		)
+	})
+
+	test('citizenship needs the first country; the second is optional', () => {
+		expect(isStepComplete('i765', 'renewal', 'citizenship', answers({}))).toBe(true)
+		expect(
+			isStepComplete('i765', 'renewal', 'citizenship', answers({ countryOfCitizenship: '' })),
+		).toBe(false)
+	})
+
+	test('contact-info needs a 10-digit phone; email is optional', () => {
+		expect(isStepComplete('i765', 'renewal', 'contact-info', answers({}))).toBe(true)
+		expect(isStepComplete('i90', 'renewal', 'contact-info', answers({ daytimePhone: '' }))).toBe(
+			false,
+		)
+		expect(
+			isStepComplete('i90', 'renewal', 'contact-info', answers({ daytimePhone: '555-0142' })),
+		).toBe(false)
 	})
 })
 

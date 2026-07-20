@@ -33,6 +33,12 @@ export type InterviewValues = {
 		familyName: string
 		dateOfBirth: string
 		countryOfBirth: string
+		cityOfBirth: string
+		stateProvinceOfBirth: string
+		countryOfCitizenship: string
+		secondCountryOfCitizenship: string
+		daytimePhone: string
+		email: string
 		aNumber: string
 		mailingAddress: { street: string; unit: string; city: string; state: string; zipCode: string }
 		eligibilityCategory: string
@@ -71,6 +77,12 @@ export const emptyInterviewValues: InterviewValues = {
 		familyName: '',
 		dateOfBirth: '',
 		countryOfBirth: '',
+		cityOfBirth: '',
+		stateProvinceOfBirth: '',
+		countryOfCitizenship: '',
+		secondCountryOfCitizenship: '',
+		daytimePhone: '',
+		email: '',
 		aNumber: '',
 		mailingAddress: { street: '', unit: '', city: '', state: '', zipCode: '' },
 		eligibilityCategory: '',
@@ -103,6 +115,12 @@ export function seedFromDraft(answers: DraftAnswers): InterviewValues {
 			familyName: pf.familyName ?? '',
 			dateOfBirth: pf.dateOfBirth ?? '',
 			countryOfBirth: pf.countryOfBirth ?? '',
+			cityOfBirth: pf.cityOfBirth ?? '',
+			stateProvinceOfBirth: pf.stateProvinceOfBirth ?? '',
+			countryOfCitizenship: pf.countryOfCitizenship ?? '',
+			secondCountryOfCitizenship: pf.secondCountryOfCitizenship ?? '',
+			daytimePhone: pf.daytimePhone ?? '',
+			email: pf.email ?? '',
 			aNumber: pf.aNumber ?? '',
 			mailingAddress: {
 				street: pf.mailingAddress?.street ?? '',
@@ -135,6 +153,13 @@ export const fieldValidators = {
 	familyName: personFactsShape.shape.familyName,
 	dateOfBirth: personFactsShape.shape.dateOfBirth,
 	countryOfBirth: personFactsShape.shape.countryOfBirth,
+	cityOfBirth: personFactsShape.shape.cityOfBirth,
+	countryOfCitizenship: personFactsShape.shape.countryOfCitizenship,
+	// UI accepts separators; buildStepData strips to the digits the shape stores.
+	daytimePhone: z
+		.string()
+		.refine((value) => value.replace(/\D/g, '').length === 10, 'Enter a 10-digit U.S. phone number'),
+	email: orEmpty(z.email('Enter a valid email address')),
 	// Conditional validators return one widened type so TanStack's per-field
 	// validator generic unifies across both branches.
 	aNumber: (kind: ApplicationKind): z.ZodType<string, string> =>
@@ -197,10 +222,18 @@ const sharedSteps: StepDescriptor[] = [
 	{
 		key: 'country-of-birth',
 		question: 'Where were you born?',
-		help: 'Enter the country of birth as it appears on your passport, even if that country has since changed its name.',
-		fieldPaths: ['personFacts.countryOfBirth'],
+		help: 'Enter your birthplace as it appears on your passport or birth certificate, even if the country has since changed its name.',
+		fieldPaths: [
+			'personFacts.cityOfBirth',
+			'personFacts.stateProvinceOfBirth',
+			'personFacts.countryOfBirth',
+		],
 		buildStepData: (values) => ({
-			personFacts: dropEmpty({ countryOfBirth: values.personFacts.countryOfBirth }),
+			personFacts: dropEmpty({
+				cityOfBirth: values.personFacts.cityOfBirth,
+				stateProvinceOfBirth: values.personFacts.stateProvinceOfBirth,
+				countryOfBirth: values.personFacts.countryOfBirth,
+			}),
 		}),
 	},
 	{
@@ -240,6 +273,35 @@ const sharedSteps: StepDescriptor[] = [
 	},
 ]
 
+/** I-765 only (Item 14): citizenship is distinct from country of birth. */
+const citizenshipStep: StepDescriptor = {
+	key: 'citizenship',
+	question: 'What country are you a citizen of?',
+	help: 'List every country where you are currently a citizen or national. If you are stateless, enter the country where you were last a citizen.',
+	fieldPaths: ['personFacts.countryOfCitizenship', 'personFacts.secondCountryOfCitizenship'],
+	buildStepData: (values) => ({
+		personFacts: dropEmpty({
+			countryOfCitizenship: values.personFacts.countryOfCitizenship,
+			secondCountryOfCitizenship: values.personFacts.secondCountryOfCitizenship,
+		}),
+	}),
+}
+
+/** Both forms: USCIS applicant contact block (I-765 Part 3 / I-90 Part 5). */
+const contactInfoStep: StepDescriptor = {
+	key: 'contact-info',
+	question: 'How can USCIS reach you?',
+	help: 'USCIS may need to call about your application. Use a daytime phone number you actually answer; email is optional but recommended.',
+	fieldPaths: ['personFacts.daytimePhone', 'personFacts.email'],
+	buildStepData: (values) => ({
+		personFacts: dropEmpty({
+			// The shape stores digits only; the field accepts human formatting.
+			daytimePhone: values.personFacts.daytimePhone.replace(/\D/g, ''),
+			email: values.personFacts.email.trim(),
+		}),
+	}),
+}
+
 const i765FinalStep: StepDescriptor = {
 	key: 'eligibility-category',
 	question: 'What is your eligibility category?',
@@ -272,9 +334,18 @@ const i90FinalStep: StepDescriptor = {
 	}),
 }
 
+// sharedSteps order: [legal-name, date-of-birth, country-of-birth, a-number,
+// mailing-address]. The blueprint-sync unit test pins these composites against
+// interviewSteps.ts, so a drifted splice fails CI instead of shipping.
 const descriptorsByForm: Record<FormType, readonly StepDescriptor[]> = {
-	i765: [...sharedSteps, i765FinalStep],
-	i90: [...sharedSteps, i90FinalStep],
+	i765: [
+		...sharedSteps.slice(0, 3),
+		citizenshipStep,
+		...sharedSteps.slice(3),
+		contactInfoStep,
+		i765FinalStep,
+	],
+	i90: [...sharedSteps, contactInfoStep, i90FinalStep],
 }
 
 /**

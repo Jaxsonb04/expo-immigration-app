@@ -7,6 +7,7 @@ import { formatUsDate, normalizeANumber, pushAddressOps, pushTextOp, type FillOp
 const S0 = 'form1[0].#subform[0].'
 const S1 = 'form1[0].#subform[1].'
 const S2 = 'form1[0].#subform[2].'
+const S3 = 'form1[0].#subform[3].'
 
 export const I90_FIELDS = {
 	familyName: `${S0}P1_Line3a_FamilyName[0]`,
@@ -24,8 +25,13 @@ export const I90_FIELDS = {
 	mailingState: `${S0}P1_Line6e_State[0]`,
 	mailingZip: `${S0}P1_Line6f_ZipCode[0]`,
 	dateOfBirth: `${S1}P1_Line9_DateOfBirth[0]`,
+	// Item 10 city/town/village of birth (tooltip-verified explicit name).
+	cityOfBirth: `${S1}P1_Line10_CityTownOfBirth[0]`,
 	// Note the lowercase 'of' — this edition really names it CountryofBirth.
 	countryOfBirth: `${S1}P1_Line11_CountryofBirth[0]`,
+	// Part 5 applicant contact block (tooltip-verified).
+	daytimePhone: `${S3}P5_Line3_DaytimePhoneNumber[0]`,
+	email: `${S3}P5_Line5_EmailAddress[0]`,
 	// Part 2 Item 1 "My status is", verified per checkbox against this
 	// edition's TU tooltips AND export values ('1a'/'1b'/'1c') AND widget
 	// y-geometry (211/193/163 top→bottom). Indices DO follow printed order
@@ -138,7 +144,10 @@ export function buildI90Ops(answers: I90DraftAnswers, applicationKind: Applicati
 	})
 
 	pushTextOp(ops, I90_FIELDS.dateOfBirth, formatUsDate(personFacts.dateOfBirth))
+	pushTextOp(ops, I90_FIELDS.cityOfBirth, personFacts.cityOfBirth)
 	pushTextOp(ops, I90_FIELDS.countryOfBirth, personFacts.countryOfBirth)
+	pushTextOp(ops, I90_FIELDS.daytimePhone, personFacts.daytimePhone)
+	pushTextOp(ops, I90_FIELDS.email, personFacts.email)
 
 	return ops
 }

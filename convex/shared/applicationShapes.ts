@@ -42,6 +42,18 @@ export const personFactsShape = z.object({
 	familyName: z.string().min(1, 'Family name is required'),
 	dateOfBirth: isoDate,
 	countryOfBirth: z.string().min(1, 'Country of birth is required'),
+	// Place of birth (I-765 Item 15.A/B, I-90 Item 10): city is required on
+	// both printed forms; state/province is an I-765-only box and optional.
+	cityOfBirth: z.string().min(1, 'City or town of birth is required'),
+	stateProvinceOfBirth: z.string().optional(),
+	// Citizenship (I-765 Item 14, misnamed Line17* in the AcroForm): distinct
+	// from country of birth. Only I-765 interviews collect it; the second line
+	// exists for dual citizens.
+	countryOfCitizenship: z.string().min(1, 'Country of citizenship is required'),
+	secondCountryOfCitizenship: z.string().optional(),
+	// Contact (I-765 Part 3, I-90 Part 5): stored digits-only, 10 digits.
+	daytimePhone: z.string().regex(/^\d{10}$/, 'Enter a 10-digit U.S. phone number'),
+	email: z.email('Enter a valid email address').optional(),
 	aNumber: z
 		.string()
 		.regex(/^\d{7,9}$/, 'An A-Number is 7 to 9 digits'),

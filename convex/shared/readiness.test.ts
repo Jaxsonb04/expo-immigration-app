@@ -13,6 +13,9 @@ const completeI765Answers = {
 		familyName: 'Santos',
 		dateOfBirth: '1990-01-05',
 		countryOfBirth: 'Mexico',
+		cityOfBirth: 'Oaxaca',
+		countryOfCitizenship: 'Mexico',
+		daytimePhone: '4155550123',
 		aNumber: '12345678',
 		mailingAddress: {
 			street: '2350 Mission St',
@@ -128,9 +131,15 @@ describe('computeReadiness — coverage fails closed', () => {
 		expect(readiness.isReadyToFile).toBe(false)
 	})
 
-	test('an I-765 replacement also reports the unwritten replacement reason', () => {
-		const gaps = formCoverageGaps('i765', 'replacement')
-		expect(gaps.some((item) => item.includes('previous card'))).toBe(true)
-		expect(gaps.length).toBe(formCoverageGaps('i765', 'renewal').length + 1)
+	test('coverage gaps are kind-independent and never claim closed items', () => {
+		expect(formCoverageGaps('i765', 'replacement')).toEqual(formCoverageGaps('i765', 'renewal'))
+		expect(formCoverageGaps('i90', 'replacement')).toEqual(formCoverageGaps('i90', 'renewal'))
+		// Slice 3a closed the identity/contact gaps; the lists must not still
+		// name them (that would falsely block a completed contract).
+		for (const formType of ['i765', 'i90'] as const) {
+			for (const item of formCoverageGaps(formType, 'renewal')) {
+				expect(item).not.toMatch(/citizenship|city or town of birth|phone/i)
+			}
+		}
 	})
 })

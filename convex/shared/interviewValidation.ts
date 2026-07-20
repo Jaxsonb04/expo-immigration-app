@@ -33,7 +33,15 @@ type OwnedKeys = { personFacts: readonly string[]; form: readonly string[] }
 export const stepOwnedKeys: Record<string, OwnedKeys> = {
 	'legal-name': { personFacts: ['givenName', 'middleName', 'familyName'], form: [] },
 	'date-of-birth': { personFacts: ['dateOfBirth'], form: [] },
-	'country-of-birth': { personFacts: ['countryOfBirth'], form: [] },
+	'country-of-birth': {
+		personFacts: ['countryOfBirth', 'cityOfBirth', 'stateProvinceOfBirth'],
+		form: [],
+	},
+	citizenship: {
+		personFacts: ['countryOfCitizenship', 'secondCountryOfCitizenship'],
+		form: [],
+	},
+	'contact-info': { personFacts: ['daytimePhone', 'email'], form: [] },
 	'a-number': { personFacts: ['aNumber'], form: [] },
 	'mailing-address': { personFacts: ['mailingAddress'], form: [] },
 	'eligibility-category': { personFacts: ['eligibilityCategory'], form: ['replacementReason'] },
@@ -78,7 +86,15 @@ export function isStepComplete(
 		case 'date-of-birth':
 			return shape.dateOfBirth.safeParse(pf.dateOfBirth).success
 		case 'country-of-birth':
-			return shape.countryOfBirth.safeParse(pf.countryOfBirth).success
+			// City is required on both printed forms; state/province is optional.
+			return shape.countryOfBirth.safeParse(pf.countryOfBirth).success &&
+				shape.cityOfBirth.safeParse(pf.cityOfBirth).success
+		case 'citizenship':
+			// i765-only step; the second citizenship line is optional.
+			return shape.countryOfCitizenship.safeParse(pf.countryOfCitizenship).success
+		case 'contact-info':
+			// Daytime phone is required; email is optional on both printed forms.
+			return shape.daytimePhone.safeParse(pf.daytimePhone).success
 		case 'a-number':
 			if (formType === 'i765' && applicationKind === 'initial') return true
 			return shape.aNumber.safeParse(pf.aNumber).success

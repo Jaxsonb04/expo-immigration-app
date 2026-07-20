@@ -66,6 +66,12 @@ function filledValues(overrides?: Partial<InterviewValues['personFacts']>): Inte
 			familyName: 'Santos',
 			dateOfBirth: '1990-04-12',
 			countryOfBirth: 'Mexico',
+			cityOfBirth: 'Oaxaca',
+			stateProvinceOfBirth: '',
+			countryOfCitizenship: 'Mexico',
+			secondCountryOfCitizenship: '',
+			daytimePhone: '(415) 555-0134',
+			email: 'maria@example.com',
 			aNumber: '012345678',
 			mailingAddress: { street: '2350 Mission St', unit: '', city: 'SF', state: 'CA', zipCode: '94110' },
 			eligibilityCategory: 'C09',
@@ -113,6 +119,21 @@ describe('buildStepData', () => {
 		expect(renewal.form).toEqual({})
 		const replacement = stepDataFor('i765', 'eligibility-category', filledValues(), 'replacement')
 		expect(replacement.form).toEqual({ replacementReason: 'lost' })
+	})
+
+	test('country-of-birth emits city and country, dropping an empty state/province', () => {
+		const data = stepDataFor('i765', 'country-of-birth', filledValues(), 'renewal')
+		expect(data.personFacts).toEqual({ cityOfBirth: 'Oaxaca', countryOfBirth: 'Mexico' })
+	})
+
+	test('contact-info strips phone formatting to the digits the shape stores', () => {
+		const data = stepDataFor('i765', 'contact-info', filledValues(), 'renewal')
+		expect(data.personFacts).toEqual({ daytimePhone: '4155550134', email: 'maria@example.com' })
+	})
+
+	test('citizenship drops an empty second country', () => {
+		const data = stepDataFor('i765', 'citizenship', filledValues(), 'renewal')
+		expect(data.personFacts).toEqual({ countryOfCitizenship: 'Mexico' })
 	})
 
 	test('card-details drops empty expiration, keeps status, includes reason for replacements', () => {
@@ -206,7 +227,10 @@ describe('picker options stay in sync with the screening scope', () => {
 
 describe('initialStepIndex', () => {
 	test('resumes at the persisted current step', () => {
-		expect(initialStepIndex('i765', 'mailing-address')).toBe(4)
+		// i765 order: legal-name, date-of-birth, country-of-birth, citizenship,
+		// a-number, mailing-address, …
+		expect(initialStepIndex('i765', 'mailing-address')).toBe(5)
+		expect(initialStepIndex('i90', 'mailing-address')).toBe(4)
 	})
 
 	test('falls back to the first step for review or unknown keys', () => {

@@ -7,12 +7,21 @@ import type { ApplicationKind, FormType } from './applicationShapes'
 
 export const REVIEW_STEP_KEY = 'review'
 
+// Slice 3a (field-contract completion): 'country-of-birth' also collects the
+// city (and, for I-765, state/province) of birth; 'citizenship' (I-765 only)
+// and 'contact-info' (both forms) are new steps. The existing keys are kept
+// stable — in-flight drafts that completed the old 'country-of-birth' step
+// simply become incomplete again until the city is answered (readiness
+// re-derives per save, so nothing falsely claims completeness).
+
 const i765Steps = [
 	'legal-name',
 	'date-of-birth',
 	'country-of-birth',
+	'citizenship',
 	'a-number',
 	'mailing-address',
+	'contact-info',
 	'eligibility-category',
 	REVIEW_STEP_KEY,
 ] as const
@@ -23,6 +32,7 @@ const i90Steps = [
 	'country-of-birth',
 	'a-number',
 	'mailing-address',
+	'contact-info',
 	'card-details',
 	REVIEW_STEP_KEY,
 ] as const

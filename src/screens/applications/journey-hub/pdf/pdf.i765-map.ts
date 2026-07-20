@@ -17,6 +17,7 @@ import {
 const P1 = 'form1[0].Page1[0].'
 const P2 = 'form1[0].Page2[0].'
 const P3 = 'form1[0].Page3[0].'
+const P4 = 'form1[0].Page4[0].'
 
 export const I765_FIELDS = {
 	familyName: `${P1}Line1a_FamilyName[0]`,
@@ -41,8 +42,20 @@ export const I765_FIELDS = {
 	mailingZip: `${P2}Pt2Line5_ZipCode[0]`,
 	aNumber: `${P2}Line7_AlienNumber[0]`,
 	ssn: `${P2}Line12b_SSN[0]`,
+	// Item 14 citizenship — the Line17* names say "CountryOfBirth" but their TU
+	// tooltips read "Your Country or Countries of Citizenship or Nationality";
+	// 17a sits above 17b (y=396 vs 360), so 17a is the first citizenship line.
+	citizenship1: `${P2}Line17a_CountryOfBirth[0]`,
+	citizenship2: `${P2}Line17b_CountryOfBirth[0]`,
+	// Item 15 place of birth: 15.A city/town/village, 15.B state/province
+	// (tooltip-verified — both are named Line18a/b_CityTownOfBirth), 15.C country.
+	cityOfBirth: `${P3}Line18a_CityTownOfBirth[0]`,
+	stateProvinceOfBirth: `${P3}Line18b_CityTownOfBirth[0]`,
 	countryOfBirth: `${P3}Line18c_CountryOfBirth[0]`,
 	dateOfBirth: `${P3}Line19_DOB[0]`,
+	// Part 3 applicant contact block (tooltip-verified; phone is a 10-digit comb).
+	daytimePhone: `${P4}Pt3Line3_DaytimePhoneNumber1[0]`,
+	email: `${P4}Pt3Line5_Email[0]`,
 	// Eligibility (Item 27) parenthetical boxes: letter, number — section_3
 	// stays empty because no currently supported category has a sub-letter.
 	eligibilityLetter: `${P3}#area[1].section_1[0]`,
@@ -88,8 +101,14 @@ export function buildI765Ops(
 
 	pushTextOp(ops, I765_FIELDS.aNumber, normalizeANumber(personFacts.aNumber))
 	pushTextOp(ops, I765_FIELDS.ssn, answers.form.ssn?.replace(/\D/g, ''))
+	pushTextOp(ops, I765_FIELDS.citizenship1, personFacts.countryOfCitizenship)
+	pushTextOp(ops, I765_FIELDS.citizenship2, personFacts.secondCountryOfCitizenship)
+	pushTextOp(ops, I765_FIELDS.cityOfBirth, personFacts.cityOfBirth)
+	pushTextOp(ops, I765_FIELDS.stateProvinceOfBirth, personFacts.stateProvinceOfBirth)
 	pushTextOp(ops, I765_FIELDS.countryOfBirth, personFacts.countryOfBirth)
 	pushTextOp(ops, I765_FIELDS.dateOfBirth, formatUsDate(personFacts.dateOfBirth))
+	pushTextOp(ops, I765_FIELDS.daytimePhone, personFacts.daytimePhone)
+	pushTextOp(ops, I765_FIELDS.email, personFacts.email)
 
 	if (personFacts.eligibilityCategory !== undefined) {
 		const split = splitEligibilityCategory(personFacts.eligibilityCategory)

@@ -43,6 +43,12 @@ const fullI765Draft: I765DraftAnswers = {
 		familyName: 'Santos',
 		dateOfBirth: '1990-01-05',
 		countryOfBirth: 'Mexico',
+		cityOfBirth: 'Oaxaca',
+		stateProvinceOfBirth: 'Oaxaca',
+		countryOfCitizenship: 'Mexico',
+		secondCountryOfCitizenship: 'Canada',
+		daytimePhone: '4155550134',
+		email: 'maria@example.com',
 		aNumber: 'A12345678',
 		mailingAddress: {
 			street: '2350 Mission St',
@@ -63,6 +69,9 @@ const fullI90Draft: I90DraftAnswers = {
 		familyName: 'Santos',
 		dateOfBirth: '1990-01-05',
 		countryOfBirth: 'Mexico',
+		cityOfBirth: 'Oaxaca',
+		daytimePhone: '4155550134',
+		email: 'maria@example.com',
 		aNumber: 'A12345678',
 		mailingAddress: {
 			street: '2350 Mission St',
@@ -192,6 +201,27 @@ describe('I-90 field map against the bundled template', () => {
 describe('buildI765Ops', () => {
 	const ops = buildI765Ops(fullI765Draft, 'renewal')
 
+	test('maps citizenship, place of birth, and contact info (slice 3a)', () => {
+		expect(ops).toContainEqual({ kind: 'text', field: I765_FIELDS.citizenship1, value: 'Mexico' })
+		expect(ops).toContainEqual({ kind: 'text', field: I765_FIELDS.citizenship2, value: 'Canada' })
+		expect(ops).toContainEqual({ kind: 'text', field: I765_FIELDS.cityOfBirth, value: 'Oaxaca' })
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I765_FIELDS.stateProvinceOfBirth,
+			value: 'Oaxaca',
+		})
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I765_FIELDS.daytimePhone,
+			value: '4155550134',
+		})
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I765_FIELDS.email,
+			value: 'maria@example.com',
+		})
+	})
+
 	test('formats the date of birth as MM/DD/YYYY', () => {
 		expect(ops).toContainEqual({
 			kind: 'text',
@@ -275,6 +305,21 @@ describe('buildI90Ops', () => {
 		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.familyName, value: 'Santos' })
 		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.givenName, value: 'Maria' })
 		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.aNumber, value: '012345678' })
+	})
+
+	test('maps city of birth and contact info (slice 3a)', () => {
+		const ops = buildI90Ops(fullI90Draft, 'renewal')
+		expect(ops).toContainEqual({ kind: 'text', field: I90_FIELDS.cityOfBirth, value: 'Oaxaca' })
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I90_FIELDS.daytimePhone,
+			value: '4155550134',
+		})
+		expect(ops).toContainEqual({
+			kind: 'text',
+			field: I90_FIELDS.email,
+			value: 'maria@example.com',
+		})
 	})
 
 	test('uses the plain-order STE checkbox for a suite unit', () => {

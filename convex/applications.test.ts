@@ -78,7 +78,7 @@ describe('createApplication', () => {
 		const detail = await alice.query(api.applications.getApplication, { applicationId })
 		expect(detail.application.status).toBe('draft')
 		expect(detail.application.completedStepCount).toBe(0)
-		expect(detail.application.totalStepCount).toBe(7)
+		expect(detail.application.totalStepCount).toBe(9)
 		expect(detail.application.currentStepKey).toBe('legal-name')
 		// Draft seeded from the profile, steps still incomplete.
 		expect(detail.draft.answers.personFacts).toMatchObject({
@@ -214,7 +214,7 @@ describe('saveApplicationStep', () => {
 			stepKey: 'legal-name',
 			stepData: { personFacts: { givenName: 'Alice', familyName: 'Anders' } },
 		})
-		expect(result).toEqual({ nextStepKey: 'date-of-birth', completedStepCount: 1, totalStepCount: 7 })
+		expect(result).toEqual({ nextStepKey: 'date-of-birth', completedStepCount: 1, totalStepCount: 9 })
 
 		const detail = await alice.query(api.applications.getApplication, { applicationId })
 		expect(detail.application.currentStepKey).toBe('date-of-birth')
@@ -271,9 +271,14 @@ describe('saveApplicationStep', () => {
 		const steps: { stepKey: string; stepData: { personFacts?: object; form?: object } }[] = [
 			{ stepKey: 'legal-name', stepData: { personFacts: { givenName: 'Alice', familyName: 'Anders' } } },
 			{ stepKey: 'date-of-birth', stepData: { personFacts: { dateOfBirth: '1991-02-03' } } },
-			{ stepKey: 'country-of-birth', stepData: { personFacts: { countryOfBirth: 'Brazil' } } },
+			{
+				stepKey: 'country-of-birth',
+				stepData: { personFacts: { countryOfBirth: 'Brazil', cityOfBirth: 'Salvador' } },
+			},
+			{ stepKey: 'citizenship', stepData: { personFacts: { countryOfCitizenship: 'Brazil' } } },
 			{ stepKey: 'a-number', stepData: { personFacts: { aNumber: '01234567' } } },
 			{ stepKey: 'mailing-address', stepData: { personFacts: { mailingAddress } } },
+			{ stepKey: 'contact-info', stepData: { personFacts: { daytimePhone: '5105550101' } } },
 		]
 		for (const step of steps) {
 			await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
@@ -295,6 +300,9 @@ describe('saveApplicationStep', () => {
 			familyName: 'Anders',
 			dateOfBirth: '1991-02-03',
 			countryOfBirth: 'Brazil',
+			cityOfBirth: 'Salvador',
+			countryOfCitizenship: 'Brazil',
+			daytimePhone: '5105550101',
 			aNumber: '01234567',
 			eligibilityCategory: 'C08',
 		})
@@ -393,9 +401,16 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 			const steps = [
 				{ stepKey: 'legal-name', stepData: { personFacts: { givenName: 'Ana', familyName: 'Diaz' } } },
 				{ stepKey: 'date-of-birth', stepData: { personFacts: { dateOfBirth: '1990-05-01' } } },
-				{ stepKey: 'country-of-birth', stepData: { personFacts: { countryOfBirth: 'Mexico' } } },
+				{
+					stepKey: 'country-of-birth',
+					stepData: { personFacts: { countryOfBirth: 'Mexico', cityOfBirth: 'Oaxaca' } },
+				},
+				...(situation.formType === 'i765'
+					? [{ stepKey: 'citizenship', stepData: { personFacts: { countryOfCitizenship: 'Mexico' } } }]
+					: []),
 				{ stepKey: 'a-number', stepData: { personFacts: { aNumber: '123456789' } } },
 				{ stepKey: 'mailing-address', stepData: { personFacts: { mailingAddress } } },
+				{ stepKey: 'contact-info', stepData: { personFacts: { daytimePhone: '5125550142' } } },
 				finalStep(situation),
 			]
 
@@ -404,10 +419,11 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 				result = await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
 			}
 
+			const preReviewCount = situation.formType === 'i765' ? 8 : 7
 			expect(result).toBeDefined()
 			expect(result!.nextStepKey).toBe('review')
-			expect(result!.completedStepCount).toBe(6)
-			expect(result!.totalStepCount).toBe(7)
+			expect(result!.completedStepCount).toBe(preReviewCount)
+			expect(result!.totalStepCount).toBe(preReviewCount + 1)
 		},
 	)
 })
@@ -434,9 +450,14 @@ describe('getApplication readiness', () => {
 	const completeSteps = [
 		{ stepKey: 'legal-name', stepData: { personFacts: { givenName: 'Ana', familyName: 'Diaz' } } },
 		{ stepKey: 'date-of-birth', stepData: { personFacts: { dateOfBirth: '1990-05-01' } } },
-		{ stepKey: 'country-of-birth', stepData: { personFacts: { countryOfBirth: 'Mexico' } } },
+		{
+			stepKey: 'country-of-birth',
+			stepData: { personFacts: { countryOfBirth: 'Mexico', cityOfBirth: 'Oaxaca' } },
+		},
+		{ stepKey: 'citizenship', stepData: { personFacts: { countryOfCitizenship: 'Mexico' } } },
 		{ stepKey: 'a-number', stepData: { personFacts: { aNumber: '123456789' } } },
 		{ stepKey: 'mailing-address', stepData: { personFacts: { mailingAddress } } },
+		{ stepKey: 'contact-info', stepData: { personFacts: { daytimePhone: '5125550142' } } },
 		{ stepKey: 'eligibility-category', stepData: { personFacts: { eligibilityCategory: 'C08' } } },
 	]
 

@@ -41,20 +41,22 @@ export type ApplicationReadiness = {
 // current pdf maps (pdf.i765-map.ts / pdf.i90-map.ts). Shown verbatim in the
 // Journey Hub honesty notice. Remove an entry ONLY when the item is collected,
 // validated, persisted, AND written to the current form edition.
+// Slice 3a closed the identity/contact gaps on both forms (citizenship, city/
+// state of birth, daytime phone, email — all collected, validated, and mapped
+// to verified fields). The earlier i765-replacement "reason not written" item
+// was removed as NOT a filing gap: the printed I-765 has no what-happened
+// field — its Part 1 replacement checkbox is mapped — so the app-collected
+// reason is app-side context only.
 const I765_COVERAGE_GAPS: readonly string[] = [
-	'Country of citizenship or nationality',
-	'City or town of birth',
-	'Daytime phone number and email address',
 	'Social Security number and card-request answers',
+	'Passport or travel document and most-recent-arrival details (I-94, place and date of last entry, immigration status), where your category requires them',
 ]
 
 const I90_COVERAGE_GAPS: readonly string[] = [
 	'Gender',
-	'City or town of birth',
 	"Mother's and father's given names",
 	'Class and date of admission',
 	'Physical description (height, weight, eye and hair color, ethnicity, race)',
-	'Daytime phone number and email address',
 ]
 
 /**
@@ -65,15 +67,8 @@ export function formCoverageGaps(
 	formType: FormType,
 	applicationKind: ApplicationKind,
 ): readonly string[] {
-	if (formType === 'i765') {
-		return applicationKind === 'replacement'
-			? [
-					...I765_COVERAGE_GAPS,
-					'What happened to your previous card (collected, but not yet written to the form)',
-				]
-			: I765_COVERAGE_GAPS
-	}
-	return I90_COVERAGE_GAPS
+	void applicationKind // gaps are currently kind-independent for both forms
+	return formType === 'i765' ? I765_COVERAGE_GAPS : I90_COVERAGE_GAPS
 }
 
 type DraftAnswers = { personFacts?: unknown; form?: unknown }

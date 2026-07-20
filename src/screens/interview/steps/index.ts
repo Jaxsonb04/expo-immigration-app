@@ -1,5 +1,7 @@
 import { ANumberStep } from './steps.a-number'
 import { CardDetailsStep } from './steps.card-details'
+import { CitizenshipStep } from './steps.citizenship'
+import { ContactInfoStep } from './steps.contact-info'
 import { CountryOfBirthStep } from './steps.country-of-birth'
 import { DateOfBirthStep } from './steps.date-of-birth'
 import { EligibilityCategoryStep } from './steps.eligibility-category'
@@ -15,8 +17,10 @@ export const stepBodies = {
 	'legal-name': LegalNameStep,
 	'date-of-birth': DateOfBirthStep,
 	'country-of-birth': CountryOfBirthStep,
+	citizenship: CitizenshipStep,
 	'a-number': ANumberStep,
 	'mailing-address': MailingAddressStep,
+	'contact-info': ContactInfoStep,
 	'eligibility-category': EligibilityCategoryStep,
 	'card-details': CardDetailsStep,
 } as const
