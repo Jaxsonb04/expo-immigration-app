@@ -39,6 +39,7 @@ import type * as shared_navigator from "../shared/navigator.js";
 import type * as shared_news from "../shared/news.js";
 import type * as shared_readiness from "../shared/readiness.js";
 import type * as shared_renewals from "../shared/renewals.js";
+import type * as shared_reviewModel from "../shared/reviewModel.js";
 import type * as shared_screening from "../shared/screening.js";
 import type * as shared_tempAccounts from "../shared/tempAccounts.js";
 import type * as tempAccounts from "../tempAccounts.js";
@@ -81,6 +82,7 @@ declare const fullApi: ApiFromModules<{
   "shared/news": typeof shared_news;
   "shared/readiness": typeof shared_readiness;
   "shared/renewals": typeof shared_renewals;
+  "shared/reviewModel": typeof shared_reviewModel;
   "shared/screening": typeof shared_screening;
   "shared/tempAccounts": typeof shared_tempAccounts;
   tempAccounts: typeof tempAccounts;

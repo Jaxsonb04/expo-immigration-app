@@ -5,6 +5,7 @@ import type { FormType } from '@convex/shared/applicationShapes'
 import { Asset } from 'expo-asset'
 import * as FileSystem from 'expo-file-system/legacy'
 import * as Sharing from 'expo-sharing'
+import * as WebBrowser from 'expo-web-browser'
 import { renderDraftPreview, renderFilingPackage, type RenderDraftArgs } from './pdf.render'
 
 // On-device glue for the watermarked draft Preview: resolve the bundled
@@ -49,15 +50,14 @@ type RenderFn = (
 ) => Promise<{ base64: string; filledCount: number }>
 
 /**
- * Resolve the bundled template, render it, write the result to the cache
- * directory only (generated on demand, never persisted — ADR-0007), and open it
- * in the OS share sheet. Rejects on any asset, render, or share failure so the
- * caller can surface it.
+ * Resolve the bundled template, render it, and write the result to the cache
+ * directory only (generated on demand, never persisted — ADR-0007). Returns the
+ * file:// uri. Rejects on any asset or render failure so the caller can surface it.
  */
-async function renderAndShare(
+async function renderToCacheUri(
 	args: RenderDraftArgs,
-	options: { render: RenderFn; filename: string; dialogTitle: string },
-): Promise<void> {
+	options: { render: RenderFn; filename: string },
+): Promise<string> {
 	const asset = Asset.fromModule(TEMPLATE_MODULES[args.formType])
 	if (!asset.localUri) {
 		await asset.downloadAsync()
@@ -72,7 +72,16 @@ async function renderAndShare(
 	await FileSystem.writeAsStringAsync(outUri, base64, {
 		encoding: FileSystem.EncodingType.Base64,
 	})
+	return outUri
+}
 
+/** Render to cache, then hand the file to the OS share sheet (save/share
+ * destinations) — the right affordance for the real clean export. */
+async function renderAndShare(
+	args: RenderDraftArgs,
+	options: { render: RenderFn; filename: string; dialogTitle: string },
+): Promise<void> {
+	const outUri = await renderToCacheUri(args, options)
 	// Fail loudly rather than silently no-op: without the share sheet the file
 	// never appears, so the caller must be able to surface an error.
 	if (!(await Sharing.isAvailableAsync())) {
@@ -85,13 +94,26 @@ async function renderAndShare(
 	})
 }
 
-/** Free watermarked draft preview. */
-export function openDraftPreview(args: RenderDraftArgs): Promise<void> {
-	return renderAndShare(args, {
+/**
+ * Open the watermarked draft for INSPECTION inside the app — reached only after
+ * the structured review, as a deliberate "view the PDF" step, so it no longer
+ * fires the OS share sheet the moment the user taps Preview. Presents an in-app
+ * browser tab; if that can't render the local PDF (iOS SFSafariViewController is
+ * unreliable with file://), falls back to the QuickLook document preview.
+ */
+export async function openDraftInApp(args: RenderDraftArgs): Promise<void> {
+	const outUri = await renderToCacheUri(args, {
 		render: renderDraftPreview,
 		filename: DRAFT_FILENAMES[args.formType],
-		dialogTitle: `${situationLabel(args.formType, args.applicationKind).primary} — draft preview`,
 	})
+	try {
+		await WebBrowser.openBrowserAsync(outUri)
+	} catch {
+		if (!(await Sharing.isAvailableAsync())) {
+			throw new Error("Opening files isn't available on this device.")
+		}
+		await Sharing.shareAsync(outUri, { mimeType: 'application/pdf', UTI: 'com.adobe.pdf' })
+	}
 }
 
 /**

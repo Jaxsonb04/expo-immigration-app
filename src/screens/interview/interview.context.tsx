@@ -12,6 +12,10 @@ export type InterviewState = {
 	totalSteps: number
 	saving: boolean
 	isLast: boolean
+	// Single-step edit mode (opened from the review screen): the wizard shows
+	// just the one targeted step and returns to review on save, rather than
+	// walking the whole interview.
+	singleStep: boolean
 	next: () => void
 	back: () => void
 	close: () => void

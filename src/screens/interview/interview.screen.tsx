@@ -31,7 +31,13 @@ import {
  * load-bearing decisions — single form instance, host-owned step index,
  * withForm step consumers — are unchanged.
  */
-export function InterviewScreen(props: { applicationId: Id<'applications'> }) {
+export function InterviewScreen(props: {
+	applicationId: Id<'applications'>
+	// When set (from the review screen's Edit affordance), the wizard opens on
+	// this step and, in single mode, returns to review after saving it.
+	startStepKey?: string
+	singleStep?: boolean
+}) {
 	const router = useRouter()
 	const detail = useApplicationDetail(props.applicationId)
 
@@ -57,17 +63,31 @@ export function InterviewScreen(props: { applicationId: Id<'applications'> }) {
 	}
 
 	// Mounted only once the draft is loaded so the form seeds exactly once.
-	return <Wizard applicationId={props.applicationId} detail={detail} />
+	return (
+		<Wizard
+			applicationId={props.applicationId}
+			detail={detail}
+			startStepKey={props.startStepKey}
+			singleStep={props.singleStep ?? false}
+		/>
+	)
 }
 
-function Wizard(props: { applicationId: Id<'applications'>; detail: ApplicationDetail }) {
+function Wizard(props: {
+	applicationId: Id<'applications'>
+	detail: ApplicationDetail
+	startStepKey?: string
+	singleStep: boolean
+}) {
 	const router = useRouter()
 	const saveStep = useSaveApplicationStep()
 	const { application, draft } = props.detail
 
 	const steps = stepDescriptorsFor(application.formType)
 	const [index, setIndex] = useState(() =>
-		initialStepIndex(application.formType, application.currentStepKey),
+		// initialStepIndex already resolves a key→index with a safe -1→0 fallback,
+		// so a single-step edit opens directly on its target step.
+		initialStepIndex(application.formType, props.startStepKey ?? application.currentStepKey),
 	)
 	const [saving, setSaving] = useState(false)
 
@@ -100,7 +120,12 @@ function Wizard(props: { applicationId: Id<'applications'>; detail: ApplicationD
 				stepKey: step.key,
 				stepData: step.buildStepData(form.state.values, application.applicationKind),
 			})
-			if (isLast) {
+			if (props.singleStep) {
+				// Single-step edit from the review screen: return to review (which
+				// pushed us) instead of advancing. The review summary re-renders
+				// reactively from the live getApplication query — inspect→edit→recheck.
+				router.back()
+			} else if (isLast) {
 				// All pre-Review steps saved; the server has promoted person-facts
 				// (ADR-0014) and the Journey Hub now shows "Answers complete".
 				router.back()
@@ -124,8 +149,11 @@ function Wizard(props: { applicationId: Id<'applications'>; detail: ApplicationD
 		totalSteps: steps.length,
 		saving,
 		isLast,
+		singleStep: props.singleStep,
 		next: () => void handleNext(),
-		back: () => (index === 0 ? router.back() : setIndex(index - 1)),
+		// In single-step mode Back cancels straight to review (never walks the
+		// earlier steps); otherwise it steps back or closes from the first step.
+		back: () => (props.singleStep || index === 0 ? router.back() : setIndex(index - 1)),
 		close: () => router.back(),
 	}
 

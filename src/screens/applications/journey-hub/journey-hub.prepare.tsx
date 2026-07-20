@@ -20,7 +20,15 @@ export function Prepare() {
 			{isDraft && (
 				<Button
 					variant={interviewDone ? 'secondary' : 'primary'}
-					onPress={() => router.push(`/interview/${application._id}`)}
+					onPress={() =>
+						router.push(
+							// Once the answers are in, "Review answers" opens the grouped
+							// review screen (not the sequential interview at step 0).
+							interviewDone
+								? `/application/${application._id}/review`
+								: `/interview/${application._id}`,
+						)
+					}
 				>
 					<Button.Label>{interviewDone ? 'Review answers' : 'Continue'}</Button.Label>
 				</Button>

@@ -119,6 +119,58 @@ function asRecord(value: unknown): Record<string, unknown> {
 	return typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : {}
 }
 
+// ---------------------------------------------------------------------------
+// Per-step applicability predicates. These are the SINGLE source of the
+// conditional rules — `isStepComplete` (below) and the review model
+// (reviewModel.ts) both call them, so the interview's completeness gate and
+// the review screen's "which fields apply" derivation can never disagree.
+// ---------------------------------------------------------------------------
+
+/** A-Number is required except for a first-time work permit (i765 initial). */
+export function aNumberRequired(formType: FormType, applicationKind: ApplicationKind): boolean {
+	return !(formType === 'i765' && applicationKind === 'initial')
+}
+
+/** i90 physical address (Part 1 Item 7) is collected only when it differs. */
+export function physicalAddressApplies(form: Record<string, unknown>): boolean {
+	return form.physicalAddressSameAsMailing === 'no'
+}
+
+/**
+ * The i90 physical address is complete when street + city are present plus
+ * either a valid U.S. state and ZIP or a country (commuters live abroad).
+ * Kept identical to the mailing-address branch of `isStepComplete` so the
+ * review row's status matches the step's real completeness contract.
+ */
+export function physicalAddressComplete(phys: Record<string, unknown>): boolean {
+	const hasUsLocation = isUsStateCode(phys.state) && isNonEmptyString(phys.zipCode)
+	return (
+		isNonEmptyString(phys.street) &&
+		isNonEmptyString(phys.city) &&
+		(hasUsLocation || isNonEmptyString(phys.country))
+	)
+}
+
+/** i90 entry details (Part 3 Items 3.A/3.A.1) apply to immigrant-visa entries. */
+export function immigrantVisaDetailsApply(personFacts: Record<string, unknown>): boolean {
+	return personFacts.becameResidentVia === 'immigrantVisa'
+}
+
+/** i90 previous-name items (5.A-5.C) apply when the name legally changed. */
+export function previousNameApplies(form: Record<string, unknown>): boolean {
+	return form.nameChangedSinceIssuance === 'yes'
+}
+
+/** The what-happened-to-your-card reason applies to replacement situations. */
+export function replacementReasonApplies(applicationKind: ApplicationKind): boolean {
+	return applicationKind === 'replacement'
+}
+
+/** i90 accommodation detail fields apply when an accommodation is requested. */
+export function accommodationDetailsApply(form: Record<string, unknown>): boolean {
+	return form.requestingAccommodation === 'yes'
+}
+
 /**
  * True when the step's OWNED required fields are present and valid in the merged
  * draft. Kind-aware for the two conditional fields: A-Number is optional for a
@@ -172,7 +224,7 @@ export function isStepComplete(
 				shape.races.safeParse(pf.races).success
 			)
 		case 'a-number':
-			if (formType === 'i765' && applicationKind === 'initial') return true
+			if (!aNumberRequired(formType, applicationKind)) return true
 			return shape.aNumber.safeParse(pf.aNumber).success
 		case 'mailing-address': {
 			const addr = (pf.mailingAddress ?? {}) as Record<string, unknown>
@@ -188,23 +240,15 @@ export function isStepComplete(
 			// country (commuters normally live abroad).
 			if (!mailingComplete) return false
 			if (form.physicalAddressSameAsMailing === 'yes') return true
-			if (form.physicalAddressSameAsMailing !== 'no') return false
-			const phys = (form.physicalAddress ?? {}) as Record<string, unknown>
-			// The state must be a real dropdown option (a typo would otherwise
-			// only surface as a failed select at clean-export time).
-			const hasUsLocation = isUsStateCode(phys.state) && isNonEmptyString(phys.zipCode)
-			return (
-				isNonEmptyString(phys.street) &&
-				isNonEmptyString(phys.city) &&
-				(hasUsLocation || isNonEmptyString(phys.country))
-			)
+			if (!physicalAddressApplies(form)) return false
+			return physicalAddressComplete((form.physicalAddress ?? {}) as Record<string, unknown>)
 		}
 		case 'eligibility-category':
 			// i765 final step: the category must be one this app actually prepares
 			// (screening.ts single-source list — "notListed" and free-text values
 			// can never complete the step); replacementReason only when replacing.
 			return isSupportedI765Category(pf.eligibilityCategory) &&
-				(applicationKind !== 'replacement' || isNonEmptyString(form.replacementReason))
+				(!replacementReasonApplies(applicationKind) || isNonEmptyString(form.replacementReason))
 		case 'immigration-history': {
 			// i90-only: Part 3 Processing Information. A 'yes' on the proceedings
 			// or I-407 questions requires a written Part 8 explanation this app
@@ -218,7 +262,7 @@ export function isStepComplete(
 				return false
 			}
 			if (
-				pf.becameResidentVia === 'immigrantVisa' &&
+				immigrantVisaDetailsApply(pf) &&
 				(!shape.destinationAtAdmission.safeParse(pf.destinationAtAdmission).success ||
 					!shape.portOfEntryCityState.safeParse(pf.portOfEntryCityState).success)
 			) {
@@ -232,8 +276,7 @@ export function isStepComplete(
 			// prepare) and Part 4 accommodations (explicit No box; 'yes' needs at
 			// least one accommodation with its detail text).
 			if (form.preparedSelfInEnglish !== 'yes') return false
-			if (form.requestingAccommodation === 'no') return true
-			if (form.requestingAccommodation !== 'yes') return false
+			if (!accommodationDetailsApply(form)) return form.requestingAccommodation === 'no'
 			return (
 				isNonEmptyString(form.accommodationDeafSignLanguage) ||
 				isNonEmptyString(form.accommodationBlindDetail) ||
@@ -253,12 +296,12 @@ export function isStepComplete(
 				return false
 			}
 			if (
-				nameAnswer === 'yes' &&
+				previousNameApplies(form) &&
 				(!isNonEmptyString(form.previousFamilyName) || !isNonEmptyString(form.previousGivenName))
 			) {
 				return false
 			}
-			return applicationKind !== 'replacement' || isNonEmptyString(form.replacementReason)
+			return !replacementReasonApplies(applicationKind) || isNonEmptyString(form.replacementReason)
 		}
 		default:
 			// 'review' and any unknown key can never be marked complete.
