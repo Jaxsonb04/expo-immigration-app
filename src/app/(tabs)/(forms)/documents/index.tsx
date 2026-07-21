@@ -16,7 +16,7 @@ export default function DocumentsTab() {
 				Documents
 			</Stack.Title>
 
-			<DocumentsScreen />
+			<DocumentsScreen basePath="/documents" />
 		</>
 	)
 }

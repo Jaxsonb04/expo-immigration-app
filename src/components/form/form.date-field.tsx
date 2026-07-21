@@ -1,5 +1,6 @@
+import { isoToOption } from '@/lib/date-picker'
 import { Description, FieldError, Label } from 'heroui-native'
-import { Calendar, DatePicker, type DatePickerOption } from 'heroui-native-pro'
+import { Calendar, DatePicker } from 'heroui-native-pro'
 import { useFieldContext } from './form.context'
 import { fieldErrorText } from './form.utils'
 
@@ -9,22 +10,6 @@ export type DateFieldProps = {
 	description?: string
 	isRequired?: boolean
 	isDisabled?: boolean
-}
-
-/**
- * Map an ISO date string (`YYYY-MM-DD`, the shape `CalendarDate.toString()`
- * produces) to the `DatePickerOption` the picker binds to. The `value` is the
- * ISO string; `label` is the human-readable text shown in the trigger.
- */
-function isoToOption(iso: string | undefined): DatePickerOption {
-	if (!iso) {
-		return undefined
-	}
-	const parsed = new Date(`${iso}T00:00:00`)
-	const label = Number.isNaN(parsed.getTime())
-		? iso
-		: parsed.toLocaleDateString(undefined, { dateStyle: 'medium' })
-	return { value: iso, label }
 }
 
 /** Date picker bound to a TanStack string field storing an ISO date (YYYY-MM-DD). */

@@ -1,4 +1,9 @@
-import type { ApplicationKind, CaseStatus, FormType } from '@convex/shared/applicationShapes'
+import type {
+	ApplicationKind,
+	CaseStatus,
+	DocumentType,
+	FormType,
+} from '@convex/shared/applicationShapes'
 
 // Plain labels first, technical labels second (REARCHITECTURE.md
 // "Terminology"): display copy is composed from formType + applicationKind —
@@ -41,6 +46,23 @@ const requirementLabels: Record<string, string> = {
 
 export function requirementLabel(requirementKey: string): string {
 	return requirementLabels[requirementKey] ?? requirementKey
+}
+
+// The one Vault document-type vocabulary (was drifting into two: journey-hub's
+// upload flow and the Vault list each had their own copy). Plain-language
+// first, matching situationLabel's "Work Permit"/"Green Card" convention.
+const documentTypeLabels: Record<DocumentType, string> = {
+	passport: 'Passport',
+	ead: 'Work permit (EAD)',
+	permanentResidentCard: 'Green card',
+	i94: 'Form I-94',
+	socialSecurityCard: 'Social Security card',
+	photo: 'Photo',
+	other: 'Document',
+}
+
+export function documentTypeLabel(type: DocumentType): string {
+	return documentTypeLabels[type]
 }
 
 export const caseStatusLabels: Record<CaseStatus, string> = {

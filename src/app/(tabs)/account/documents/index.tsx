@@ -8,7 +8,7 @@ export default function AccountDocumentsRoute() {
 	return (
 		<>
 			<Stack.Title>Documents</Stack.Title>
-			<DocumentsScreen />
+			<DocumentsScreen basePath="/account/documents" />
 		</>
 	)
 }

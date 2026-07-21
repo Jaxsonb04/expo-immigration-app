@@ -7,7 +7,13 @@ import { NeededDocuments } from './documents.needed'
 import { RenewalReminders } from './documents.reminders'
 import { VaultDocuments } from './documents.vault'
 
-export function DocumentsScreen() {
+/**
+ * `basePath` is the caller's own stack prefix (`/documents` under Forms,
+ * `/account/documents` under Account) — this same screen mounts in both tabs
+ * (M7-T3), and a document row's push must stay inside whichever one is
+ * showing, never yank the user across tabs to see their own detail.
+ */
+export function DocumentsScreen({ basePath }: { basePath: string }) {
 	const vault = useVault()
 
 	if (vault === undefined) {
@@ -32,7 +38,7 @@ export function DocumentsScreen() {
 
 				<View className="gap-hairline">
 					<VaultDocuments.Heading />
-					<VaultDocuments.List />
+					<VaultDocuments.List basePath={basePath} />
 				</View>
 			</BodyScrollView>
 		</VaultProvider>

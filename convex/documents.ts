@@ -1,7 +1,7 @@
 import { literals } from 'convex-helpers/validators'
 import { v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
-import { type MutationCtx, mutation } from './_generated/server'
+import { type MutationCtx, type QueryCtx, mutation, query } from './_generated/server'
 import { requireOwnerId } from './lib/auth'
 import { getOwnedApplication } from './model/applications'
 import { documentTypes } from './shared/applicationShapes'
@@ -205,7 +205,9 @@ export const uploadNewVersion = mutation({
 			type: previous.type,
 			label: args.label ?? previous.label,
 			storageId: args.storageId,
-			expiryDate: args.expiryDate,
+			// Carry the expiry forward by default — replacing a file (a re-scan,
+			// a clearer photo) isn't a statement that the expiry changed too.
+			expiryDate: args.expiryDate ?? previous.expiryDate,
 			supersedesId: previous._id,
 			updatedAt: now,
 		})
@@ -219,5 +221,111 @@ export const uploadNewVersion = mutation({
 			await ctx.db.patch('applicationDocuments', slot._id, { documentId: newId, updatedAt: now })
 		}
 		return newId
+	},
+})
+
+async function attachedApplications(
+	ctx: QueryCtx | MutationCtx,
+	documentId: Id<'documents'>,
+): Promise<
+	{
+		applicationId: Id<'applications'>
+		formType: Doc<'applications'>['formType']
+		applicationKind: Doc<'applications'>['applicationKind']
+		requirementKey: string
+	}[]
+> {
+	const slots = await ctx.db
+		.query('applicationDocuments')
+		.withIndex('by_documentId', (q) => q.eq('documentId', documentId))
+		.take(MAX_REPOINTED_SLOTS)
+	const resolved = await Promise.all(
+		slots.map(async (slot) => {
+			const application = await ctx.db.get('applications', slot.applicationId)
+			if (application === null) return null
+			return {
+				applicationId: application._id,
+				formType: application.formType,
+				applicationKind: application.applicationKind,
+				requirementKey: slot.requirementKey,
+			}
+		}),
+	)
+	return resolved.filter((entry) => entry !== null)
+}
+
+/**
+ * Vault document management (P1): the single-document detail view a Vault
+ * row opens into. Not-found and not-owned both return null rather than
+ * throwing — deleteDocument's commit re-runs any still-mounted subscription
+ * on this query before its screen unmounts (the applications.ts precedent),
+ * so a graceful fallback is required, not a crash. `url` is a short-lived
+ * signed link, resolved fresh on every read; `attachedTo` drives both the
+ * "currently used by" list and the delete-lock reason.
+ */
+export const getDocumentDetail = query({
+	args: { documentId: v.id('documents') },
+	handler: async (ctx, args) => {
+		const ownerId = await requireOwnerId(ctx)
+		const doc = await ctx.db.get('documents', args.documentId)
+		if (doc === null || doc.ownerId !== ownerId) return null
+
+		const [applicant, url, attachedTo] = await Promise.all([
+			ctx.db.get('applicants', doc.applicantId),
+			ctx.storage.getUrl(doc.storageId),
+			attachedApplications(ctx, doc._id),
+		])
+
+		return {
+			_id: doc._id,
+			type: doc.type,
+			label: doc.label,
+			expiryDate: doc.expiryDate,
+			updatedAt: doc.updatedAt,
+			isCurrent: doc.supersededById === undefined,
+			applicantName: applicant?.displayName ?? 'Unknown',
+			url,
+			attachedTo,
+		}
+	},
+})
+
+/** Set or clear a Vault document's expiry date — the one piece of metadata
+ * saveDocument/uploadNewVersion accept but no UI has ever let a user edit
+ * after the fact. `expiryDate: undefined` clears it. */
+export const updateDocumentExpiry = mutation({
+	args: { documentId: v.id('documents'), expiryDate: v.optional(v.string()) },
+	handler: async (ctx, args) => {
+		const ownerId = await requireOwnerId(ctx)
+		const doc = await getOwnedDocument(ctx, ownerId, args.documentId)
+		validateExpiry(args.expiryDate)
+		await ctx.db.patch('documents', doc._id, { expiryDate: args.expiryDate, updatedAt: Date.now() })
+	},
+})
+
+/**
+ * Permanently delete a Vault document and its underlying file. Refused while
+ * the document is attached to any requirement slot — on ANY application,
+ * regardless of status — since a slot's `documentId` is dereferenced by id
+ * with no null-check on the read side; deleting an attached document would
+ * silently blank that slot's shown file rather than erroring. Detach it
+ * first (draft applications only — see attachDocument/detachDocument).
+ * Superseded (replaced) versions are freely deletable: nothing in this
+ * codebase ever dereferences `supersedesId`/`supersededById` as a document
+ * lookup, only as an `isCurrent` flag.
+ */
+export const deleteDocument = mutation({
+	args: { documentId: v.id('documents') },
+	handler: async (ctx, args) => {
+		const ownerId = await requireOwnerId(ctx)
+		const doc = await getOwnedDocument(ctx, ownerId, args.documentId)
+		const attachedTo = await attachedApplications(ctx, doc._id)
+		if (attachedTo.length > 0) {
+			throw new Error(
+				'This document is attached to an application. Detach it there before deleting.',
+			)
+		}
+		await ctx.storage.delete(doc.storageId)
+		await ctx.db.delete('documents', doc._id)
 	},
 })

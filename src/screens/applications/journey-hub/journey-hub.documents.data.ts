@@ -1,10 +1,9 @@
+import { pickAndUploadFile } from '@/lib/document-upload'
 import { humanErrorMessage } from '@/lib/error-message'
 import { api } from '@convex/_generated/api'
 import type { Id } from '@convex/_generated/dataModel'
-import type { DocumentType } from '@convex/shared/applicationShapes'
 import { uploadDocumentType } from '@convex/shared/documentCompatibility'
 import { useMutation } from 'convex/react'
-import * as DocumentPicker from 'expo-document-picker'
 import { useState } from 'react'
 import { Alert } from 'react-native'
 
@@ -13,21 +12,9 @@ import { Alert } from 'react-native'
 // document, or detach. Every mutation is owner-scoped on the server
 // (convex/documents.ts); this is just the client orchestration. The
 // requirement→type mapping lives in convex/shared/documentCompatibility.ts —
-// the same map the server enforces on attach, so they can't drift.
-
-const DOCUMENT_TYPE_LABEL: Record<DocumentType, string> = {
-	passport: 'Passport',
-	ead: 'Work permit (EAD)',
-	permanentResidentCard: 'Green card',
-	i94: 'Form I-94',
-	socialSecurityCard: 'Social Security card',
-	photo: 'Photo',
-	other: 'Document',
-}
-
-export function documentTypeLabel(type: DocumentType): string {
-	return DOCUMENT_TYPE_LABEL[type]
-}
+// the same map the server enforces on attach, so they can't drift. The pick +
+// upload mechanics live in @/lib/document-upload.ts, shared with the Vault's
+// replace flow; document-type labels live in @/lib/application-labels.ts.
 
 type Slot = { _id: Id<'applicationDocuments'>; requirementKey: string }
 
@@ -53,28 +40,14 @@ export function useDocumentActions(applicantId: Id<'applicants'>) {
 	 * applicant, and attach it to the slot. A no-op if the user cancels. */
 	function uploadForSlot(slot: Slot) {
 		return run(slot._id, async () => {
-			const picked = await DocumentPicker.getDocumentAsync({
-				type: ['image/*', 'application/pdf'],
-				copyToCacheDirectory: true,
-			})
-			if (picked.canceled) return
-			const file = picked.assets[0]!
-
-			const uploadUrl = await generateUploadUrl({})
-			const blob = await (await fetch(file.uri)).blob()
-			const response = await fetch(uploadUrl, {
-				method: 'POST',
-				headers: { 'Content-Type': file.mimeType ?? 'application/octet-stream' },
-				body: blob,
-			})
-			if (!response.ok) throw new Error('The upload did not complete. Please try again.')
-			const { storageId } = (await response.json()) as { storageId: Id<'_storage'> }
+			const picked = await pickAndUploadFile(() => generateUploadUrl({}))
+			if (picked === null) return
 
 			const documentId = await saveDocument({
 				applicantId,
 				type: uploadDocumentType(slot.requirementKey),
-				storageId,
-				label: file.name,
+				storageId: picked.storageId,
+				label: picked.fileName,
 			})
 			await attachDocument({ slotId: slot._id, documentId })
 		})

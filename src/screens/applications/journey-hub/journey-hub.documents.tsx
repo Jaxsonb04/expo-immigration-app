@@ -1,12 +1,12 @@
 import { SectionHeading } from '@/components/core'
 import { StyledLucideIcon } from '@/components/styled-icon'
-import { requirementLabel } from '@/lib/application-labels'
+import { documentTypeLabel, requirementLabel } from '@/lib/application-labels'
 import { isDocumentCompatible } from '@convex/shared/documentCompatibility'
 import { Button, Spinner, Typography } from 'heroui-native'
 import { useState } from 'react'
 import { Pressable, View } from 'react-native'
 import { useJourneyHub } from './journey-hub.context'
-import { documentTypeLabel, useDocumentActions } from './journey-hub.documents.data'
+import { useDocumentActions } from './journey-hub.documents.data'
 
 /** Past its expiry date. Expired ≠ unusable — an I-765 renewal attaches the
  * very card that's expiring — so this only drives an honest tag, not a block. */

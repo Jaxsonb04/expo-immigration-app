@@ -1,29 +1,11 @@
+import { isoToOption, todayIso } from '@/lib/date-picker'
 import { humanErrorMessage } from '@/lib/error-message'
 import { Button, Label, Typography } from 'heroui-native'
-import { Calendar, DatePicker, type DatePickerOption } from 'heroui-native-pro'
+import { Calendar, DatePicker } from 'heroui-native-pro'
 import { useState } from 'react'
 import { Alert, View } from 'react-native'
 import { useJourneyHub } from './journey-hub.context'
 import { useMarkFiled } from './journey-hub.data'
-
-/** Today as a local ISO date (YYYY-MM-DD) — not UTC, so a late evening never
- * defaults the filing date to tomorrow. */
-function todayIso(): string {
-	const now = new Date()
-	const month = String(now.getMonth() + 1).padStart(2, '0')
-	const day = String(now.getDate()).padStart(2, '0')
-	return `${now.getFullYear()}-${month}-${day}`
-}
-
-function isoToOption(iso: string): DatePickerOption {
-	const parsed = new Date(`${iso}T00:00:00`)
-	return {
-		value: iso,
-		label: Number.isNaN(parsed.getTime())
-			? iso
-			: parsed.toLocaleDateString(undefined, { dateStyle: 'medium' }),
-	}
-}
 
 /**
  * The user-confirmed "I filed this with USCIS" transition (the last workflow-

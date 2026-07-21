@@ -306,3 +306,193 @@ describe('attach rules: type compatibility, versions, and filed freeze', () => {
 		})
 	})
 })
+
+// Vault management (P1): preview URL + attachment context, expiry editing,
+// and a delete rule that can never leave a slot pointing at a missing file.
+describe('getDocumentDetail', () => {
+	test('returns detail with a signed url, applicant name, and empty attachedTo', async () => {
+		const { alice, applicantId, storageId } = await setup()
+		const documentId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'ead',
+			storageId,
+			expiryDate: '2030-01-01',
+		})
+		const detail = await alice.query(api.documents.getDocumentDetail, { documentId })
+		expect(detail).toMatchObject({
+			_id: documentId,
+			type: 'ead',
+			expiryDate: '2030-01-01',
+			isCurrent: true,
+			applicantName: 'Alice',
+			attachedTo: [],
+		})
+		expect(detail!.url).toEqual(expect.any(String))
+	})
+
+	test('lists every application currently attached to this document', async () => {
+		const { alice, applicantId, applicationId, storageId } = await setup()
+		const documentId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'ead',
+			storageId,
+		})
+		const slot = await firstSlot(alice, applicationId)
+		await alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId })
+
+		const detail = await alice.query(api.documents.getDocumentDetail, { documentId })
+		expect(detail!.attachedTo).toEqual([
+			{
+				applicationId,
+				formType: 'i765',
+				applicationKind: 'renewal',
+				requirementKey: 'eadCard',
+			},
+		])
+	})
+
+	test('returns null (never throws) for a missing or foreign document', async () => {
+		const { t, alice, applicantId, storageId } = await setup()
+		const documentId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'ead',
+			storageId,
+		})
+		const bob = t.withIdentity({ subject: 'bob' })
+		expect(await bob.query(api.documents.getDocumentDetail, { documentId })).toBeNull()
+
+		await alice.mutation(api.documents.deleteDocument, { documentId })
+		expect(await alice.query(api.documents.getDocumentDetail, { documentId })).toBeNull()
+	})
+})
+
+describe('updateDocumentExpiry', () => {
+	test('sets and then clears the expiry date', async () => {
+		const { alice, applicantId, storageId } = await setup()
+		const documentId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'ead',
+			storageId,
+		})
+		await alice.mutation(api.documents.updateDocumentExpiry, {
+			documentId,
+			expiryDate: '2031-05-01',
+		})
+		expect((await alice.query(api.documents.getDocumentDetail, { documentId }))!.expiryDate).toBe(
+			'2031-05-01',
+		)
+
+		await alice.mutation(api.documents.updateDocumentExpiry, { documentId, expiryDate: undefined })
+		expect(
+			(await alice.query(api.documents.getDocumentDetail, { documentId }))!.expiryDate,
+		).toBeUndefined()
+	})
+
+	test('rejects a malformed date and is owner-scoped', async () => {
+		const { t, alice, applicantId, storageId } = await setup()
+		const documentId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'ead',
+			storageId,
+		})
+		await expect(
+			alice.mutation(api.documents.updateDocumentExpiry, { documentId, expiryDate: 'May 1' }),
+		).rejects.toThrow('valid expiry')
+
+		const bob = t.withIdentity({ subject: 'bob' })
+		await expect(
+			bob.mutation(api.documents.updateDocumentExpiry, { documentId, expiryDate: '2031-01-01' }),
+		).rejects.toThrow('Document not found')
+	})
+})
+
+describe('deleteDocument', () => {
+	test('deletes an unattached document and its underlying file', async () => {
+		const { t, alice, applicantId, storageId } = await setup()
+		const documentId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'ead',
+			storageId,
+		})
+		await alice.mutation(api.documents.deleteDocument, { documentId })
+		expect(await t.run((ctx) => ctx.db.get('documents', documentId))).toBeNull()
+		expect(await t.run((ctx) => ctx.storage.getUrl(storageId))).toBeNull()
+	})
+
+	test('refuses to delete a document attached to a slot', async () => {
+		const { alice, applicantId, applicationId, storageId } = await setup()
+		const documentId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'ead',
+			storageId,
+		})
+		const slot = await firstSlot(alice, applicationId)
+		await alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId })
+
+		await expect(alice.mutation(api.documents.deleteDocument, { documentId })).rejects.toThrow(
+			/attached to an application/,
+		)
+	})
+
+	test('a superseded (replaced) version is freely deletable', async () => {
+		const { t, alice, applicantId, storageId } = await setup()
+		const oldId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'ead',
+			storageId,
+		})
+		const s2 = await t.run((ctx) => ctx.storage.store(new Blob(['v2'], { type: 'image/jpeg' })))
+		await alice.mutation(api.documents.uploadNewVersion, { supersedesId: oldId, storageId: s2 })
+
+		await alice.mutation(api.documents.deleteDocument, { documentId: oldId })
+		expect(await t.run((ctx) => ctx.db.get('documents', oldId))).toBeNull()
+	})
+
+	test('detaching first unblocks deletion; delete is owner-scoped', async () => {
+		const { t, alice, applicantId, applicationId, storageId } = await setup()
+		const documentId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'ead',
+			storageId,
+		})
+		const slot = await firstSlot(alice, applicationId)
+		await alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId })
+		await alice.mutation(api.documents.detachDocument, { slotId: slot._id })
+		await alice.mutation(api.documents.deleteDocument, { documentId })
+		expect(await t.run((ctx) => ctx.db.get('documents', documentId))).toBeNull()
+
+		// deleteDocument freed the underlying blob too — a fresh one for the
+		// second save.
+		const secondStorageId = await t.run((ctx) =>
+			ctx.storage.store(new Blob(['ead2'], { type: 'image/jpeg' })),
+		)
+		const secondDocId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'ead',
+			storageId: secondStorageId,
+		})
+		const bob = t.withIdentity({ subject: 'bob' })
+		await expect(
+			bob.mutation(api.documents.deleteDocument, { documentId: secondDocId }),
+		).rejects.toThrow('Document not found')
+	})
+})
+
+describe('uploadNewVersion carries the expiry forward', () => {
+	test('preserves the previous expiry when the caller omits one', async () => {
+		const { t, alice, applicantId, storageId } = await setup()
+		const oldId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'ead',
+			storageId,
+			expiryDate: '2030-09-01',
+		})
+		const s2 = await t.run((ctx) => ctx.storage.store(new Blob(['v2'], { type: 'image/jpeg' })))
+		const newId = await alice.mutation(api.documents.uploadNewVersion, {
+			supersedesId: oldId,
+			storageId: s2,
+		})
+		const newDoc = await t.run((ctx) => ctx.db.get('documents', newId))
+		expect(newDoc!.expiryDate).toBe('2030-09-01')
+	})
+})
