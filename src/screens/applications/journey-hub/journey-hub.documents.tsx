@@ -65,11 +65,12 @@ function SlotRow(props: {
 	attachedDoc: ApplicantDocument | undefined
 	reusable: ApplicantDocument[]
 	busy: boolean
+	readOnly: boolean
 	onUpload: () => void
 	onReuse: (documentId: ApplicantDocument['_id']) => void
 	onDetach: () => void
 }) {
-	const { slot, attachedDoc, reusable, busy } = props
+	const { slot, attachedDoc, reusable, busy, readOnly } = props
 	const [showReuse, setShowReuse] = useState(false)
 
 	return (
@@ -91,7 +92,7 @@ function SlotRow(props: {
 				{busy ? <Spinner size="sm" /> : null}
 			</View>
 
-			{!busy && slot.status !== 'attached' && slot.status !== 'waived' ? (
+			{!busy && !readOnly && slot.status !== 'attached' && slot.status !== 'waived' ? (
 				<View className="flex-row gap-tight pl-8">
 					<Button variant="secondary" size="sm" onPress={props.onUpload}>
 						<Button.Label>Upload</Button.Label>
@@ -104,7 +105,7 @@ function SlotRow(props: {
 				</View>
 			) : null}
 
-			{!busy && slot.status === 'attached' ? (
+			{!busy && !readOnly && slot.status === 'attached' ? (
 				<View className="pl-8">
 					<Button variant="ghost" size="sm" onPress={props.onDetach}>
 						<Button.Label>Remove</Button.Label>
@@ -160,6 +161,9 @@ export function Documents() {
 						attachedDoc={attachedDoc}
 						reusable={reusable}
 						busy={busySlotId === slot._id}
+						// The checklist freezes with the filing record (the server
+						// rejects non-draft attach/detach — don't offer the buttons).
+						readOnly={application.status !== 'draft'}
 						onUpload={() => uploadForSlot(slot)}
 						onReuse={(documentId) => attachExisting(slot._id, documentId)}
 						onDetach={() => detach(slot._id)}

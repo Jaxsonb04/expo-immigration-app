@@ -1,6 +1,11 @@
 import { StyledLucideIcon } from '@/components/styled-icon'
 import { useToday } from '@/hooks/use-today'
-import { formatIsoDate, requirementLabel, situationLabel } from '@/lib/application-labels'
+import {
+	formatIsoDate,
+	progressLabel,
+	requirementLabel,
+	situationLabel,
+} from '@/lib/application-labels'
 import { renewalStateFor, type RenewalState } from '@convex/shared/renewals'
 import { router, type Href } from 'expo-router'
 import { Card, Typography } from 'heroui-native'
@@ -182,7 +187,10 @@ export function HubSections(props: {
 						key: 'drafts',
 						count: drafts.length,
 						label: drafts.length === 1 ? 'draft' : 'drafts',
-						detail: `${situationLabel(drafts[0]!.formType, drafts[0]!.applicationKind).primary} — step ${drafts[0]!.completedStepCount + 1} of ${drafts[0]!.totalStepCount}`,
+						// progressLabel clamps the step counter and says "Answers
+						// complete" once every step (including review) is done —
+						// never "step 13 of 12".
+						detail: `${situationLabel(drafts[0]!.formType, drafts[0]!.applicationKind).primary} — ${progressLabel(drafts[0]!).toLowerCase()}`,
 						href: '/drafts' as Href,
 					},
 				]

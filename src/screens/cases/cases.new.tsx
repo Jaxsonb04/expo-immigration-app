@@ -1,5 +1,6 @@
 import { BodyScrollView } from '@/components/core'
 import { situationLabel } from '@/lib/application-labels'
+import { humanErrorMessage } from '@/lib/error-message'
 import type { Id } from '@convex/_generated/dataModel'
 import { isValidReceiptNumber, normalizeReceiptNumber } from '@convex/shared/applicationShapes'
 import { router } from 'expo-router'
@@ -61,10 +62,7 @@ export function NewCaseScreen() {
 			await createCase({ receiptNumber: normalized, applicationId: linkedId ?? undefined })
 			router.back()
 		} catch (error) {
-			Alert.alert(
-				'Could not add case',
-				error instanceof Error ? error.message : 'Please try again.',
-			)
+			Alert.alert('Could not add case', humanErrorMessage(error, 'Please try again.'))
 		} finally {
 			setBusy(false)
 		}

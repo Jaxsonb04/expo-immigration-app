@@ -33,6 +33,7 @@ import type * as preferences from "../preferences.js";
 import type * as renewals from "../renewals.js";
 import type * as shared_applicationShapes from "../shared/applicationShapes.js";
 import type * as shared_community from "../shared/community.js";
+import type * as shared_documentCompatibility from "../shared/documentCompatibility.js";
 import type * as shared_interviewSteps from "../shared/interviewSteps.js";
 import type * as shared_interviewValidation from "../shared/interviewValidation.js";
 import type * as shared_navigator from "../shared/navigator.js";
@@ -76,6 +77,7 @@ declare const fullApi: ApiFromModules<{
   renewals: typeof renewals;
   "shared/applicationShapes": typeof shared_applicationShapes;
   "shared/community": typeof shared_community;
+  "shared/documentCompatibility": typeof shared_documentCompatibility;
   "shared/interviewSteps": typeof shared_interviewSteps;
   "shared/interviewValidation": typeof shared_interviewValidation;
   "shared/navigator": typeof shared_navigator;

@@ -3,11 +3,15 @@ import type { Id } from '@convex/_generated/dataModel'
 import { useMutation, useQuery } from 'convex/react'
 import type { FunctionReturnType } from 'convex/server'
 
-export type ApplicationDetail = FunctionReturnType<typeof api.applications.getApplication>
+// getApplication returns null for a deleted/foreign id; ApplicationDetail is
+// the loaded, non-null payload.
+export type ApplicationDetail = NonNullable<
+	FunctionReturnType<typeof api.applications.getApplication>
+>
 
 export function useApplicationDetail(
 	applicationId: Id<'applications'>,
-): ApplicationDetail | undefined {
+): ApplicationDetail | null | undefined {
 	return useQuery(api.applications.getApplication, { applicationId })
 }
 

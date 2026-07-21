@@ -1,3 +1,4 @@
+import { humanErrorMessage } from '@/lib/error-message'
 import { api } from '@convex/_generated/api'
 import type { Id } from '@convex/_generated/dataModel'
 import type { DocumentType } from '@convex/shared/applicationShapes'
@@ -42,10 +43,7 @@ export function useDocumentActions(applicantId: Id<'applicants'>) {
 		try {
 			await fn()
 		} catch (error) {
-			Alert.alert(
-				"Couldn't save your document",
-				error instanceof Error ? error.message : 'Please try again.',
-			)
+			Alert.alert("Couldn't save your document", humanErrorMessage(error, 'Please try again.'))
 		} finally {
 			setBusySlotId(null)
 		}

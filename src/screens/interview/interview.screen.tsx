@@ -53,6 +53,19 @@ export function InterviewScreen(props: {
 		)
 	}
 
+	if (detail === null) {
+		return (
+			<View className="flex-1 items-center justify-center gap-card bg-background px-gutter">
+				<Typography.Paragraph color="muted" className="text-center">
+					This application no longer exists.
+				</Typography.Paragraph>
+				<Button variant="secondary" onPress={() => router.back()}>
+					<Button.Label>Go back</Button.Label>
+				</Button>
+			</View>
+		)
+	}
+
 	if (detail.application.status !== 'draft') {
 		return (
 			<View className="flex-1 items-center justify-center gap-card bg-background px-gutter">

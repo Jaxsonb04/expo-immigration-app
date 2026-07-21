@@ -27,12 +27,17 @@ async function setup() {
 		formType: 'i765',
 		applicationKind: 'renewal',
 	})
-	const storageId = await t.run((ctx) => ctx.storage.store(new Blob(['ead'], { type: 'image/jpeg' })))
+	const storageId = await t.run((ctx) =>
+		ctx.storage.store(new Blob(['ead'], { type: 'image/jpeg' })),
+	)
 	return { t, alice, applicantId, applicationId, storageId }
 }
 
-async function firstSlot(alice: ReturnType<ReturnType<typeof newT>['withIdentity']>, applicationId: Id<'applications'>) {
-	const detail = await alice.query(api.applications.getApplication, { applicationId })
+async function firstSlot(
+	alice: ReturnType<ReturnType<typeof newT>['withIdentity']>,
+	applicationId: Id<'applications'>,
+) {
+	const detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 	return detail.requirements[0]!
 }
 
@@ -103,7 +108,7 @@ describe('attachDocument', () => {
 		).rejects.toThrow('Requirement not found')
 	})
 
-	test("rejects a document belonging to a different applicant", async () => {
+	test('rejects a document belonging to a different applicant', async () => {
 		const { alice, applicationId, storageId } = await setup()
 		// A second applicant + their own document.
 		const otherApplicantId = await alice.mutation(api.applicants.createApplicant, {
@@ -142,9 +147,9 @@ describe('attachDocument', () => {
 		const laterSlot = await firstSlot(alice, laterApplicationId)
 		await alice.mutation(api.documents.attachDocument, { slotId: laterSlot._id, documentId })
 
-		const detail = await alice.query(api.applications.getApplication, {
+		const detail = (await alice.query(api.applications.getApplication, {
 			applicationId: laterApplicationId,
-		})
+		}))!
 		expect(detail.requirements.find((r) => r._id === laterSlot._id)).toMatchObject({
 			status: 'attached',
 			documentId,
@@ -237,7 +242,7 @@ describe('attach rules: type compatibility, versions, and filed freeze', () => {
 
 	test('accepts the matching type for each slot of the renewal template', async () => {
 		const { alice, applicantId, applicationId, storageId } = await setup()
-		const detail = await alice.query(api.applications.getApplication, { applicationId })
+		const detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		const bySlot = { eadCard: 'ead', passportPhoto: 'photo' } as const
 		for (const slot of detail.requirements) {
 			const documentId = await alice.mutation(api.documents.saveDocument, {
@@ -247,7 +252,7 @@ describe('attach rules: type compatibility, versions, and filed freeze', () => {
 			})
 			await alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId })
 		}
-		const after = await alice.query(api.applications.getApplication, { applicationId })
+		const after = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(after.requirements.every((r) => r.status === 'attached')).toBe(true)
 	})
 
@@ -281,9 +286,9 @@ describe('attach rules: type compatibility, versions, and filed freeze', () => {
 			filedAt: Date.now(),
 			acknowledgeNotReady: true,
 		})
-		await expect(alice.mutation(api.documents.detachDocument, { slotId: slot._id })).rejects.toThrow(
-			/only draft applications/i,
-		)
+		await expect(
+			alice.mutation(api.documents.detachDocument, { slotId: slot._id }),
+		).rejects.toThrow(/only draft applications/i)
 		const secondDocId = await alice.mutation(api.documents.saveDocument, {
 			applicantId,
 			type: 'ead',
@@ -294,7 +299,7 @@ describe('attach rules: type compatibility, versions, and filed freeze', () => {
 		).rejects.toThrow(/only draft applications/i)
 
 		// The filed record kept its attachment untouched.
-		const detail = await alice.query(api.applications.getApplication, { applicationId })
+		const detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(detail.requirements.find((r) => r._id === slot._id)).toMatchObject({
 			status: 'attached',
 			documentId,

@@ -79,7 +79,7 @@ describe('createApplication', () => {
 			applicationKind: 'renewal',
 		})
 
-		const detail = await alice.query(api.applications.getApplication, { applicationId })
+		const detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(detail.application.status).toBe('draft')
 		expect(detail.application.completedStepCount).toBe(0)
 		expect(detail.application.totalStepCount).toBe(12)
@@ -115,7 +115,7 @@ describe('createApplication', () => {
 		})
 		// No entitlement row exists and no purchase mutation was ever called —
 		// the server still treats the owner as entitled to the clean export.
-		const detail = await alice.query(api.applications.getApplication, { applicationId })
+		const detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(detail.isUnlocked).toBe(true)
 	})
 
@@ -169,7 +169,7 @@ describe('createApplication', () => {
 			applicationKind: 'replacement',
 			i90CardStatus: 'conditionalResident',
 		})
-		const detail = await alice.query(api.applications.getApplication, { applicationId })
+		const detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(detail.draft.formType).toBe('i90')
 		if (detail.draft.formType === 'i90') {
 			expect(detail.draft.answers.form.cardStatus).toBe('conditionalResident')
@@ -226,7 +226,7 @@ describe('saveApplicationStep', () => {
 			totalStepCount: 12,
 		})
 
-		const detail = await alice.query(api.applications.getApplication, { applicationId })
+		const detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(detail.application.currentStepKey).toBe('date-of-birth')
 		expect(detail.application.completedStepCount).toBe(1)
 		expect(detail.draft.answers.personFacts.givenName).toBe('Alice')
@@ -369,7 +369,7 @@ describe('saveApplicationStep', () => {
 		})
 		expect(result.completedStepCount).toBe(0)
 		expect(result.nextStepKey).toBe('legal-name')
-		const detail = await alice.query(api.applications.getApplication, { applicationId })
+		const detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(detail.draft.answers.personFacts.givenName).toBe('Alice')
 		expect(detail.draft.stepCompletion['legal-name']).not.toBe(true)
 	})
@@ -398,7 +398,7 @@ describe('saveApplicationStep', () => {
 			stepKey: 'legal-name',
 			stepData: { personFacts: { givenName: 'Alice', familyName: 'Anders' } },
 		})
-		const detail = await alice.query(api.applications.getApplication, { applicationId })
+		const detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(detail.draft.answers.personFacts.middleName).toBeUndefined()
 		expect(detail.draft.answers.personFacts.givenName).toBe('Alice')
 	})
@@ -707,9 +707,9 @@ describe('I-90 end-to-end readiness (milestone)', () => {
 				await ctx.db.patch('applicationDocuments', slot._id, { status: 'waived' })
 			}
 		})
-		const { readiness, application } = await alice.query(api.applications.getApplication, {
+		const { readiness, application } = (await alice.query(api.applications.getApplication, {
 			applicationId,
-		})
+		}))!
 		expect(application.currentStepKey).toBe('review')
 		expect(readiness.blockers).toEqual([])
 		expect(readiness.isReadyToFile).toBe(true)
@@ -729,7 +729,7 @@ describe('I-90 end-to-end readiness (milestone)', () => {
 				},
 			},
 		})
-		let detail = await alice.query(api.applications.getApplication, { applicationId })
+		let detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(detail.requirements.map((r) => r.requirementKey)).toContain('nameChangeEvidence')
 
 		await alice.mutation(api.applications.saveApplicationStep, {
@@ -742,7 +742,7 @@ describe('I-90 end-to-end readiness (milestone)', () => {
 				},
 			},
 		})
-		detail = await alice.query(api.applications.getApplication, { applicationId })
+		detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(detail.requirements.map((r) => r.requirementKey)).not.toContain('nameChangeEvidence')
 	})
 })
@@ -822,7 +822,7 @@ describe('getApplication readiness', () => {
 
 	test('a fresh application reports answer and document blockers', async () => {
 		const { alice, applicationId } = await setup()
-		const { readiness } = await alice.query(api.applications.getApplication, { applicationId })
+		const { readiness } = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(readiness.isReadyToFile).toBe(false)
 		expect(readiness.answersComplete).toBe(false)
 		expect(readiness.documentsComplete).toBe(false)
@@ -848,9 +848,9 @@ describe('getApplication readiness', () => {
 			}
 		})
 
-		const { readiness, application } = await alice.query(api.applications.getApplication, {
+		const { readiness, application } = (await alice.query(api.applications.getApplication, {
 			applicationId,
-		})
+		}))!
 		expect(application.currentStepKey).toBe('review')
 		expect(readiness.answersComplete).toBe(true)
 		expect(readiness.documentsComplete).toBe(true)
@@ -869,7 +869,7 @@ describe('getApplication readiness', () => {
 				form: { c8EverArrestedOrConvicted: 'yes' as const },
 			},
 		})
-		let detail = await alice.query(api.applications.getApplication, { applicationId })
+		let detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(detail.requirements.map((r) => r.requirementKey)).toContain('courtDispositions')
 
 		await alice.mutation(api.applications.saveApplicationStep, {
@@ -880,7 +880,7 @@ describe('getApplication readiness', () => {
 				form: { c8EverArrestedOrConvicted: 'no' as const },
 			},
 		})
-		detail = await alice.query(api.applications.getApplication, { applicationId })
+		detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(detail.requirements.map((r) => r.requirementKey)).not.toContain('courtDispositions')
 	})
 
@@ -895,7 +895,7 @@ describe('getApplication readiness', () => {
 				stepCompletion: Object.fromEntries(completeSteps.map((step) => [step.stepKey, true])),
 			})
 		})
-		const { readiness } = await alice.query(api.applications.getApplication, { applicationId })
+		const { readiness } = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(readiness.answersComplete).toBe(false)
 		expect(readiness.blockers.some((blocker) => blocker.kind === 'answers')).toBe(true)
 	})
@@ -962,9 +962,9 @@ describe('filed lifecycle', () => {
 		const filedAt = Date.now() - 60_000
 		await alice.mutation(api.applications.markFiled, { applicationId, filedAt })
 
-		const { application, readiness } = await alice.query(api.applications.getApplication, {
+		const { application, readiness } = (await alice.query(api.applications.getApplication, {
 			applicationId,
-		})
+		}))!
 		expect(application.status).toBe('filed')
 		expect(application.filedAt).toBe(filedAt)
 		// The package must stay re-downloadable: the stored draft still renders
@@ -991,7 +991,7 @@ describe('filed lifecycle', () => {
 			filedAt: Date.now(),
 			acknowledgeNotReady: true,
 		})
-		const { application } = await alice.query(api.applications.getApplication, { applicationId })
+		const { application } = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(application.status).toBe('filed')
 	})
 
@@ -1000,7 +1000,7 @@ describe('filed lifecycle', () => {
 		const original = Date.now() - 120_000
 		await alice.mutation(api.applications.markFiled, { applicationId, filedAt: original })
 		await alice.mutation(api.applications.markFiled, { applicationId, filedAt: Date.now() })
-		const { application } = await alice.query(api.applications.getApplication, { applicationId })
+		const { application } = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(application.filedAt).toBe(original)
 	})
 
@@ -1036,19 +1036,19 @@ describe('filed lifecycle', () => {
 			bob.mutation(api.applications.deleteApplication, { applicationId }),
 		).rejects.toThrow('Application not found')
 		// Alice's application is untouched by all of Bob's attempts.
-		const { application } = await alice.query(api.applications.getApplication, { applicationId })
+		const { application } = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(application.status).toBe('draft')
 	})
 
 	test('closeApplication closes a draft; reopen restores it to draft', async () => {
 		const { alice, applicationId } = await setupI90()
 		await alice.mutation(api.applications.closeApplication, { applicationId })
-		let detail = await alice.query(api.applications.getApplication, { applicationId })
+		let detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(detail.application.status).toBe('closed')
 		expect(detail.application.closedAt).toBeDefined()
 
 		await alice.mutation(api.applications.reopenApplication, { applicationId })
-		detail = await alice.query(api.applications.getApplication, { applicationId })
+		detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(detail.application.status).toBe('draft')
 		expect(detail.application.closedAt).toBeUndefined()
 	})
@@ -1058,14 +1058,14 @@ describe('filed lifecycle', () => {
 		const filedAt = Date.now() - 60_000
 		await alice.mutation(api.applications.markFiled, { applicationId, filedAt })
 		await alice.mutation(api.applications.closeApplication, { applicationId })
-		let detail = await alice.query(api.applications.getApplication, { applicationId })
+		let detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(detail.application.status).toBe('closed')
 		expect(detail.application.filedAt).toBe(filedAt)
 
 		// Reopening a closed-but-filed application restores FILED, not draft —
 		// closing never erased the filing record, so reopening can't either.
 		await alice.mutation(api.applications.reopenApplication, { applicationId })
-		detail = await alice.query(api.applications.getApplication, { applicationId })
+		detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(detail.application.status).toBe('filed')
 		expect(detail.application.filedAt).toBe(filedAt)
 	})
@@ -1074,7 +1074,7 @@ describe('filed lifecycle', () => {
 		const { alice, applicationId } = await setupReadyI90()
 		await alice.mutation(api.applications.markFiled, { applicationId, filedAt: Date.now() })
 		await alice.mutation(api.applications.reopenApplication, { applicationId })
-		let detail = await alice.query(api.applications.getApplication, { applicationId })
+		let detail = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(detail.application.status).toBe('draft')
 		expect(detail.application.filedAt).toBeUndefined()
 
@@ -1116,9 +1116,9 @@ describe('filed lifecycle', () => {
 		await alice.mutation(api.applications.closeApplication, { applicationId })
 		await alice.mutation(api.applications.deleteApplication, { applicationId })
 
-		await expect(alice.query(api.applications.getApplication, { applicationId })).rejects.toThrow(
-			'Application not found',
-		)
+		// getApplication returns null for a deleted id (never throws — a live
+		// subscription may re-run before its screen unmounts).
+		expect((await alice.query(api.applications.getApplication, { applicationId }))!).toBeNull()
 		await t.run(async (ctx) => {
 			const [draft, slots, entitlements] = await Promise.all([
 				ctx.db

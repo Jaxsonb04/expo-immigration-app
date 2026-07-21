@@ -1,7 +1,8 @@
 import { useRequireAccount } from '@/components/account'
 import { SectionHeading } from '@/components/core'
+import { humanErrorMessage } from '@/lib/error-message'
 import { FEE_DISCLAIMER, FILING_FEE_AS_OF, OFFICIAL_LINKS, filingInfoFor } from '@/lib/filing-info'
-import { Button, Surface, Typography } from 'heroui-native'
+import { Button, Separator, Surface, Typography } from 'heroui-native'
 import { useState } from 'react'
 import { Alert, Linking, Pressable, View } from 'react-native'
 import { ReadinessBlockers } from './journey-hub.blockers'
@@ -73,6 +74,10 @@ export function ReviewPay() {
 	const isDraft = application.status === 'draft'
 	const meta = formMetaFor(application.formType)
 
+	// A closed application has nothing to review, export, or file — reopening
+	// it (Manage section) brings this whole section back.
+	if (application.status === 'closed') return null
+
 	async function runExport(
 		open: (args: RenderDraftArgs) => Promise<void>,
 		setBusy: (value: boolean) => void,
@@ -96,105 +101,110 @@ export function ReviewPay() {
 				})
 			}
 		} catch (error) {
-			Alert.alert(failureTitle, error instanceof Error ? error.message : 'Something went wrong.')
+			Alert.alert(failureTitle, humanErrorMessage(error))
 		} finally {
 			setBusy(false)
 		}
 	}
 
 	return (
-		<View className="gap-control">
-			<SectionHeading title="Review & File" />
+		<View className="gap-section">
+			<Separator />
+			<View className="gap-control">
+				<SectionHeading title="Review & File" />
 
-			{isDraft && (
-				<>
-					<Typography.Paragraph color="muted">
-						Preview a watermarked draft once your answers are complete. The clean export unlocks
-						only when everything the official form requires is covered. The USCIS filing fee is
-						separate and paid to USCIS directly, never to this app.
-					</Typography.Paragraph>
+				{isDraft && (
+					<>
+						<Typography.Paragraph color="muted">
+							Preview a watermarked draft once your answers are complete. The clean export unlocks
+							only when everything the official form requires is covered. The USCIS filing fee is
+							separate and paid to USCIS directly, never to this app.
+						</Typography.Paragraph>
 
-					<ReadinessBlockers formType={application.formType} readiness={readiness} />
+						<ReadinessBlockers formType={application.formType} readiness={readiness} />
 
-					<Button
-						variant="secondary"
-						isDisabled={!readiness.answersComplete || previewBusy || packageBusy}
-						onPress={() => runExport(openDraftInApp, setPreviewBusy, 'Could not build preview')}
-					>
-						<Button.Label>{previewBusy ? 'Preparing preview…' : 'Preview your form'}</Button.Label>
-					</Button>
-					<Typography.Paragraph color="muted" type="body-sm">
-						{`Official ${meta.title} · OMB ${meta.omb} (expires ${meta.ombExpires}). Watermarked — not for filing.`}
-					</Typography.Paragraph>
-
-					<UscisFeeInfo formType={application.formType} />
-					<FilingInstructions formType={application.formType} />
-
-					<Button
-						isDisabled={!readiness.isReadyToFile || packageBusy || previewBusy}
-						onPress={async () => {
-							// M6-T3 conversion gate: exporting the filing is the moment a
-							// temporary session must become a real account. The upgrade
-							// carries every answer, document, and case over (Better Auth
-							// anonymous linking → convex/auth.ts onLinkAccount), and the
-							// export resumes right here on success.
-							const ok = await requireAccount({
-								title: 'Create an account to export your filing',
-								description:
-									'Create an account or continue with Google to export your filing. Everything you’ve entered comes with you.',
-							})
-							if (!ok) return
-							await runExport(openFilingPackage, setPackageBusy, 'Could not build filing package')
-						}}
-					>
-						<Button.Label>
-							{packageBusy ? 'Preparing package…' : 'Export filing package (clean PDF)'}
-						</Button.Label>
-					</Button>
-					{!readiness.isReadyToFile && (
+						<Button
+							variant="secondary"
+							isDisabled={!readiness.answersComplete || previewBusy || packageBusy}
+							onPress={() => runExport(openDraftInApp, setPreviewBusy, 'Could not build preview')}
+						>
+							<Button.Label>
+								{previewBusy ? 'Preparing preview…' : 'Preview your form'}
+							</Button.Label>
+						</Button>
 						<Typography.Paragraph color="muted" type="body-sm">
-							{`Locked — this version can't yet produce a complete ${meta.title}. The items under "Before this can be filed" explain what's missing.`}
+							{`Official ${meta.title} · OMB ${meta.omb} (expires ${meta.ombExpires}). Watermarked — not for filing.`}
 						</Typography.Paragraph>
-					)}
 
-					<MarkFiled />
-				</>
-			)}
+						<UscisFeeInfo formType={application.formType} />
+						<FilingInstructions formType={application.formType} />
 
-			{application.status === 'filed' && (
-				<>
-					<Surface variant="secondary" className="gap-hairline rounded-2xl p-card">
-						<Typography.Paragraph className="font-medium">Filed with USCIS</Typography.Paragraph>
-						<Typography.Paragraph color="muted" className="text-sm">
-							{application.filedAt !== undefined
-								? `You recorded this filing on ${new Date(application.filedAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}. Editing is locked so your answers stay exactly as filed.`
-								: 'Editing is locked so your answers stay exactly as filed.'}
+						<Button
+							isDisabled={!readiness.isReadyToFile || packageBusy || previewBusy}
+							onPress={async () => {
+								// M6-T3 conversion gate: exporting the filing is the moment a
+								// temporary session must become a real account. The upgrade
+								// carries every answer, document, and case over (Better Auth
+								// anonymous linking → convex/auth.ts onLinkAccount), and the
+								// export resumes right here on success.
+								const ok = await requireAccount({
+									title: 'Create an account to export your filing',
+									description:
+										'Create an account or continue with Google to export your filing. Everything you’ve entered comes with you.',
+								})
+								if (!ok) return
+								await runExport(openFilingPackage, setPackageBusy, 'Could not build filing package')
+							}}
+						>
+							<Button.Label>
+								{packageBusy ? 'Preparing package…' : 'Export filing package (clean PDF)'}
+							</Button.Label>
+						</Button>
+						{!readiness.isReadyToFile && (
+							<Typography.Paragraph color="muted" type="body-sm">
+								{`Locked — this version can't yet produce a complete ${meta.title}. The items under "Before this can be filed" explain what's missing.`}
+							</Typography.Paragraph>
+						)}
+
+						<MarkFiled />
+					</>
+				)}
+
+				{application.status === 'filed' && (
+					<>
+						<Surface variant="secondary" className="gap-hairline rounded-2xl p-card">
+							<Typography.Paragraph className="font-medium">Filed with USCIS</Typography.Paragraph>
+							<Typography.Paragraph color="muted" className="text-sm">
+								{application.filedAt !== undefined
+									? `You recorded this filing on ${new Date(application.filedAt).toLocaleDateString(undefined, { dateStyle: 'medium' })}. Editing is locked so your answers stay exactly as filed.`
+									: 'Editing is locked so your answers stay exactly as filed.'}
+							</Typography.Paragraph>
+						</Surface>
+
+						<Button
+							variant="secondary"
+							isDisabled={!readiness.isReadyToFile || packageBusy}
+							onPress={async () => {
+								const ok = await requireAccount({
+									title: 'Sign in to download your filing package',
+									description: 'Sign in to re-download the package you filed.',
+								})
+								if (!ok) return
+								await runExport(openFilingPackage, setPackageBusy, 'Could not build filing package')
+							}}
+						>
+							<Button.Label>
+								{packageBusy ? 'Preparing package…' : 'Download filing package again'}
+							</Button.Label>
+						</Button>
+						<Typography.Paragraph color="muted" type="body-sm">
+							{readiness.isReadyToFile
+								? `Rebuilt from your saved answers — identical to the ${meta.title} you exported.`
+								: `This application was marked filed while incomplete in the app, so a clean ${meta.title} can't be rebuilt from it.`}
 						</Typography.Paragraph>
-					</Surface>
-
-					<Button
-						variant="secondary"
-						isDisabled={!readiness.isReadyToFile || packageBusy}
-						onPress={async () => {
-							const ok = await requireAccount({
-								title: 'Sign in to download your filing package',
-								description: 'Sign in to re-download the package you filed.',
-							})
-							if (!ok) return
-							await runExport(openFilingPackage, setPackageBusy, 'Could not build filing package')
-						}}
-					>
-						<Button.Label>
-							{packageBusy ? 'Preparing package…' : 'Download filing package again'}
-						</Button.Label>
-					</Button>
-					<Typography.Paragraph color="muted" type="body-sm">
-						{readiness.isReadyToFile
-							? `Rebuilt from your saved answers — identical to the ${meta.title} you exported.`
-							: `This application was marked filed while incomplete in the app, so a clean ${meta.title} can't be rebuilt from it.`}
-					</Typography.Paragraph>
-				</>
-			)}
+					</>
+				)}
+			</View>
 		</View>
 	)
 }

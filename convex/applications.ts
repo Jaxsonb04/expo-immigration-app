@@ -136,12 +136,19 @@ export const listApplications = query({
 	},
 })
 
-/** The Journey Hub payload: application + applicant + draft + slots + entitlement + case. */
+/**
+ * The Journey Hub payload: application + applicant + draft + slots +
+ * entitlement + case. Not-found and not-owned both return null rather than
+ * throwing: a deleteApplication commit re-runs any still-mounted live
+ * subscription BEFORE the screen unmounts, and that re-run must render a
+ * graceful fallback, not crash. Null leaks nothing an error didn't.
+ */
 export const getApplication = query({
 	args: { applicationId: v.id('applications') },
 	handler: async (ctx, args) => {
 		const ownerId = await requireOwnerId(ctx)
-		const application = await getOwnedApplication(ctx, ownerId, args.applicationId)
+		const application = await ctx.db.get('applications', args.applicationId)
+		if (application === null || application.ownerId !== ownerId) return null
 		const [applicant, draft, requirements, entitlement, linkedCase, applicantDocs] =
 			await Promise.all([
 				ctx.db.get('applicants', application.applicantId),

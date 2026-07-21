@@ -1,3 +1,4 @@
+import { humanErrorMessage } from '@/lib/error-message'
 import { Button, Label, Typography } from 'heroui-native'
 import { Calendar, DatePicker, type DatePickerOption } from 'heroui-native-pro'
 import { useState } from 'react'
@@ -50,10 +51,7 @@ export function MarkFiled() {
 				...(acknowledgeNotReady ? { acknowledgeNotReady: true } : {}),
 			})
 		} catch (error) {
-			Alert.alert(
-				'Could not mark as filed',
-				error instanceof Error ? error.message : 'Please try again.',
-			)
+			Alert.alert('Could not mark as filed', humanErrorMessage(error, 'Please try again.'))
 		} finally {
 			setBusy(false)
 		}

@@ -161,7 +161,7 @@ describe('receipt-number filing reconcile', () => {
 		const { alice, applicationId } = await setupDraft(t)
 		const before = Date.now()
 		await alice.mutation(api.cases.createCase, { receiptNumber: RECEIPT, applicationId })
-		const { application } = await alice.query(api.applications.getApplication, { applicationId })
+		const { application } = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(application.status).toBe('filed')
 		expect(application.filedAt).toBeGreaterThanOrEqual(before)
 	})
@@ -177,7 +177,7 @@ describe('receipt-number filing reconcile', () => {
 			acknowledgeNotReady: true,
 		})
 		await alice.mutation(api.cases.createCase, { receiptNumber: RECEIPT, applicationId })
-		const { application } = await alice.query(api.applications.getApplication, { applicationId })
+		const { application } = (await alice.query(api.applications.getApplication, { applicationId }))!
 		expect(application.status).toBe('filed')
 		expect(application.filedAt).toBe(original)
 	})

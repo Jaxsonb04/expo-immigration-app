@@ -1,4 +1,5 @@
 import { SectionHeading } from '@/components/core'
+import { humanErrorMessage } from '@/lib/error-message'
 import { useRouter } from 'expo-router'
 import { Button, Separator, Typography } from 'heroui-native'
 import { useState } from 'react'
@@ -29,7 +30,7 @@ export function Manage() {
 			await action()
 			if (thenBack) router.back()
 		} catch (error) {
-			Alert.alert(failureTitle, error instanceof Error ? error.message : 'Please try again.')
+			Alert.alert(failureTitle, humanErrorMessage(error, 'Please try again.'))
 		} finally {
 			setBusy(false)
 		}
@@ -59,12 +60,17 @@ export function Manage() {
 				{
 					text: 'Delete',
 					style: 'destructive',
-					onPress: () =>
+					// Leave the screen BEFORE the delete commits: the hub's live
+					// query re-runs the moment the row is gone, and the list
+					// behind us updates reactively. On failure the alert still
+					// surfaces over whatever screen is showing.
+					onPress: () => {
+						router.back()
 						void run(
 							() => deleteApplication({ applicationId: application._id }),
 							'Could not delete',
-							true,
-						),
+						)
+					},
 				},
 			],
 		)
