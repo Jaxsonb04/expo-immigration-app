@@ -211,16 +211,25 @@ Sim QA for all of this UI is still owed (see §7).
 
 ## 7. VERIFICATION EVIDENCE
 
-- `bun run test:once` → **27 files, 573 tests passing**
+- `bun run test:once` → **29 files, 600 tests passing** (as of `c26d513`)
 - `bun run typecheck` → clean
 - `bunx eslint <changed>` → clean
 - Both `I765_COVERAGE_GAPS` and `I90_COVERAGE_GAPS` are `[]`
 - Milestone tests exist for both forms asserting `isReadyToFile === true` end-to-end
 
-**NOT verified: live simulator rendering.** No booted sim was available (needs a
-logged-in console GUI session on the Mac). The review screen and both interviews have
-never been visually walked through. A sim QA pass is genuinely owed — the logic is
-heavily unit-tested but the rendering and navigation are not.
+**Sim QA pass DONE 2026-07-21 (`c26d513`)** — full Maestro walkthrough on a booted
+iPhone 17 sim covering the seeded demo data, filed lifecycle (ready + not-ready
+mark-filed confirms, date picker, filed re-download + account gate, un-file,
+close/reopen/delete), the compatibility-filtered reuse picker, the review screen with
+its edit-jump round trip, and the new-case linkable list. Five findings, all fixed in
+that commit — the notable ones: `getApplication` now returns **null** (never throws)
+for a deleted/foreign id because deleteApplication's commit re-runs the still-mounted
+hub subscription (was a render crash; hub/interview/review all render a graceful
+fallback now), and `src/lib/error-message.ts` `humanErrorMessage()` strips the raw
+Convex error envelope from user-facing alerts (applied to the workflow surfaces; an
+app-wide sweep of the remaining ~11 alert sites is tracked as a spawned task).
+Still never visually walked: the two full interviews step-by-step (Maestro's
+`inputText` crashes the iOS 26.5 driver, so typed text entry remains untested).
 
 ---
 
