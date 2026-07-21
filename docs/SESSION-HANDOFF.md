@@ -197,8 +197,20 @@ Sim QA for all of this UI is still owed (see §7).
   unmapped keys, drift-guard test pins every producible key). attach/detach are draft-only
   now (a filed application's checklist is frozen). Expired documents are tagged in the
   picker but not blocked — an I-765 renewal legitimately attaches the expiring EAD.
-- **P1 vault**: rows aren't pressable, no preview/replace/delete/expiry capture;
-  `uploadNewVersion` exists in the backend with no UI.
+- ~~**P1 vault**~~ DONE 2026-07-21 (`c74cc43`): rows are pressable into a detail screen
+  (preview via signed Convex storage URL + OS browser, inline expiry editor with Clear,
+  Replace file for the current version, Delete). `getDocumentDetail` is null-safe (same
+  precedent as `getApplication` — a deleteDocument commit re-runs the still-mounted
+  subscription before the screen unmounts). Delete is refused while attached to ANY slot
+  on ANY application (a slot's `documentId` has no null-check on the read side) — the
+  banner names the application and disables the button rather than failing after the
+  fact. `documents/[documentId]` routes exist under both Forms and Account
+  (`DocumentsScreen` takes an explicit `basePath` so a row's push never yanks tabs).
+  Consolidated three near-duplicate helpers while here: `src/lib/document-upload.ts`
+  (pick+upload, shared with Journey Hub), `src/lib/date-picker.ts` (ISO↔DatePicker,
+  shared with mark-filed + the form DateField), and `documentTypeLabel` into
+  `lib/application-labels.ts`. Sim-verified end to end incl. the Home renewal widget
+  reacting to an expiry edit made from the Vault. 610 tests.
 - **P1 extraction autofill**: needs owner approval before any paid OCR provider.
 - **P1 reminders**: preference is device-only SecureStore + local notifications; a new
   phone loses them though the UI implies otherwise. Needs server-side intent + reconcile.
