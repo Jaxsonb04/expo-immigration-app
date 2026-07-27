@@ -1,5 +1,6 @@
-export const PASSWORD_RECOVERY_ENABLED =
-	process.env.EXPO_PUBLIC_PASSWORD_RECOVERY_ENABLED === 'true'
+import { RELEASE_FEATURES } from './release-policy'
+
+export const PASSWORD_RECOVERY_ENABLED = RELEASE_FEATURES.passwordRecovery
 
 export const PASSWORD_RESET_REDIRECT_URL = 'immigrationrenewalhelp://reset-password'
 

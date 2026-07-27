@@ -22,7 +22,7 @@ We use data to authenticate users, display their saved cases, maintain the timel
 
 ## Service providers
 
-Convex provides the hosted application backend, database, and authentication components. Official USCIS and Department of Justice links open in the device browser.
+Convex provides the hosted application backend, database, and authentication components. Porkbun forwards messages sent to the Immifile support address, and Google provides the monitored destination mailbox. Official USCIS and Department of Justice links open in the device browser.
 
 ## Retention and deletion
 
@@ -38,8 +38,8 @@ Immifile transmits authentication and application data over encrypted connection
 
 ## Support and privacy requests
 
-Use **Account → Support** in the app or read the public [Immifile support information](https://github.com/Jaxsonb04/expo-immigration-app/blob/main/docs/SUPPORT.md) for current contact options.
+Email [support@immifile.app](mailto:support@immifile.app) or use **Account → Support** in the app for private account-access, deletion, or privacy requests. Include only the minimum information needed to identify the request. Read the public [Immifile support information](https://jaxsonb04.github.io/expo-immigration-app/support/) for the current contact and safety guidance.
 
 The [GitHub issue tracker](https://github.com/Jaxsonb04/expo-immigration-app/issues/new) is public, requires a GitHub account, and is only suitable for non-sensitive app bugs or general feedback. Never use it for a privacy request or include receipt numbers, A-Numbers, addresses, passwords, or other sensitive immigration information.
 
-A monitored private support contact and stable public support and privacy-policy URLs must be published and verified before App Store distribution. Until those submission gates are complete, do not send private account information through a public channel.
+Do not send private account information through the public issue tracker.

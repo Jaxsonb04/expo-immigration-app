@@ -1,5 +1,9 @@
 # Authentication Email Webhook
 
+This is a future-release design. Password recovery is source-controlled off for
+the first App Store release, so no transactional-email provider or webhook is
+required for that build.
+
 Immifile keeps the transactional-email provider outside the app and Convex source code. Production password recovery is enabled only after a private HTTPS webhook is configured and tested.
 
 ## Convex production environment

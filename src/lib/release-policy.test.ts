@@ -26,6 +26,7 @@ describe('first App Store release policy', () => {
 			assistant: false,
 			community: false,
 			socialLogin: false,
+			passwordRecovery: false,
 		})
 	})
 
@@ -77,6 +78,9 @@ describe('first App Store release policy', () => {
 		'/documents-old',
 		'/assistant-tools',
 		'/community-support',
+		'/forgot-password',
+		'/reset-password',
+		'/reset-password?token=one-time-token',
 		'/new-case/unreviewed',
 	])('blocks disabled route %s', (pathname) => {
 		expect(isReleasePathBlocked(pathname)).toBe(true)
@@ -95,9 +99,6 @@ describe('first App Store release policy', () => {
 		'/upgrade',
 		'/welcome',
 		'/sign-in',
-		'/forgot-password',
-		'/reset-password',
-		'/reset-password?token=one-time-token',
 		'/cases?next=/documents',
 		'/resources#community',
 	])('retains stable route %s', (pathname) => {

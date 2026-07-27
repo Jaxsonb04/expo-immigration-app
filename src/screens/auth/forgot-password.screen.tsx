@@ -52,7 +52,7 @@ export function ForgotPasswordScreen() {
 				<Typography.Paragraph color="muted" className="leading-relaxed">
 					{PASSWORD_RECOVERY_ENABLED
 						? 'Enter your account email. If it matches an account, we will send a secure link that expires in one hour.'
-						: 'Password recovery is not configured in this build. Do not release this build until the production email service is verified.'}
+						: 'Password recovery is not included in this release. Contact Immifile support for account-access help.'}
 				</Typography.Paragraph>
 			</View>
 

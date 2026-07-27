@@ -10,9 +10,9 @@ This page describes the support channels for the first App Store release of Immi
 
 ## Private account and privacy help
 
-A monitored private support channel has not yet been published. It must be added to this page, and this page must be available at a stable public URL, before the app is submitted to App Review.
+Email [support@immifile.app](mailto:support@immifile.app) for private account-access, account-deletion, or privacy requests. Messages are forwarded to a monitored Immifile mailbox.
 
-Do not send receipt numbers, A-Numbers, addresses, passwords, account credentials, or other private immigration information through a public channel.
+Include only the minimum information needed to identify the request. Do not send receipt numbers, A-Numbers, addresses, passwords, account credentials, or other private immigration information by email.
 
 ## Public issue tracker
 
@@ -24,7 +24,7 @@ Do not use a GitHub issue for an account-specific request, a privacy request, or
 
 While signed in, open **Account → Settings → Delete account** to delete the login identity, sessions, saved cases, and associated Immifile data.
 
-If sign-in is unavailable, do not post account details publicly. Use the monitored private support channel after it is published on this page.
+If sign-in is unavailable, do not post account details publicly. Email [support@immifile.app](mailto:support@immifile.app) with the minimum account information needed to locate the request.
 
 ## Case-specific help
 
