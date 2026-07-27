@@ -61,7 +61,13 @@ for (const dependency of [
 	assert(!pkg.dependencies?.[dependency], `${dependency} must not be installed`)
 }
 
-for (const feature of ['filingPreparation', 'assistant', 'community', 'socialLogin']) {
+for (const feature of [
+	'filingPreparation',
+	'assistant',
+	'community',
+	'socialLogin',
+	'passwordRecovery',
+]) {
 	assert(policy[feature] === false, `${feature} must be pinned off for the first review build`)
 }
 assert(
@@ -90,10 +96,6 @@ if (process.env.IMMIFILE_RELEASE_BUILD === 'true') {
 		assert(!/localhost|127\.0\.0\.1/i.test(value), `${name} cannot target a local service`)
 	}
 	assert(
-		process.env.EXPO_PUBLIC_PASSWORD_RECOVERY_ENABLED === 'true',
-		'password recovery must be enabled in the first public release',
-	)
-	assert(
 		/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? '') &&
 			isConfigured(process.env.EXPO_PUBLIC_SUPPORT_EMAIL),
 		'EXPO_PUBLIC_SUPPORT_EMAIL must be a monitored private support address',
@@ -101,10 +103,6 @@ if (process.env.IMMIFILE_RELEASE_BUILD === 'true') {
 	assert(
 		process.env.IMMIFILE_PRODUCTION_BACKEND_CONFIRMED === 'true',
 		'set IMMIFILE_PRODUCTION_BACKEND_CONFIRMED=true only after deploying Convex production with DEV_SEED_ENABLED disabled',
-	)
-	assert(
-		process.env.IMMIFILE_AUTH_EMAIL_CONFIRMED === 'true',
-		'set IMMIFILE_AUTH_EMAIL_CONFIRMED=true only after the production reset-email webhook succeeds end to end',
 	)
 }
 

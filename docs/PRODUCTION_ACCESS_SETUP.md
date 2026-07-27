@@ -13,12 +13,12 @@ printing secret values.
 
 ### Secret inventory
 
-| Name                       | How to obtain it                                       | Store it in                                    | Never store it in                                            |
-| -------------------------- | ------------------------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------ |
-| `HEROUI_KEY`               | Use the trusted vendor key beginning with `hp_`        | EAS `production`, visibility `secret`          | Git, Expo `EXPO_PUBLIC_*`, chat                              |
-| `BETTER_AUTH_SECRET`       | Generate a new random production-only value            | Convex production environment                  | EAS, Git, chat                                               |
-| `AUTH_EMAIL_WEBHOOK_TOKEN` | Generate a new random bearer token                     | Convex production and the private webhook host | The mobile app, Git, chat                                    |
-| Email-provider API key     | Create it with the chosen transactional-email provider | Private webhook host only                      | Convex unless it directly calls the provider, EAS, Git, chat |
+| Name                       | How to obtain it                                | Store it in                                    | Never store it in                                            |
+| -------------------------- | ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------ |
+| `HEROUI_KEY`               | Use the trusted vendor key beginning with `hp_` | EAS `production`, visibility `secret`          | Git, Expo `EXPO_PUBLIC_*`, chat                              |
+| `BETTER_AUTH_SECRET`       | Generate a new random production-only value     | Convex production environment                  | EAS, Git, chat                                               |
+| `AUTH_EMAIL_WEBHOOK_TOKEN` | Future password-recovery release only           | Convex production and the private webhook host | The mobile app, Git, chat                                    |
+| Email-provider API key     | Future password-recovery release only           | Private webhook host only                      | Convex unless it directly calls the provider, EAS, Git, chat |
 
 Expo, Apple, Convex, GitHub, mailbox, and email-provider passwords are account
 credentials. Codex never needs them.
@@ -52,15 +52,13 @@ Production code is deployed and currently expects `BETTER_AUTH_SECRET`,
 
 ## 2. Set Convex production secrets
 
-Generate fresh production-only values locally:
+Generate a fresh production-only authentication value locally:
 
 ```sh
 openssl rand -base64 48
-openssl rand -hex 32
 ```
 
-Use the first output for `BETTER_AUTH_SECRET` and the second for
-`AUTH_EMAIL_WEBHOOK_TOKEN`. Do not reuse development values.
+Use the output for `BETTER_AUTH_SECRET`. Do not reuse the development value.
 
 The safest CLI workflow is interactive because the value stays out of shell
 history. For each command, paste the value at the prompt:
@@ -68,14 +66,8 @@ history. For each command, paste the value at the prompt:
 ```sh
 npx convex env set BETTER_AUTH_SECRET --prod
 npx convex env set BETTER_AUTH_URL --prod
-npx convex env set AUTH_EMAIL_WEBHOOK_TOKEN --prod
-npx convex env set AUTH_EMAIL_WEBHOOK_URL --prod
-npx convex env set AUTH_EMAIL_FROM --prod
 npx convex env set DEV_SEED_ENABLED false --prod
 ```
-
-Use a public HTTPS URL for `AUTH_EMAIL_WEBHOOK_URL` and a verified sender such
-as `Immifile Support <support@immifile.app>` for `AUTH_EMAIL_FROM`.
 
 Verify names only:
 
@@ -94,26 +86,24 @@ succeeds and `DEV_SEED_ENABLED` is false.
 
 ## 3. Configure the support mailbox and password-reset email
 
-The `immifile.app` domain currently has no MX records. Before publishing
-`support@immifile.app`:
+Inbound support uses Porkbun forwarding from `support@immifile.app` to the
+monitored `jaxsonbie@gmail.com` mailbox. Porkbun's MX and SPF records are live.
+Before submission:
 
-1. Create a real monitored mailbox with the chosen mailbox provider.
-2. Add the provider's exact MX, SPF, and DKIM DNS records.
-3. Confirm inbound mail works from an unrelated email account.
-4. Confirm this command returns at least one MX record:
+1. Confirm the forwarding test sent from `jaxsonbie@berkeley.edu` arrives in
+   `jaxsonbie@gmail.com`.
+2. Keep the destination mailbox monitored throughout App Review.
+3. Confirm this command continues to return Porkbun's forwarding MX records:
 
    ```sh
    dig +short MX immifile.app
    ```
 
-Choose a transactional-email provider, verify the sending domain, and create a
-private HTTPS webhook that follows `docs/AUTH_EMAIL_WEBHOOK.md`. The same
-`AUTH_EMAIL_WEBHOOK_TOKEN` must be configured on the webhook host. Its
-email-provider API key belongs only on that host.
-
-Name the chosen provider in `docs/PRIVACY_POLICY.md`. Complete the end-to-end
-reset test in `docs/AUTH_EMAIL_WEBHOOK.md` before enabling password recovery in
-the production app.
+Password recovery is source-controlled off for this first release. No SES
+identity, transactional-email provider, or outbound-email webhook is required.
+Keep `AUTH_EMAIL_WEBHOOK_URL`, `AUTH_EMAIL_WEBHOOK_TOKEN`, and
+`AUTH_EMAIL_FROM` unset in Convex production. A later reviewed release can
+follow `docs/AUTH_EMAIL_WEBHOOK.md` before enabling the feature.
 
 ## 4. Log in to Expo and link the EAS project
 
@@ -171,9 +161,7 @@ EXPO_PUBLIC_AUTH_SITE_URL
 EXPO_PUBLIC_PRIVACY_URL
 EXPO_PUBLIC_SUPPORT_URL
 EXPO_PUBLIC_SUPPORT_EMAIL
-EXPO_PUBLIC_PASSWORD_RECOVERY_ENABLED
 IMMIFILE_PRODUCTION_BACKEND_CONFIRMED
-IMMIFILE_AUTH_EMAIL_CONFIRMED
 ```
 
 Use the EAS dashboard or this pattern:
@@ -191,17 +179,16 @@ Important:
 
 - Use the production `.convex.cloud` and `.convex.site` URLs, never the personal
   development deployment.
-- Set `EXPO_PUBLIC_PASSWORD_RECOVERY_ENABLED=true` and
-  `IMMIFILE_AUTH_EMAIL_CONFIRMED=true` only after the real reset-email test.
+- Password recovery is pinned off in `release-policy.json`; do not set either
+  `EXPO_PUBLIC_PASSWORD_RECOVERY_ENABLED` or
+  `IMMIFILE_AUTH_EMAIL_CONFIRMED` to `true`.
 - Set `IMMIFILE_PRODUCTION_BACKEND_CONFIRMED=true` only after the production
   Convex deploy and seed lockout are verified.
 - `HEROUI_KEY` must remain a separate EAS `secret`.
 
-Verify variable names and visibility without exposing secret values:
-
-```sh
-npx eas-cli env:list production
-```
+Verify variable names and visibility in the EAS dashboard. Do not use a CLI
+listing command for this project: current EAS CLI output may reveal secret
+values instead of masking them.
 
 ## 7. Publish legal and support pages
 

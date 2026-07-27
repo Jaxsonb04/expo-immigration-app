@@ -41,10 +41,10 @@ Utilities
 Reference
 
 **Support URL**  
-REQUIRED: public support URL containing the monitored contact
+https://jaxsonb04.github.io/expo-immigration-app/support/
 
 **Privacy Policy URL**  
-REQUIRED: public privacy-policy URL
+https://jaxsonb04.github.io/expo-immigration-app/privacy/
 
 **Marketing URL**  
 Optional; omit for the first release unless a public product page is available.
@@ -77,7 +77,7 @@ On first launch, Continue creates a temporary session so the reviewer can browse
 
 The supplied demo account may be used to test adding, editing, and deleting a synthetic case. To test complete account deletion, open Account → Settings → Delete account and confirm with the demo account password. Deletion removes the login identity, sessions, saved cases, and associated app data. A short-lived opaque stale-session protection record may remain for up to one hour and contains no case content.
 
-Immifile does not automatically fetch USCIS case status and is not affiliated with the U.S. government. Filing preparation, document upload, AI assistance, public community, and social login are disabled in this build and are not advertised in the metadata.
+Immifile does not automatically fetch USCIS case status and is not affiliated with the U.S. government. Filing preparation, document upload, AI assistance, public community, social login, and password recovery are disabled in this build and are not advertised in the metadata.
 
 The production backend will remain available throughout review. Public privacy and support URLs are listed in App Store Connect and are also accessible from the Account area.
 

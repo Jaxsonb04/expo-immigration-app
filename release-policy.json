@@ -2,5 +2,6 @@
 	"filingPreparation": false,
 	"assistant": false,
 	"community": false,
-	"socialLogin": false
+	"socialLogin": false,
+	"passwordRecovery": false
 }

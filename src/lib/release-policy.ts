@@ -12,6 +12,7 @@ type ReleaseFeatures = {
 	assistant: boolean
 	community: boolean
 	socialLogin: boolean
+	passwordRecovery: boolean
 }
 
 export const RELEASE_FEATURES: Readonly<ReleaseFeatures> = Object.freeze(releaseFeatures)
@@ -58,8 +59,6 @@ const ALWAYS_ALLOWED_EXACT_PATHS = [
 	'/upgrade',
 	'/welcome',
 	'/sign-in',
-	'/forgot-password',
-	'/reset-password',
 ] as const
 
 function normalizePathname(rawPathname: string): string {
@@ -95,6 +94,12 @@ export function isReleasePathBlocked(rawPathname: string): boolean {
 	if (RELEASE_FEATURES.assistant && matchesPath(pathname, '/assistant')) return false
 	if (RELEASE_FEATURES.community && COMMUNITY_PATHS.some((route) => matchesPath(pathname, route)))
 		return false
+	if (
+		RELEASE_FEATURES.passwordRecovery &&
+		(matchesPath(pathname, '/forgot-password') || matchesPath(pathname, '/reset-password'))
+	) {
+		return false
+	}
 
 	// Default deny: a new route cannot silently join the reviewed release.
 	return true

@@ -61,14 +61,8 @@ const supportEmail = required('EXPO_PUBLIC_SUPPORT_EMAIL')
 if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(supportEmail)) {
 	fail('EXPO_PUBLIC_SUPPORT_EMAIL is not a valid email address')
 }
-if (process.env.EXPO_PUBLIC_PASSWORD_RECOVERY_ENABLED !== 'true') {
-	fail('EXPO_PUBLIC_PASSWORD_RECOVERY_ENABLED must be true')
-}
 if (process.env.IMMIFILE_PRODUCTION_BACKEND_CONFIRMED !== 'true') {
 	fail('IMMIFILE_PRODUCTION_BACKEND_CONFIRMED must be true')
-}
-if (process.env.IMMIFILE_AUTH_EMAIL_CONFIRMED !== 'true') {
-	fail('IMMIFILE_AUTH_EMAIL_CONFIRMED must be true')
 }
 
 console.log(`✓ Convex client URL configured for ${convexUrl.hostname}`)

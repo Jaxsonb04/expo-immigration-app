@@ -6,7 +6,7 @@
 - Resources: curated links to official USCIS and DOJ tools.
 - Account: email/password sign-in, complete account deletion, privacy policy, terms, and support.
 
-Filing preparation, interviews, application/document routes, the AI assistant, public community, Google login, camera, microphone, Face ID, widgets, and notification configuration are disabled for this release. Their data and implementation remain intact for a later reviewed release.
+Filing preparation, interviews, application/document routes, the AI assistant, public community, Google login, password recovery, camera, microphone, Face ID, widgets, and notification configuration are disabled for this release. Their data and implementation remain intact for a later reviewed release.
 
 ## Required production setup
 
@@ -21,11 +21,9 @@ shared with Codex or committed to the repository.
    - `EXPO_PUBLIC_PRIVACY_URL`
    - `EXPO_PUBLIC_SUPPORT_URL`
    - `EXPO_PUBLIC_SUPPORT_EMAIL`
-   - `EXPO_PUBLIC_PASSWORD_RECOVERY_ENABLED=true`
    - `IMMIFILE_PRODUCTION_BACKEND_CONFIRMED=true`
-   - `IMMIFILE_AUTH_EMAIL_CONFIRMED=true`
    - `HEROUI_KEY` as a secret, using the trusted `hp_` API key
-2. Deploy a production Convex backend. Set a production `BETTER_AUTH_SECRET`, confirm `DEV_SEED_ENABLED` is absent or false, and ensure the public auth proxy routes to that production deployment rather than a development deployment. Configure and test the three `AUTH_EMAIL_*` values described in `docs/AUTH_EMAIL_WEBHOOK.md`.
+2. Deploy a production Convex backend. Set a production `BETTER_AUTH_SECRET`, confirm `DEV_SEED_ENABLED` is absent or false, and ensure the public auth proxy routes to that production deployment rather than a development deployment. Leave the three `AUTH_EMAIL_*` values unset for this release.
 3. Publish `docs/PRIVACY_POLICY.md` at a stable public URL. Verify it while signed out, then enter that URL in App Store Connect.
 4. Publish `docs/SUPPORT.md` at a stable public support-information URL with accurate contact information and a monitored private support channel. Verify it while signed out and enter it as the App Store support URL. The public GitHub issue tracker is supplemental and does not satisfy the private-support gate.
 5. Update `SUPPORT_INFO_URL` in `src/screens/account/account.legal.tsx` if the published support URL differs from the repository document. Do not submit while that URL is unavailable or still says the private channel has not been published.
