@@ -31,7 +31,7 @@ describe('dev seed', () => {
 		const alice = t.withIdentity({ subject: 'alice' })
 
 		const summary = await alice.action(api.dev.seed.seedDemo, {})
-		expect(summary).toEqual({ applicants: 3, applications: 5, documents: 4 })
+		expect(summary).toEqual({ applicants: 3, applications: 5, documents: 5 })
 
 		await t.run(async (ctx) => {
 			const applicants = await ctx.db.query('applicants').collect()
@@ -130,9 +130,9 @@ describe('dev seed', () => {
 		await t.run(async (ctx) => {
 			expect(await ctx.db.query('applicants').collect()).toHaveLength(3)
 			expect(await ctx.db.query('applications').collect()).toHaveLength(5)
-			expect(await ctx.db.query('documents').collect()).toHaveLength(4)
-			// Old blobs were deleted by the wipe; only the fresh four remain.
-			expect(await ctx.db.system.query('_storage').collect()).toHaveLength(4)
+			expect(await ctx.db.query('documents').collect()).toHaveLength(5)
+			// Old blobs were deleted by the wipe; only the fresh five remain.
+			expect(await ctx.db.system.query('_storage').collect()).toHaveLength(5)
 		})
 	})
 
@@ -182,7 +182,14 @@ describe('account deletion contract', () => {
 		const alice = t.withIdentity({ subject: 'alice' })
 
 		await alice.action(api.dev.seed.seedDemo, {})
-		await alice.mutation(api.account.deleteAccountData, {})
+		await alice.action(api.account.deleteAccountData, {})
+
+		// A JWT issued before deletion can remain cryptographically valid for a
+		// few minutes, but the tombstone must prevent it from recreating data
+		// after the case-deletion phase has already passed.
+		await expect(
+			alice.mutation(api.cases.createCase, { receiptNumber: 'EAC1234567890' }),
+		).rejects.toThrow(/deletion is in progress/i)
 
 		await t.run(async (ctx) => {
 			for (const table of TABLES) {
@@ -195,6 +202,6 @@ describe('account deletion contract', () => {
 
 	test('deleteAccountData requires authentication', async () => {
 		const t = newT()
-		await expect(t.mutation(api.account.deleteAccountData, {})).rejects.toThrow('Not authenticated')
+		await expect(t.action(api.account.deleteAccountData, {})).rejects.toThrow('Not authenticated')
 	})
 })

@@ -2,6 +2,7 @@ import { TempAccountCard, useViewer } from '@/components/account'
 import { BodyScrollView } from '@/components/core'
 import { styledIcon, type StyledIconComponent } from '@/components/styled-icon'
 import { authClient } from '@/lib/auth-client'
+import { RELEASE_FEATURES } from '@/lib/release-policy'
 import { router, type Href } from 'expo-router'
 import { Avatar, ListGroup, Separator, Typography } from 'heroui-native'
 import { View } from 'react-native'
@@ -79,6 +80,27 @@ const APP_ROWS: Row[] = [
 	},
 ]
 
+const HELP_ROWS: Row[] = [
+	{
+		icon: styledIcon({ family: 'lucide', name: 'shield-check' }),
+		title: 'Privacy policy',
+		description: 'What Immifile collects and how to delete it',
+		href: '/account/privacy' as Href,
+	},
+	{
+		icon: styledIcon({ family: 'lucide', name: 'file-text' }),
+		title: 'Terms of use',
+		description: 'Important limits and responsibilities',
+		href: '/account/terms' as Href,
+	},
+	{
+		icon: styledIcon({ family: 'lucide', name: 'life-buoy' }),
+		title: 'Support',
+		description: 'Get app help or report a safety concern',
+		href: '/account/support' as Href,
+	},
+]
+
 function RowGroup({ label, rows }: { label: string; rows: Row[] }) {
 	return (
 		<View className="gap-tight">
@@ -115,9 +137,8 @@ function RowGroup({ label, rows }: { label: string; rows: Row[] }) {
 
 /**
  * The Account tab root (M7-T3): a calm identity preview, then progressively
- * disclosed groups — details and documents one level deeper, the noisy
- * account plumbing behind Settings. Deliberately fits one screen with no
- * root scroll (MASTER_PLAN Layout).
+ * disclosed groups. Filing profile rows stay in source for a later release but
+ * are omitted from this build by the release policy.
  */
 export function AccountScreen() {
 	const { isTemp } = useViewer()
@@ -129,8 +150,11 @@ export function AccountScreen() {
 		<BodyScrollView contentContainerClassName="gap-section pt-tight">
 			<IdentityPreview />
 			{isTemp ? <TempAccountCard /> : null}
-			<RowGroup label="Your filing profile" rows={PROFILE_ROWS} />
+			{RELEASE_FEATURES.filingPreparation ? (
+				<RowGroup label="Your filing profile" rows={PROFILE_ROWS} />
+			) : null}
 			<RowGroup label="App" rows={APP_ROWS} />
+			<RowGroup label="Help & legal" rows={HELP_ROWS} />
 		</BodyScrollView>
 	)
 }

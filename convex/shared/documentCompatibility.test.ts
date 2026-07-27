@@ -5,6 +5,7 @@ import {
 	isDocumentCompatible,
 	uploadDocumentType,
 } from './documentCompatibility'
+import { evidenceRequirementFor } from './evidenceRequirements'
 import { requiredSlotKeys, requirementTemplates } from './interviewSteps'
 
 // Every requirement key the app can ever materialize as a slot. The base
@@ -17,8 +18,21 @@ function everyPossibleRequirementKey(): string[] {
 		for (const kind of Object.keys(byKind)) {
 			for (const answers of [
 				undefined,
-				{ form: { nameChangedSinceIssuance: 'yes' } },
-				{ form: { c8EverArrestedOrConvicted: 'yes' } },
+				...['C08', 'C09', 'C10', 'C33', 'A05', 'A03', 'A17', 'C26'].map((eligibilityCategory) => ({
+					personFacts: { eligibilityCategory, hasUsedOtherNames: 'yes' },
+					form: {
+						c8EverArrestedOrConvicted: 'yes',
+						replacementReason: 'lost',
+					},
+				})),
+				...['lost', 'stolen', 'destroyed', 'damaged', 'error', 'nameChange'].map(
+					(replacementReason) => ({
+						form: {
+							replacementReason,
+							nameChangedSinceIssuance: replacementReason === 'nameChange' ? 'yes' : 'no',
+						},
+					}),
+				),
 			]) {
 				for (const key of requiredSlotKeys(
 					formType as keyof typeof requirementTemplates,
@@ -34,13 +48,22 @@ function everyPossibleRequirementKey(): string[] {
 }
 
 describe('documentCompatibility drift guard', () => {
-	test('every producible requirement key has a compatibility entry', () => {
+	test('every producible requirement key has a catalog entry and document items have types', () => {
 		// isDocumentCompatible fails CLOSED for unmapped keys, so a missing
 		// entry would block attaching anything to that slot — this test is what
 		// keeps that from ever shipping.
 		for (const key of everyPossibleRequirementKey()) {
-			expect(compatibleDocumentTypes[key], `missing compatibility entry for "${key}"`).toBeDefined()
-			expect(compatibleDocumentTypes[key]!.length).toBeGreaterThan(0)
+			const requirement = evidenceRequirementFor(key)
+			expect(requirement, `missing evidence catalog entry for "${key}"`).toBeDefined()
+			if (requirement?.fulfillment === 'document') {
+				expect(
+					compatibleDocumentTypes[key],
+					`missing compatibility entry for "${key}"`,
+				).toBeDefined()
+				expect(compatibleDocumentTypes[key]!.length).toBeGreaterThan(0)
+			} else {
+				expect(compatibleDocumentTypes[key]).toBeUndefined()
+			}
 		}
 	})
 
@@ -60,7 +83,9 @@ describe('documentCompatibility drift guard', () => {
 	test('spot checks: type gating matches the printed requirements', () => {
 		expect(isDocumentCompatible('eadCard', 'ead')).toBe(true)
 		expect(isDocumentCompatible('eadCard', 'photo')).toBe(false)
-		expect(isDocumentCompatible('passportPhoto', 'photo')).toBe(true)
+		// Two paper photos are a physical checklist item; a single uploaded
+		// image must not satisfy their quantity.
+		expect(isDocumentCompatible('passportPhoto', 'photo')).toBe(false)
 		expect(isDocumentCompatible('passportPhoto', 'passport')).toBe(false)
 		expect(isDocumentCompatible('nameChangeEvidence', 'other')).toBe(true)
 		expect(uploadDocumentType('permanentResidentCard')).toBe('permanentResidentCard')

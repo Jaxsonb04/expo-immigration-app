@@ -2,13 +2,20 @@ import { literals } from 'convex-helpers/validators'
 import { v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import { type MutationCtx, mutation, query } from './_generated/server'
-import { requireOwnerId } from './lib/auth'
-import { getOwnedApplication } from './model/applications'
+import { requireCredentialedOwnerId, requireOwnerId } from './lib/auth'
+import {
+	getDraftForApplication,
+	getOwnedApplication,
+	reconcileRequirements,
+} from './model/applications'
 import {
 	caseStatuses,
 	isValidReceiptNumber,
 	normalizeReceiptNumber,
 } from './shared/applicationShapes'
+import { EVIDENCE_CONTRACT_VERSION } from './shared/evidenceRequirements'
+import { requiredSlotKeys } from './shared/interviewSteps'
+import { MAX_CASE_STATUS_HISTORY, normalizeCaseNote } from './shared/cases'
 
 // M3-T1 case tracking (ADR-0008). Manual, owner-scoped receipt-number tracking
 // with a status timeline; v1 does NOT scrape USCIS. Every mutation is
@@ -42,7 +49,7 @@ export const getCase = query({
 	handler: async (ctx, args) => {
 		const ownerId = await requireOwnerId(ctx)
 		const found = await ctx.db.get('cases', args.caseId)
-		if (found === null || found.ownerId !== ownerId) throw new Error('Case not found')
+		if (found === null || found.ownerId !== ownerId) return null
 		return found
 	},
 })
@@ -109,7 +116,7 @@ export const createCase = mutation({
 		note: v.optional(v.string()),
 	},
 	handler: async (ctx, args): Promise<Id<'cases'>> => {
-		const ownerId = await requireOwnerId(ctx)
+		const ownerId = await requireCredentialedOwnerId(ctx)
 		const receiptNumber = normalizeReceiptNumber(args.receiptNumber)
 		if (!isValidReceiptNumber(receiptNumber)) {
 			throw new Error('Enter a receipt number like EAC1234567890 (3 letters + 10 digits)')
@@ -139,21 +146,33 @@ export const createCase = mutation({
 			}
 			// Receipt-number reconcile: the receipt proves the filing happened.
 			if (application.status === 'draft') {
+				// Materialize every currently expected row before freezing the
+				// filing, including requirements introduced after draft creation.
+				await reconcileRequirements(ctx, application)
+				const draft = await getDraftForApplication(ctx, application._id)
+				const filingRequirementKeys = requiredSlotKeys(
+					application.formType,
+					application.applicationKind,
+					draft.answers,
+				)
 				await ctx.db.patch('applications', application._id, {
 					status: 'filed',
 					filedAt: application.filedAt ?? now,
+					filingEvidenceContractVersion: EVIDENCE_CONTRACT_VERSION,
+					filingRequirementKeys: [...filingRequirementKeys],
 					updatedAt: now,
 				})
 			}
 		}
 
 		const status = args.status ?? 'caseReceived'
+		const note = normalizeCaseNote(args.note)
 		return await ctx.db.insert('cases', {
 			ownerId,
 			receiptNumber,
 			applicationId: args.applicationId,
 			status,
-			statusHistory: [{ status, occurredAt: now, note: args.note?.trim() || undefined }],
+			statusHistory: [{ status, occurredAt: now, note }],
 			updatedAt: now,
 		})
 	},
@@ -172,18 +191,34 @@ export const addStatusUpdate = mutation({
 		note: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
-		const ownerId = await requireOwnerId(ctx)
+		const ownerId = await requireCredentialedOwnerId(ctx)
 		const found = await getOwnedCase(ctx, ownerId, args.caseId)
+		if (found.statusHistory.length >= MAX_CASE_STATUS_HISTORY) {
+			throw new Error(`This case has reached its ${MAX_CASE_STATUS_HISTORY}-update limit.`)
+		}
 		const now = Date.now()
 		const entry = {
 			status: args.status,
 			occurredAt: args.occurredAt ?? now,
-			note: args.note?.trim() || undefined,
+			note: normalizeCaseNote(args.note),
 		}
 		await ctx.db.patch('cases', found._id, {
 			status: args.status,
 			statusHistory: [...found.statusHistory, entry],
 			updatedAt: now,
 		})
+	},
+})
+
+/** Permanently remove one tracked case. Owner-scoped and idempotent only for
+ * the owning caller while the row exists; foreign and missing ids are
+ * indistinguishable. */
+export const deleteCase = mutation({
+	args: { caseId: v.id('cases') },
+	handler: async (ctx, args): Promise<null> => {
+		const ownerId = await requireOwnerId(ctx)
+		const found = await getOwnedCase(ctx, ownerId, args.caseId)
+		await ctx.db.delete('cases', found._id)
+		return null
 	},
 })

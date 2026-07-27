@@ -1,4 +1,10 @@
-import { BodyScrollView, CaseTrackingHero, ScreenEmpty, ScreenLoading, SectionHeading } from '@/components/core'
+import {
+	BodyScrollView,
+	CaseTrackingHero,
+	ScreenEmpty,
+	ScreenLoading,
+	SectionHeading,
+} from '@/components/core'
 import { caseStatusLabels } from '@/lib/application-labels'
 import { router } from 'expo-router'
 import { Chip, Surface, Typography } from 'heroui-native'
@@ -53,7 +59,7 @@ export function CasesScreen() {
 			<ScreenEmpty
 				visual={<CaseTrackingHero width={140} />}
 				title="No cases to track yet"
-				description="Once you’ve filed with USCIS, add your receipt number here to follow each case’s status and timeline."
+				description="Add a USCIS receipt number to save it here and record the updates you receive. Immifile does not fetch status automatically."
 				action={{ label: 'Add a case', onPress: () => router.push('/new-case') }}
 			/>
 		)

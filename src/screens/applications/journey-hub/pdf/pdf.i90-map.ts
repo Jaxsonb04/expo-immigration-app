@@ -227,6 +227,7 @@ type ReplacementReason = NonNullable<I90DraftAnswers['form']['replacementReason'
 const SECTION_A_REASON_FIELDS: Record<ReplacementReason, string> = {
 	lost: I90_FIELDS.reasonLostStolenDestroyed,
 	stolen: I90_FIELDS.reasonLostStolenDestroyed,
+	destroyed: I90_FIELDS.reasonLostStolenDestroyed,
 	damaged: I90_FIELDS.reasonMutilated,
 	error: I90_FIELDS.reasonDhsError,
 	nameChange: I90_FIELDS.reasonNameChanged,
@@ -235,6 +236,7 @@ const SECTION_A_REASON_FIELDS: Record<ReplacementReason, string> = {
 const SECTION_B_REASON_FIELDS: Record<ReplacementReason, string> = {
 	lost: I90_FIELDS.reasonCrLostStolenDestroyed,
 	stolen: I90_FIELDS.reasonCrLostStolenDestroyed,
+	destroyed: I90_FIELDS.reasonCrLostStolenDestroyed,
 	damaged: I90_FIELDS.reasonCrMutilated,
 	error: I90_FIELDS.reasonCrDhsError,
 	nameChange: I90_FIELDS.reasonCrNameChanged,

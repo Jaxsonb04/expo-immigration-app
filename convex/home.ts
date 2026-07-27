@@ -2,14 +2,18 @@ import { query } from './_generated/server'
 import type { Doc } from './_generated/dataModel'
 import type { QueryCtx } from './_generated/server'
 import { requireOwnerId } from './lib/auth'
+import { requirementsForReadiness } from './model/applications'
 import { isEntitledToCleanExport } from './model/entitlements'
 import { filingWindowDays } from './shared/applicationShapes'
+import { requiredSlotKeys } from './shared/interviewSteps'
+import { isRequirementSatisfied } from './shared/readiness'
 
 // Home dashboard (decision 8): everything here is derived from bounded,
 // indexed reads — no events table, no derived view-model rows, no client-side
 // scans. Attention items come from exactly two sources: documents expiring
-// inside the filing window, and needed-but-missing requirement slots on
-// active applications.
+// inside the filing window, and unresolved current-contract evidence on draft
+// applications. The latter is derived from answers, not raw `needed` rows, so
+// a legacy missing row or an unconfirmed attachment still fails closed.
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const RECENT_ACTIVITY_LIMIT = 5
@@ -24,6 +28,64 @@ async function applicantNameLookup(ctx: QueryCtx, ownerId: string) {
 		.withIndex('by_ownerId', (q) => q.eq('ownerId', ownerId))
 		.take(50)
 	return new Map(applicants.map((a) => [a._id, a.displayName]))
+}
+
+async function unresolvedDraftEvidence(
+	ctx: QueryCtx,
+	applications: readonly Doc<'applications'>[],
+) {
+	const perApplication = await Promise.all(
+		applications.map(async (application) => {
+			const [draft, slots] = await Promise.all([
+				ctx.db
+					.query('applicationDrafts')
+					.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))
+					.unique(),
+				ctx.db
+					.query('applicationDocuments')
+					.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))
+					.take(50),
+			])
+			// A missing draft is a corrupt application, not evidence that any
+			// particular document is needed. getApplication surfaces that
+			// stronger invariant failure when the owner opens it.
+			if (draft === null) return []
+
+			const expectedKeys = requiredSlotKeys(
+				application.formType,
+				application.applicationKind,
+				draft.answers,
+			)
+			const activeSlots = slots.filter((slot) => expectedKeys.includes(slot.requirementKey))
+			const readinessInputs = await requirementsForReadiness(
+				ctx,
+				application,
+				activeSlots,
+				draft.evidenceRevision ?? 0,
+			)
+			const inputByKey = new Map(readinessInputs.map((slot) => [slot.requirementKey, slot]))
+			const persistedSlotByKey = new Map(activeSlots.map((slot) => [slot.requirementKey, slot]))
+
+			return expectedKeys
+				.filter(
+					(requirementKey) =>
+						!isRequirementSatisfied(requirementKey, inputByKey.get(requirementKey)),
+				)
+				.map((requirementKey) => ({
+					// The Documents screen uses this only as a React key. A
+					// synthetic key keeps a missing legacy row visible until
+					// the Journey Hub's idempotent reconciliation backfills it.
+					slotId:
+						persistedSlotByKey.get(requirementKey)?._id ?? `${application._id}:${requirementKey}`,
+					applicationId: application._id,
+					applicantId: application.applicantId,
+					requirementKey,
+					formType: application.formType,
+					applicationKind: application.applicationKind,
+				}))
+		}),
+	)
+	return perApplication.flat()
 }
 
 export const getHomeDashboard = query({
@@ -101,24 +163,18 @@ export const getHomeDashboard = query({
 			}),
 		)
 
-		// Attention source 2: needed slots on active applications.
-		const neededSlots = await ctx.db
-			.query('applicationDocuments')
-			.withIndex('by_ownerId_and_status', (q) => q.eq('ownerId', ownerId).eq('status', 'needed'))
-			.take(50)
-		const neededItems = neededSlots
-			.filter((slot) => activeApplicationIds.has(slot.applicationId))
-			.map((slot) => {
-				const application = activeApplications.find((a) => a._id === slot.applicationId)!
-				return {
-					kind: 'documentNeeded' as const,
-					applicationId: slot.applicationId,
-					requirementKey: slot.requirementKey,
-					applicantName: application.applicantName,
-					formType: application.formType,
-					applicationKind: application.applicationKind,
-				}
-			})
+		// Attention source 2: every unresolved answer-aware requirement on a
+		// draft, including a missing legacy row, stale confirmation, superseded
+		// file, wrong-applicant legacy attachment, or unconfirmed physical item.
+		const unresolvedEvidence = await unresolvedDraftEvidence(ctx, drafts)
+		const neededItems = unresolvedEvidence.map((item) => ({
+			kind: 'documentNeeded' as const,
+			applicationId: item.applicationId,
+			requirementKey: item.requirementKey,
+			applicantName: names.get(item.applicantId) ?? 'Unknown',
+			formType: item.formType,
+			applicationKind: item.applicationKind,
+		}))
 
 		// Recent activity: a brief bounded merge of row timestamps (decision 8).
 		const cases = await ctx.db
@@ -177,32 +233,25 @@ export const getVault = query({
 		const ownerId = await requireOwnerId(ctx)
 		const names = await applicantNameLookup(ctx, ownerId)
 
-		const documents = await ctx.db
-			.query('documents')
-			.withIndex('by_ownerId', (q) => q.eq('ownerId', ownerId))
-			.take(100)
-
-		const neededSlots = await ctx.db
-			.query('applicationDocuments')
-			.withIndex('by_ownerId_and_status', (q) => q.eq('ownerId', ownerId).eq('status', 'needed'))
-			.take(50)
-		const neededWithContext = await Promise.all(
-			neededSlots.map(async (slot) => {
-				const application: Doc<'applications'> | null = await ctx.db.get(
-					'applications',
-					slot.applicationId,
-				)
-				if (application === null || application.status === 'closed') return null
-				return {
-					slotId: slot._id,
-					applicationId: slot.applicationId,
-					requirementKey: slot.requirementKey,
-					applicantName: names.get(application.applicantId) ?? 'Unknown',
-					formType: application.formType,
-					applicationKind: application.applicationKind,
-				}
-			}),
-		)
+		const [documents, drafts] = await Promise.all([
+			ctx.db
+				.query('documents')
+				.withIndex('by_ownerId', (q) => q.eq('ownerId', ownerId))
+				.take(100),
+			ctx.db
+				.query('applications')
+				.withIndex('by_ownerId_and_status', (q) => q.eq('ownerId', ownerId).eq('status', 'draft'))
+				.take(50),
+		])
+		const unresolvedEvidence = await unresolvedDraftEvidence(ctx, drafts)
+		const neededWithContext = unresolvedEvidence.map((item) => ({
+			slotId: item.slotId,
+			applicationId: item.applicationId,
+			requirementKey: item.requirementKey,
+			applicantName: names.get(item.applicantId) ?? 'Unknown',
+			formType: item.formType,
+			applicationKind: item.applicationKind,
+		}))
 
 		return {
 			documents: documents
@@ -212,7 +261,7 @@ export const getVault = query({
 					isCurrent: d.supersededById === undefined,
 				}))
 				.sort((a, b) => b.updatedAt - a.updatedAt),
-			neededSlots: neededWithContext.filter((s) => s !== null),
+			neededSlots: neededWithContext,
 		}
 	},
 })

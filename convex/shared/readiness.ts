@@ -1,5 +1,13 @@
-import type { ApplicationKind, FormType, RequirementStatus } from './applicationShapes'
-import { preReviewStepKeys } from './interviewSteps'
+import type {
+	ApplicationKind,
+	ApplicationStatus,
+	DocumentType,
+	FormType,
+	RequirementStatus,
+} from './applicationShapes'
+import { isDocumentCompatible } from './documentCompatibility'
+import { EVIDENCE_CONTRACT_VERSION, evidenceRequirementFor } from './evidenceRequirements'
+import { preReviewStepKeys, requiredSlotKeys } from './interviewSteps'
 import { isStepComplete } from './interviewValidation'
 
 // Server-owned readiness contract: the ONE authoritative answer to "can this
@@ -76,11 +84,63 @@ export function formCoverageGaps(
 
 type DraftAnswers = { personFacts?: unknown; form?: unknown }
 
+export type RequirementReadinessInput = {
+	requirementKey: string
+	status: RequirementStatus
+	documentId?: string
+	confirmedDocumentId?: string
+	confirmationVersion?: string
+	confirmationRevision?: number
+	evidenceRevision?: number
+	documentType?: DocumentType
+	documentIsCurrent?: boolean
+	documentMatchesApplicant?: boolean
+}
+
+/**
+ * Current draft evidence is complete only after the exact attached document
+ * has been reviewed against the current checklist. Physical/package items use
+ * an explicit confirmation and never accept an arbitrary upload as a proxy.
+ */
+export function isRequirementSatisfied(
+	requirementKey: string,
+	slot: RequirementReadinessInput | undefined,
+	contractVersion = EVIDENCE_CONTRACT_VERSION,
+): boolean {
+	if (slot === undefined) return false
+	const requirement = evidenceRequirementFor(requirementKey)
+	if (requirement === undefined) return false
+	if (slot.confirmationVersion !== contractVersion) return false
+	if (slot.confirmationRevision !== (slot.evidenceRevision ?? 0)) return false
+
+	if (requirement.fulfillment === 'physical') {
+		return slot.status === 'confirmed' && slot.documentId === undefined
+	}
+
+	return (
+		slot.status === 'attached' &&
+		slot.documentId !== undefined &&
+		slot.confirmedDocumentId === slot.documentId &&
+		slot.documentType !== undefined &&
+		slot.documentIsCurrent === true &&
+		slot.documentMatchesApplicant === true &&
+		isDocumentCompatible(requirementKey, slot.documentType)
+	)
+}
+
 export function computeReadiness(args: {
 	formType: FormType
 	applicationKind: ApplicationKind
+	/** Filed/closed records retain the checklist state that existed at filing. */
+	applicationStatus?: ApplicationStatus
+	/** Closed drafts have no filing record and still use the current contract. */
+	hasFilingRecord?: boolean
+	/** Present only for filings created under the confirmation-aware contract. */
+	filingEvidenceContractVersion?: string
+	/** Exact answer-aware requirement-key snapshot captured at filing. */
+	filingRequirementKeys?: readonly string[]
 	answers: DraftAnswers
-	requirements: readonly { requirementKey: string; status: RequirementStatus }[]
+	requirements: readonly RequirementReadinessInput[]
 }): ApplicationReadiness {
 	const blockers: ReadinessBlocker[] = []
 
@@ -91,9 +151,27 @@ export function computeReadiness(args: {
 	}
 	const answersComplete = blockers.length === 0
 
-	const neededSlots = args.requirements.filter((slot) => slot.status === 'needed')
-	for (const slot of neededSlots) {
-		blockers.push({ kind: 'document', requirementKey: slot.requirementKey })
+	const applicationStatus = args.applicationStatus ?? 'draft'
+	const usesAnswerAwareExpectedKeys =
+		applicationStatus === 'draft' ||
+		(applicationStatus === 'closed' && args.hasFilingRecord !== true)
+	const usesConfirmationContract =
+		usesAnswerAwareExpectedKeys || args.filingEvidenceContractVersion !== undefined
+	const expectedRequirementKeys = usesAnswerAwareExpectedKeys
+		? requiredSlotKeys(args.formType, args.applicationKind, args.answers)
+		: args.filingEvidenceContractVersion !== undefined
+			? (args.filingRequirementKeys ?? [])
+			: args.requirements.map((slot) => slot.requirementKey)
+	const confirmationContractVersion =
+		args.filingEvidenceContractVersion ?? EVIDENCE_CONTRACT_VERSION
+	const unresolvedRequirementKeys = expectedRequirementKeys.filter((requirementKey) => {
+		const slot = args.requirements.find((candidate) => candidate.requirementKey === requirementKey)
+		return usesConfirmationContract
+			? !isRequirementSatisfied(requirementKey, slot, confirmationContractVersion)
+			: slot === undefined || slot.status === 'needed'
+	})
+	for (const requirementKey of unresolvedRequirementKeys) {
+		blockers.push({ kind: 'document', requirementKey })
 	}
 
 	const gaps = formCoverageGaps(args.formType, args.applicationKind)
@@ -103,7 +181,7 @@ export function computeReadiness(args: {
 
 	return {
 		answersComplete,
-		documentsComplete: neededSlots.length === 0,
+		documentsComplete: unresolvedRequirementKeys.length === 0,
 		formCoverageComplete: gaps.length === 0,
 		isReadyToFile: blockers.length === 0,
 		blockers,

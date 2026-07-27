@@ -29,23 +29,23 @@ export default function CasesTab() {
 				<TabIntro
 					prefKey="casesIntroDismissed"
 					hero={<CaseTrackingHero width={108} />}
-					title={'Follow every case,\nstart to card.'}
-					body="Once you’ve filed with USCIS, add your receipt number and watch each case move."
+					title={'Keep every case\nwithin reach.'}
+					body="Save a USCIS receipt number, record updates from your notices, and jump to the official status tool."
 					features={[
 						{
 							icon: 'ticket',
 							title: 'Track by receipt number',
-							detail: 'Add the number from your USCIS notice — one case per filing.',
+							detail: 'Keep the number from your USCIS notice close at hand.',
 						},
 						{
 							icon: 'route',
-							title: 'A clear status timeline',
-							detail: 'From received to biometrics to decision, every step in order.',
+							title: 'A timeline you control',
+							detail: 'Record the updates you receive in one clear history.',
 						},
 						{
-							icon: 'link',
-							title: 'Linked to your filings',
-							detail: 'Connect a case to the application you prepared here.',
+							icon: 'external-link',
+							title: 'Official status one tap away',
+							detail: 'Open the USCIS tool whenever you need the latest status.',
 						},
 					]}
 				>

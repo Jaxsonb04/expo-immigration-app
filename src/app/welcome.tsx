@@ -1,24 +1,20 @@
-import { FilingStackHero } from '@/components/core'
+import { CaseTrackingHero } from '@/components/core'
+import { establishAnonymousSession } from '@/lib/anonymous-session'
 import { authClient } from '@/lib/auth-client'
-import { ensureSessionResolved } from '@/lib/session-sync'
+import { waitForAuthenticatedOrUnmounted } from '@/lib/auth-transition'
+import { ensureSessionResolved, getPersistedSessionCookie } from '@/lib/session-sync'
+import { TEMP_ACCOUNT_START_DISCLOSURE } from '@/lib/temp-account-notice'
+import { useConvexAuth } from 'convex/react'
 import { useRouter } from 'expo-router'
 import { Button } from 'heroui-native'
-import { useState } from 'react'
-import { Alert, Text, View } from 'react-native'
+import { useEffect, useRef, useState } from 'react'
+import { Alert, ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated'
 
 /**
- * Anonymous-first entry point (ADR-0009). "Start filing" silently creates an
- * anonymous Better Auth session — no form, no "guest" wording — and the root
- * guard in `_layout.tsx` flips to the authenticated group, dropping the user
- * straight into the tabs. Returning users push the dedicated sign-in screen.
- *
- * This screen is the design system's proving ground: warm paper ground,
- * Fraunces display type, one terracotta accent, generous whitespace. The hero
- * is a code-drawn stack of filing cards with a calm, continuous idle (see
- * `FilingStackHero`); the surrounding content enters as a single staggered
- * fade/rise (transform + opacity only), and `ReduceMotion.System` collapses
- * every animation to an instant appearance when Reduce Motion is enabled.
+ * Anonymous-first entry point (ADR-0009). Continue creates a temporary Better
+ * Auth session for browsing the stable release surfaces. Persistent case writes
+ * remain account-gated; returning users can open the dedicated sign-in screen.
  */
 
 const rise = (order: number) =>
@@ -28,77 +24,99 @@ const rise = (order: number) =>
 
 export default function WelcomeScreen() {
 	const router = useRouter()
+	const { isAuthenticated } = useConvexAuth()
+	const { height, fontScale } = useWindowDimensions()
 	const [pending, setPending] = useState(false)
+	const mountedRef = useRef(true)
+	const convexAuthenticatedRef = useRef(isAuthenticated)
+	const showsScrollIndicator = height < 750 || fontScale > 1.2
 
-	async function handleStartFiling(): Promise<void> {
+	useEffect(() => {
+		mountedRef.current = true
+		return () => {
+			mountedRef.current = false
+		}
+	}, [])
+
+	useEffect(() => {
+		convexAuthenticatedRef.current = isAuthenticated
+	}, [isAuthenticated])
+
+	async function handleContinue(): Promise<void> {
 		setPending(true)
 		try {
-			let { error } = await authClient.signIn.anonymous()
-			if (error) {
-				// A half-cleared session (e.g. right after deleting an account) makes
-				// the anonymous plugin refuse to sign in again ("anonymous users
-				// cannot sign in again anonymously"). Clear whatever session is left
-				// and retry once — this screen only ever shows signed-out users.
-				try {
-					await authClient.signOut()
-				} catch {
-					// Best effort — the retry below reports the real failure.
-				}
-				;({ error } = await authClient.signIn.anonymous())
-			}
-			if (error) {
-				Alert.alert("Couldn't start", error.message ?? 'Please try again in a moment.')
+			const session = await establishAnonymousSession({
+				hasPersistedCookie: () => !!getPersistedSessionCookie(),
+				resolveSession: ensureSessionResolved,
+				signInAnonymously: () => authClient.signIn.anonymous(),
+			})
+			if (!session.ok) {
+				Alert.alert("Couldn't start", session.message)
 				return
 			}
-			// On success the session store update flips `useConvexAuth` to
-			// authenticated and the root layout's protected route swaps in the
-			// tabs — no manual navigation. But that reactive atom can settle
-			// signed-out on a refetch race even though the cookie is valid (which
-			// stranded "Start filing" after an account deletion and minted a fresh
-			// orphan anonymous user on every further tap); drive it until it
-			// reflects the session. The root reconciler is the backstop if this
-			// still can't converge within its bounded window.
-			const resolved = await ensureSessionResolved()
-			if (!resolved) {
-				Alert.alert("Couldn't start", 'Please try again in a moment.')
+
+			// Better Auth owning a session is only the first half of the handoff.
+			// Stay pending until Convex accepts that session's JWT and the
+			// protected route swaps to the retained tabs (which unmounts this screen).
+			const enteredApp = await waitForAuthenticatedOrUnmounted({
+				isAuthenticated: () => convexAuthenticatedRef.current,
+				isMounted: () => mountedRef.current,
+			})
+			if (!enteredApp) {
+				Alert.alert("Couldn't start", "We couldn't finish loading your session. Please try again.")
 			}
 		} catch (err) {
 			Alert.alert('Something went wrong', err instanceof Error ? err.message : 'Please try again.')
 		} finally {
-			setPending(false)
+			if (mountedRef.current) setPending(false)
 		}
 	}
 
 	return (
-		<View className="flex-1 bg-background">
-			{/* The filing stack floats on the paper ground itself — no tinted box. */}
+		<ScrollView
+			className="flex-1 bg-background"
+			contentContainerStyle={{ flexGrow: 1 }}
+			showsVerticalScrollIndicator={showsScrollIndicator}
+			bounces={false}
+		>
 			<View className="flex-1 items-center justify-end pt-safe">
 				<Animated.View entering={rise(0)}>
-					<FilingStackHero width={168} />
+					<CaseTrackingHero width={168} />
 				</Animated.View>
 			</View>
 
 			<View className="gap-gutter px-section pt-9">
 				<Animated.View entering={rise(1)} className="gap-gutter">
 					<Text className="font-display text-display text-foreground">
-						Renew with{'\n'}confidence.
+						Keep your case{'\n'}close at hand.
 					</Text>
 					<Text className="font-normal text-[17px] leading-relaxed text-muted">
-						Immifile walks you through your work permit or green card renewal — deadlines,
-						documents, and your form filled from your answers, step by step. Create an account
-						only when you’re ready.
+						Save USCIS receipt numbers, record the updates you receive, and open official government
+						tools from one calm place.
 					</Text>
+					<View className="rounded-2xl border border-warning/30 bg-warning/10 px-card py-control">
+						<Text className="font-medium text-sm leading-relaxed text-foreground">
+							{TEMP_ACCOUNT_START_DISCLOSURE}
+						</Text>
+					</View>
 				</Animated.View>
 			</View>
 
 			<Animated.View entering={rise(2)} className="gap-control px-section pt-10 pb-safe-offset-6">
-				<Button size="lg" isDisabled={pending} onPress={handleStartFiling}>
-					<Button.Label>{pending ? 'Starting…' : 'Start filing'}</Button.Label>
+				<Button size="lg" isDisabled={pending} onPress={handleContinue}>
+					<Button.Label maxFontSizeMultiplier={1.5}>
+						{pending ? 'Opening…' : 'Continue'}
+					</Button.Label>
 				</Button>
-				<Button size="lg" variant="ghost" isDisabled={pending} onPress={() => router.push('/sign-in')}>
-					<Button.Label>I already have an account</Button.Label>
+				<Button
+					size="lg"
+					variant="ghost"
+					isDisabled={pending}
+					onPress={() => router.push('/sign-in')}
+				>
+					<Button.Label maxFontSizeMultiplier={1.5}>Sign in</Button.Label>
 				</Button>
 			</Animated.View>
-		</View>
+		</ScrollView>
 	)
 }

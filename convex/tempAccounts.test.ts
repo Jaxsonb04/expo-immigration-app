@@ -29,12 +29,16 @@ describe('temp-account deletion boundary (M6-T4)', () => {
 	})
 
 	test('a converted-then-idle account is never deleted, no matter how old', () => {
-		expect(isExpiredTempAccount({ isAnonymous: false, createdAt: NOW - 500 * HOUR }, NOW)).toBe(false)
+		expect(isExpiredTempAccount({ isAnonymous: false, createdAt: NOW - 500 * HOUR }, NOW)).toBe(
+			false,
+		)
 	})
 
 	test('a missing/null isAnonymous flag means keep — only exactly true qualifies', () => {
 		expect(isExpiredTempAccount({ createdAt: NOW - 500 * HOUR }, NOW)).toBe(false)
-		expect(isExpiredTempAccount({ isAnonymous: null, createdAt: NOW - 500 * HOUR }, NOW)).toBe(false)
+		expect(isExpiredTempAccount({ isAnonymous: null, createdAt: NOW - 500 * HOUR }, NOW)).toBe(
+			false,
+		)
 	})
 
 	test('an unknown creation time means keep', () => {
@@ -155,9 +159,7 @@ async function countByOwner(t: ReturnType<typeof newT>, ownerId: string) {
 		const counts: Record<string, number> = {}
 		for (const table of FILING_TABLES) {
 			const rows = await ctx.db.query(table).collect()
-			counts[table] = rows.filter(
-				(row) => (row as { ownerId: string }).ownerId === ownerId,
-			).length
+			counts[table] = rows.filter((row) => (row as { ownerId: string }).ownerId === ownerId).length
 		}
 		return counts
 	})
@@ -206,9 +208,7 @@ describe('reassignAccountData (M6-T3 anonymous-link carryover)', () => {
 			expect(applicants.filter((row) => row.isSelf)).toHaveLength(1)
 
 			// The duplicate receipt collapsed to the target's single case.
-			const cases = (await ctx.db.query('cases').collect()).filter(
-				(row) => row.ownerId === REAL,
-			)
+			const cases = (await ctx.db.query('cases').collect()).filter((row) => row.ownerId === REAL)
 			expect(cases).toHaveLength(1)
 
 			// Same-day usage merged by summing (3 + 3), so converting can't reset
@@ -251,7 +251,7 @@ describe('purgeOwnerData (M6-T4 cron cascade)', () => {
 			return doc!.storageId
 		})
 
-		await t.mutation(internal.account.purgeOwnerData, { ownerId: ANON })
+		await t.action(internal.account.purgeOwnerData, { ownerId: ANON })
 
 		const anonCounts = await countByOwner(t, ANON)
 		const otherCounts = await countByOwner(t, OTHER)
@@ -261,6 +261,41 @@ describe('purgeOwnerData (M6-T4 cron cascade)', () => {
 		}
 		await t.run(async (ctx) => {
 			expect(await ctx.storage.get(storageId)).toBeNull()
+		})
+	})
+
+	test('continues across multiple bounded mutation transactions', async () => {
+		const t = newT()
+		await t.run(async (ctx) => {
+			for (let index = 0; index < 61; index += 1) {
+				await ctx.db.insert('cases', {
+					ownerId: ANON,
+					receiptNumber: `BATCH-${index}`,
+					status: 'caseReceived',
+					statusHistory: [{ status: 'caseReceived', occurredAt: NOW + index }],
+					updatedAt: NOW + index,
+				})
+				await ctx.db.insert('ownerPreferences', {
+					ownerId: ANON,
+					key: `preference-${index}`,
+					value: index % 2 === 0,
+					updatedAt: NOW + index,
+				})
+			}
+			await ctx.db.insert('cases', {
+				ownerId: OTHER,
+				receiptNumber: 'OTHER-CASE',
+				status: 'caseReceived',
+				statusHistory: [{ status: 'caseReceived', occurredAt: NOW }],
+				updatedAt: NOW,
+			})
+		})
+
+		await t.action(internal.account.purgeOwnerData, { ownerId: ANON })
+
+		await t.run(async (ctx) => {
+			expect((await ctx.db.query('cases').collect()).map((row) => row.ownerId)).toEqual([OTHER])
+			expect(await ctx.db.query('ownerPreferences').collect()).toHaveLength(0)
 		})
 	})
 })

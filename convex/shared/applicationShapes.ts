@@ -297,7 +297,7 @@ export const personFactsShape = z.object({
 // Application-specific answers: never promoted, die with the application.
 export const i765SpecificsShape = z.object({
 	previousEadCardNumber: z.string().optional(),
-	replacementReason: z.enum(['lost', 'stolen', 'damaged', 'error']).optional(),
+	replacementReason: z.enum(['lost', 'stolen', 'destroyed', 'damaged', 'error']).optional(),
 	// NOTE: there is deliberately NO `ssn` field. Item 13 ("if known") is
 	// optional and this edition has no SSA card-request or consent items, so the
 	// app files that box blank and cannot store a Social Security number at all
@@ -337,7 +337,9 @@ export type I90CardStatus = (typeof i90CardStatuses)[number]
 export const i90SpecificsShape = z.object({
 	cardStatus: z.enum(i90CardStatuses).optional(),
 	cardExpirationDate: isoDate.optional(),
-	replacementReason: z.enum(['lost', 'stolen', 'damaged', 'error', 'nameChange']).optional(),
+	replacementReason: z
+		.enum(['lost', 'stolen', 'destroyed', 'damaged', 'error', 'nameChange'])
+		.optional(),
 	// Part 1 Item 4 + Items 5.A-5.C (the name as printed on the CURRENT card,
 	// collected only when the name has legally changed since issuance).
 	nameChangedSinceIssuance: z.enum(nameChangeAnswers).optional(),
@@ -390,7 +392,7 @@ export type DocumentType = (typeof documentTypes)[number]
 export const applicationStatuses = ['draft', 'filed', 'closed'] as const
 export type ApplicationStatus = (typeof applicationStatuses)[number]
 
-export const requirementStatuses = ['needed', 'attached', 'waived'] as const
+export const requirementStatuses = ['needed', 'attached', 'confirmed', 'waived'] as const
 export type RequirementStatus = (typeof requirementStatuses)[number]
 
 // Canonical case statuses (ADR-0008), in pipeline order.

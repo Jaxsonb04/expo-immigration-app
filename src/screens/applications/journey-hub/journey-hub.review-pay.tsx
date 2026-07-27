@@ -116,9 +116,11 @@ export function ReviewPay() {
 				{isDraft && (
 					<>
 						<Typography.Paragraph color="muted">
-							Preview a watermarked draft once your answers are complete. The clean export unlocks
-							only when everything the official form requires is covered. The USCIS filing fee is
-							separate and paid to USCIS directly, never to this app.
+							Preview a watermarked draft once your answers are complete. The clean form export
+							unlocks after every active evidence item is attached or physically prepared and you
+							confirm its checklist. Immifile does not inspect uploads or guarantee USCIS
+							acceptance. The USCIS filing fee is separate and paid to USCIS directly, never to this
+							app.
 						</Typography.Paragraph>
 
 						<ReadinessBlockers formType={application.formType} readiness={readiness} />
@@ -162,7 +164,7 @@ export function ReviewPay() {
 						</Button>
 						{!readiness.isReadyToFile && (
 							<Typography.Paragraph color="muted" type="body-sm">
-								{`Locked — this version can't yet produce a complete ${meta.title}. The items under "Before this can be filed" explain what's missing.`}
+								{`Locked — the saved answers and user-confirmed evidence checklist are not complete yet. The items under "Before this can be filed" explain what's missing.`}
 							</Typography.Paragraph>
 						)}
 
@@ -199,7 +201,7 @@ export function ReviewPay() {
 						</Button>
 						<Typography.Paragraph color="muted" type="body-sm">
 							{readiness.isReadyToFile
-								? `Rebuilt from your saved answers — identical to the ${meta.title} you exported.`
+								? `Rebuilt from your saved answers and filing-time checklist. Review it before use; this is not a byte-for-byte archive of the ${meta.title} you previously exported.`
 								: `This application was marked filed while incomplete in the app, so a clean ${meta.title} can't be rebuilt from it.`}
 						</Typography.Paragraph>
 					</>

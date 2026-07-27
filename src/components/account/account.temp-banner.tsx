@@ -1,23 +1,14 @@
 import { api } from '@convex/_generated/api'
-import { TEMP_ACCOUNT_WARNING_MS } from '@convex/shared/tempAccounts'
 import { useQuery } from 'convex/react'
 import { Button, Surface, Typography } from 'heroui-native'
 import { useSyncExternalStore } from 'react'
 import { View } from 'react-native'
 
 import { StyledLucideIcon } from '@/components/styled-icon'
+import { temporaryAccountNotice } from '@/lib/temp-account-notice'
 
 import { useRequireAccount } from './account.require-account'
 import { useAccountSession } from './account.session'
-
-/** Calm phrasing of time left before the 48-hour deletion (M6-T4). */
-export function deletionTimeLeftCopy(deleteAt: number, now: number): string {
-	const remaining = deleteAt - now
-	if (remaining <= 60 * 60 * 1000) return 'within the hour'
-	const hours = Math.round(remaining / (60 * 60 * 1000))
-	if (hours < 36) return `in about ${hours} hours`
-	return `in about ${Math.round(hours / 24)} days`
-}
 
 function useTempAccountDeadline(): number | null {
 	const { isAnonymous } = useAccountSession()
@@ -39,27 +30,33 @@ function useNow(): number {
 }
 
 /**
- * Deletion warning for temporary sessions (M6-T4): appears once the account is
- * inside the final 24 hours of its 48-hour window, so a filer mid-task is
- * never surprised. Rendered at the top of the Forms dashboard.
+ * Deletion notice for temporary sessions (M6-T4): visible throughout the
+ * entire 48-hour window, with stronger warning treatment inside the final
+ * 24 hours. Rendered at the top of every Forms dashboard state.
  */
 export function TempAccountDeletionBanner() {
 	const requireAccount = useRequireAccount()
 	const deleteAt = useTempAccountDeadline()
 	const now = useNow()
-	if (deleteAt === null || deleteAt - now > TEMP_ACCOUNT_WARNING_MS) return null
+	if (deleteAt === null) return null
+	const notice = temporaryAccountNotice(deleteAt, now)
 
 	return (
-		<Surface className="gap-control rounded-2xl border border-warning/40 bg-warning/10 p-card">
+		<Surface
+			className={`gap-control rounded-2xl border p-card ${
+				notice.urgent ? 'border-warning/40 bg-warning/10' : 'border-border bg-surface-secondary'
+			}`}
+		>
 			<View className="flex-row items-start gap-control">
-				<StyledLucideIcon name="clock-alert" size={18} className="mt-hairline text-warning" />
+				<StyledLucideIcon
+					name="clock-alert"
+					size={18}
+					className={`mt-hairline ${notice.urgent ? 'text-warning' : 'text-muted'}`}
+				/>
 				<View className="flex-1 gap-hairline">
-					<Typography.Paragraph className="font-medium">
-						Your temporary account will be deleted {deletionTimeLeftCopy(deleteAt, now)}
-					</Typography.Paragraph>
+					<Typography.Paragraph className="font-medium">{notice.title}</Typography.Paragraph>
 					<Typography.Paragraph color="muted" className="text-sm leading-snug">
-						Everything you’ve entered goes with it. Create an account or continue with Google to
-						keep your work — it carries over automatically.
+						{notice.description}
 					</Typography.Paragraph>
 				</View>
 			</View>
@@ -69,12 +66,11 @@ export function TempAccountDeletionBanner() {
 				onPress={() =>
 					void requireAccount({
 						title: 'Keep your work',
-						description:
-							'Create an account or continue with Google — everything you’ve entered carries over.',
+						description: 'Create an account to keep using Immifile.',
 					})
 				}
 			>
-				<Button.Label>Keep my work</Button.Label>
+				<Button.Label maxFontSizeMultiplier={1.5}>Keep my work</Button.Label>
 			</Button>
 		</Surface>
 	)
@@ -89,6 +85,7 @@ export function TempAccountCard() {
 	const deleteAt = useTempAccountDeadline()
 	const now = useNow()
 	if (deleteAt === null) return null
+	const notice = temporaryAccountNotice(deleteAt, now)
 
 	return (
 		<Surface variant="secondary" className="gap-control rounded-2xl p-card">
@@ -97,8 +94,7 @@ export function TempAccountCard() {
 					You’re using a temporary account
 				</Typography.Paragraph>
 				<Typography.Paragraph color="muted" className="text-sm leading-snug">
-					It and everything in it will be deleted {deletionTimeLeftCopy(deleteAt, now)}. Link
-					Google or create an account to save your work permanently.
+					{notice.description}
 				</Typography.Paragraph>
 			</View>
 			<Button
@@ -106,12 +102,11 @@ export function TempAccountCard() {
 				onPress={() =>
 					void requireAccount({
 						title: 'Keep your work',
-						description:
-							'Create an account or continue with Google — everything you’ve entered carries over.',
+						description: 'Create an account to save cases and keep using Immifile.',
 					})
 				}
 			>
-				<Button.Label>Create account</Button.Label>
+				<Button.Label maxFontSizeMultiplier={1.5}>Create account</Button.Label>
 			</Button>
 		</Surface>
 	)

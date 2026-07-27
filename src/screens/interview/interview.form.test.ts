@@ -384,16 +384,36 @@ describe('field validators', () => {
 		expect(fieldValidators.replacementReason('renewal').safeParse('').success).toBe(true)
 	})
 
+	test('I-90 name-change answer stays consistent with the selected reason', () => {
+		expect(fieldValidators.nameChangedSinceIssuance('renewal', '').safeParse('yes').success).toBe(
+			false,
+		)
+		expect(fieldValidators.nameChangedSinceIssuance('renewal', '').safeParse('no').success).toBe(
+			true,
+		)
+		expect(
+			fieldValidators.nameChangedSinceIssuance('replacement', 'nameChange').safeParse('no').success,
+		).toBe(false)
+		expect(
+			fieldValidators.nameChangedSinceIssuance('replacement', 'nameChange').safeParse('yes')
+				.success,
+		).toBe(true)
+	})
+
 	test('dateOfBirth rejects malformed dates and accepts ISO dates', () => {
 		expect(fieldValidators.dateOfBirth.safeParse('not-a-date').success).toBe(false)
 		expect(fieldValidators.dateOfBirth.safeParse('').success).toBe(false)
 		expect(fieldValidators.dateOfBirth.safeParse('1990-04-12').success).toBe(true)
 	})
 
-	test('cardExpirationDate is optional but must be a date when present', () => {
-		expect(fieldValidators.cardExpirationDate.safeParse('').success).toBe(true)
-		expect(fieldValidators.cardExpirationDate.safeParse('2033-01-01').success).toBe(true)
-		expect(fieldValidators.cardExpirationDate.safeParse('soon').success).toBe(false)
+	test('cardExpirationDate enforces the I-90 renewal window', () => {
+		expect(fieldValidators.cardExpirationDate('replacement').safeParse('').success).toBe(true)
+		expect(fieldValidators.cardExpirationDate('renewal').safeParse('').success).toBe(false)
+		expect(fieldValidators.cardExpirationDate('renewal').safeParse('2020-01-01').success).toBe(true)
+		expect(fieldValidators.cardExpirationDate('renewal').safeParse('2033-01-01').success).toBe(
+			false,
+		)
+		expect(fieldValidators.cardExpirationDate('replacement').safeParse('soon').success).toBe(false)
 	})
 
 	test('eligibilityCategory accepts only supported categories (screening slice 2)', () => {

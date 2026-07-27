@@ -197,6 +197,34 @@ export function replacementReasonApplies(applicationKind: ApplicationKind): bool
 	return applicationKind === 'replacement'
 }
 
+/**
+ * I-90 renewal reason 2.f is available only when the card is already expired
+ * or will expire within six months. An expired date has no lower bound.
+ */
+export function i90RenewalCardIsEligible(cardExpirationDate: unknown, now = Date.now()): boolean {
+	if (typeof cardExpirationDate !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(cardExpirationDate)) {
+		return false
+	}
+	const [year, month, day] = cardExpirationDate.split('-').map(Number)
+	const expiry = new Date(Date.UTC(year!, month! - 1, day!))
+	if (
+		expiry.getUTCFullYear() !== year ||
+		expiry.getUTCMonth() !== month! - 1 ||
+		expiry.getUTCDate() !== day
+	) {
+		return false
+	}
+	const today = new Date(now)
+	const targetMonthIndex = today.getUTCMonth() + 6
+	const targetYear = today.getUTCFullYear() + Math.floor(targetMonthIndex / 12)
+	const targetMonth = targetMonthIndex % 12
+	const lastDayOfTargetMonth = new Date(Date.UTC(targetYear, targetMonth + 1, 0)).getUTCDate()
+	const sixMonthsFromNow = new Date(
+		Date.UTC(targetYear, targetMonth, Math.min(today.getUTCDate(), lastDayOfTargetMonth)),
+	)
+	return expiry.getTime() <= sixMonthsFromNow.getTime()
+}
+
 /** i90 accommodation detail fields apply when an accommodation is requested. */
 export function accommodationDetailsApply(form: Record<string, unknown>): boolean {
 	return form.requestingAccommodation === 'yes'
@@ -414,9 +442,13 @@ export function isStepComplete(
 		case 'card-details': {
 			// i90 final card step: card status is required and the combination must
 			// pass eligibility screening (a conditional resident cannot renew via
-			// I-90); cardExpirationDate stays optional; reason only when replacing.
+			// I-90); a renewal needs an expired/within-six-months expiration date;
+			// the replacement reason applies only when replacing.
 			if (!isI90CardStatus(form.cardStatus)) return false
 			if (!screenI90(form.cardStatus, applicationKind).supported) return false
+			if (applicationKind === 'renewal' && !i90RenewalCardIsEligible(form.cardExpirationDate)) {
+				return false
+			}
 			// Part 1 Item 4: the name-change question must be answered; 'yes'
 			// requires the name as printed on the current card (Items 5.A-5.B).
 			const nameAnswer = form.nameChangedSinceIssuance
@@ -429,6 +461,12 @@ export function isStepComplete(
 			) {
 				return false
 			}
+			// Renewal maps specifically to reason 2.f. A legal name change maps
+			// to 2.e, while "never received" maps to 2.b; neither may silently
+			// ride through the renewal checkbox. Conversely, the app's explicit
+			// name-change replacement reason must have the matching Yes answer.
+			if (applicationKind === 'renewal' && nameAnswer !== 'no') return false
+			if (form.replacementReason === 'nameChange' && nameAnswer !== 'yes') return false
 			return !replacementReasonApplies(applicationKind) || isNonEmptyString(form.replacementReason)
 		}
 		default:

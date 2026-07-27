@@ -1,3 +1,5 @@
+import { useRequireAccount } from '@/components/account'
+import { runAccountGatedAction } from '@/lib/account-gated-action'
 import { api } from '@convex/_generated/api'
 import type { Id } from '@convex/_generated/dataModel'
 import type { I90CardStatus } from '@convex/shared/applicationShapes'
@@ -15,6 +17,7 @@ export * from './new-application.situations'
 
 export function useNewApplicationSubmit() {
 	const router = useRouter()
+	const requireAccount = useRequireAccount()
 	const applicants = useQuery(api.applicants.listApplicants, {})
 	const createApplicant = useMutation(api.applicants.createApplicant)
 	const createApplication = useMutation(api.applications.createApplication)
@@ -34,7 +37,17 @@ export function useNewApplicationSubmit() {
 		} else if (values.applicantChoice === NEW_DEPENDENT_CHOICE) {
 			const displayName = values.dependentName.trim()
 			if (displayName.length === 0) throw new Error("Enter the person's name")
-			applicantId = await createApplicant({ displayName, isSelf: false })
+			const result = await runAccountGatedAction(
+				requireAccount,
+				{
+					title: 'Create an account to add a family member',
+					description:
+						'Create an account or continue with Google before saving another person’s information. Your application progress will carry over.',
+				},
+				() => createApplicant({ displayName, isSelf: false }),
+			)
+			if (result.status === 'cancelled') return
+			applicantId = result.value
 		} else {
 			applicantId = values.applicantChoice as Id<'applicants'>
 		}

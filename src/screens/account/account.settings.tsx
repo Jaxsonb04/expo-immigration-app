@@ -1,10 +1,12 @@
 import { useAccountSession } from '@/components/account'
 import { BodyScrollView } from '@/components/core'
+import { resolveAccountDeletionMode } from '@/lib/account-deletion'
 import { authClient } from '@/lib/auth-client'
+import { RELEASE_FEATURES } from '@/lib/release-policy'
 import { useMyBlocks, useUnblockAuthor } from '@/screens/community/community.data'
 import { api } from '@convex/_generated/api'
 import { useAction, useMutation } from 'convex/react'
-import { Button, Separator, Typography } from 'heroui-native'
+import { Button, Input, Label, Separator, TextField, Typography } from 'heroui-native'
 import { useEffect, useState } from 'react'
 import { Alert, View } from 'react-native'
 
@@ -83,7 +85,9 @@ function BlockedAuthorsSection() {
 				</Typography.Paragraph>
 				{blocks.map((block) => (
 					<View key={block.profileId} className="flex-row items-center justify-between gap-control">
-						<Typography.Paragraph className="flex-1 font-medium">{block.handle}</Typography.Paragraph>
+						<Typography.Paragraph className="flex-1 font-medium">
+							{block.handle}
+						</Typography.Paragraph>
 						<Button
 							size="sm"
 							variant="secondary"
@@ -98,20 +102,41 @@ function BlockedAuthorsSection() {
 	)
 }
 
-/** Permanent in-app account deletion (M5-T3 release audit). Runs the full
- * owner-data cascade (convex/account.ts → convex/model/ownerData.ts): every
- * app-owned row AND every stored file, then signs the session out. The Better
- * Auth user record itself is deleted in the deferred auth-hardening phase
- * (scope note in convex/account.ts) — no app data or files survive today. */
+/**
+ * Permanent in-app account deletion.
+ *
+ * Credentialed accounts confirm with their current password, then Better
+ * Auth's delete-user hook purges app data before deleting the identity and
+ * sessions. Temporary accounts have no password, so the app purges their data
+ * first and then uses the anonymous plugin's dedicated identity endpoint.
+ */
 function DeleteAccountSection() {
-	const deleteAccountData = useMutation(api.account.deleteAccountData)
+	const { isCredentialed, isPending } = useAccountSession()
+	const deleteAccountData = useAction(api.account.deleteAccountData)
 	const [busy, setBusy] = useState(false)
+	const [isConfirming, setIsConfirming] = useState(false)
+	const [password, setPassword] = useState('')
+	const deletionMode = resolveAccountDeletionMode(isPending, isCredentialed)
 
-	async function eraseAndSignOut() {
+	async function eraseAccount() {
+		if (deletionMode === 'loading') return
+		if (deletionMode === 'credentialed' && !password) {
+			Alert.alert('Password required', 'Enter your current password to delete this account.')
+			return
+		}
+
 		setBusy(true)
 		try {
-			await deleteAccountData({})
-			await authClient.signOut()
+			const { error } =
+				deletionMode === 'credentialed'
+					? await authClient.deleteUser({ password })
+					: await (async () => {
+							await deleteAccountData({})
+							return authClient.deleteAnonymousUser()
+						})()
+			if (error) {
+				throw new Error(error.message ?? 'The account could not be deleted.')
+			}
 		} catch (error) {
 			Alert.alert(
 				'Delete account',
@@ -123,12 +148,23 @@ function DeleteAccountSection() {
 	}
 
 	function confirmDelete() {
+		if (deletionMode === 'loading') return
 		Alert.alert(
 			'Delete your account?',
-			'This permanently erases everything — applications, answers, uploaded documents, cases, and your community posts and profile. It cannot be undone.',
+			'This permanently deletes your login account and all data associated with it, including saved cases and any previously stored Immifile data. It cannot be undone.',
 			[
 				{ text: 'Cancel', style: 'cancel' },
-				{ text: 'Delete everything', style: 'destructive', onPress: () => void eraseAndSignOut() },
+				{
+					text: deletionMode === 'credentialed' ? 'Continue' : 'Delete everything',
+					style: 'destructive',
+					onPress: () => {
+						if (deletionMode === 'credentialed') {
+							setIsConfirming(true)
+						} else {
+							void eraseAccount()
+						}
+					},
+				},
 			],
 		)
 	}
@@ -139,14 +175,57 @@ function DeleteAccountSection() {
 			<View className="gap-control">
 				<Typography.Heading className="text-lg font-semibold">Delete account</Typography.Heading>
 				<Typography.Paragraph color="muted" className="text-sm">
-					Permanently erase your applications, answers, uploaded documents, cases, and community
-					activity from Immifile. This cannot be undone.
+					Permanently delete your login account, saved cases, and all other Immifile data. This
+					cannot be undone.
 				</Typography.Paragraph>
-				<Button variant="ghost" isDisabled={busy} onPress={confirmDelete}>
-					<Button.Label className="text-danger">
-						{busy ? 'Deleting…' : 'Delete account'}
-					</Button.Label>
-				</Button>
+				{deletionMode === 'credentialed' && isConfirming ? (
+					<View className="gap-control">
+						<TextField>
+							<Label>Current password</Label>
+							<Input
+								value={password}
+								onChangeText={setPassword}
+								placeholder="Enter your password"
+								secureTextEntry
+								autoCapitalize="none"
+								autoComplete="current-password"
+								textContentType="password"
+								editable={!busy}
+							/>
+						</TextField>
+						<View className="gap-tight">
+							<Button variant="ghost" isDisabled={busy || !password} onPress={eraseAccount}>
+								<Button.Label className="text-danger">
+									{busy ? 'Deleting…' : 'Permanently delete account'}
+								</Button.Label>
+							</Button>
+							<Button
+								variant="ghost"
+								isDisabled={busy}
+								onPress={() => {
+									setPassword('')
+									setIsConfirming(false)
+								}}
+							>
+								<Button.Label>Cancel</Button.Label>
+							</Button>
+						</View>
+					</View>
+				) : (
+					<Button
+						variant="ghost"
+						isDisabled={busy || deletionMode === 'loading'}
+						onPress={confirmDelete}
+					>
+						<Button.Label className="text-danger">
+							{busy
+								? 'Deleting…'
+								: deletionMode === 'loading'
+									? 'Loading account…'
+									: 'Delete account'}
+						</Button.Label>
+					</Button>
+				)}
 			</View>
 		</>
 	)
@@ -202,7 +281,7 @@ export function AccountSettingsScreen() {
 	return (
 		<BodyScrollView contentContainerClassName="gap-section px-gutter pt-card pb-8">
 			<SignInSection />
-			<BlockedAuthorsSection />
+			{RELEASE_FEATURES.community ? <BlockedAuthorsSection /> : null}
 			<DeleteAccountSection />
 			{__DEV__ && (
 				<>

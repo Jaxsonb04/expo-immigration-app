@@ -7,7 +7,7 @@ import type { FunctionReturnType } from 'convex/server'
 // M3-T2 data layer for the Cases tab, wiring the M3-T1 backend (convex/cases.ts).
 
 export type CaseSummary = FunctionReturnType<typeof api.cases.listCases>[number]
-export type CaseDetail = FunctionReturnType<typeof api.cases.getCase>
+export type CaseDetail = NonNullable<FunctionReturnType<typeof api.cases.getCase>>
 export type LinkableApplication = FunctionReturnType<
 	typeof api.cases.listLinkableApplications
 >[number]
@@ -19,15 +19,15 @@ export function useCases(): CaseSummary[] | undefined {
 	return useQuery(api.cases.listCases, {})
 }
 
-export function useCase(caseId: Id<'cases'>): CaseDetail | undefined {
+export function useCase(caseId: Id<'cases'>): CaseDetail | null | undefined {
 	return useQuery(api.cases.getCase, { caseId })
 }
 
 /** Applications the owner can link a case to: non-closed and not already
  * linked (server-filtered). Linking a draft marks it filed — the receipt is
  * proof the filing happened. */
-export function useLinkableApplications(): LinkableApplication[] | undefined {
-	return useQuery(api.cases.listLinkableApplications, {})
+export function useLinkableApplications(enabled = true): LinkableApplication[] | undefined {
+	return useQuery(api.cases.listLinkableApplications, enabled ? {} : 'skip')
 }
 
 export function useCreateCase() {
@@ -36,6 +36,10 @@ export function useCreateCase() {
 
 export function useAddStatusUpdate() {
 	return useMutation(api.cases.addStatusUpdate)
+}
+
+export function useDeleteCase() {
+	return useMutation(api.cases.deleteCase)
 }
 
 /** Statuses that read as good news (success accent in the timeline). */

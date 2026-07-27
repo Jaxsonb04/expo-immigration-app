@@ -1,0 +1,7 @@
+title: Immifile
+description: Privacy and support information for the Immifile USCIS case tracker.
+theme: minima
+header_pages:
+  - index.md
+  - PRIVACY_POLICY.md
+  - SUPPORT.md

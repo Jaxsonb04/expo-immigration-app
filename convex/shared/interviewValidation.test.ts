@@ -2,7 +2,7 @@ import { describe, expect, test } from 'vitest'
 
 import { supportedSituations } from './applicationShapes'
 import { preReviewStepKeys } from './interviewSteps'
-import { isStepComplete, stepOwnedKeys } from './interviewValidation'
+import { i90RenewalCardIsEligible, isStepComplete, stepOwnedKeys } from './interviewValidation'
 
 // M2-T2: the server-side completeness gate. These pin the invariant that a
 // pre-Review step flips complete ONLY when its owned required fields are valid,
@@ -63,6 +63,7 @@ const formFor = (situation: { formType: string; applicationKind: string }) => ({
 	...(situation.formType === 'i90'
 		? {
 				cardStatus: 'permanentResident',
+				cardExpirationDate: '2020-01-01',
 				nameChangedSinceIssuance: 'no',
 				physicalAddressSameAsMailing: 'yes',
 				preparedSelfInEnglish: 'yes',
@@ -198,7 +199,11 @@ describe('isStepComplete — kind-aware branches', () => {
 		expect(isStepComplete('i765', 'replacement', 'eligibility-category', withReason)).toBe(true)
 		// i90 final card step — status- and name-change-gated always, reason-gated
 		// for replacement
-		const status = { cardStatus: 'permanentResident', nameChangedSinceIssuance: 'no' }
+		const status = {
+			cardStatus: 'permanentResident',
+			cardExpirationDate: '2020-01-01',
+			nameChangedSinceIssuance: 'no',
+		}
 		expect(
 			isStepComplete('i90', 'renewal', 'card-details', {
 				personFacts: validPersonFacts,
@@ -248,8 +253,21 @@ describe('isStepComplete — kind-aware branches', () => {
 		).toBe(true)
 	})
 
-	test('card-details name-change gate: Yes needs the name printed on the card', () => {
-		const base = { cardStatus: 'permanentResident' }
+	test('I-90 renewal is limited to an expired card or one expiring within six months', () => {
+		const now = Date.UTC(2026, 6, 25)
+		expect(i90RenewalCardIsEligible('2020-01-01', now)).toBe(true)
+		expect(i90RenewalCardIsEligible('2027-01-25', now)).toBe(true)
+		expect(i90RenewalCardIsEligible('2027-01-26', now)).toBe(false)
+		expect(i90RenewalCardIsEligible(undefined, now)).toBe(false)
+		// Calendar-month arithmetic clamps month-end instead of overflowing
+		// February into March.
+		const august31 = Date.UTC(2026, 7, 31)
+		expect(i90RenewalCardIsEligible('2027-02-28', august31)).toBe(true)
+		expect(i90RenewalCardIsEligible('2027-03-01', august31)).toBe(false)
+	})
+
+	test('card-details name-change gate keeps the selected I-90 reason consistent', () => {
+		const base = { cardStatus: 'permanentResident', cardExpirationDate: '2020-01-01' }
 		expect(
 			isStepComplete('i90', 'renewal', 'card-details', {
 				personFacts: validPersonFacts,
@@ -272,11 +290,33 @@ describe('isStepComplete — kind-aware branches', () => {
 					previousGivenName: 'Maria',
 				},
 			}),
-		).toBe(true)
+		).toBe(false)
 		expect(
 			isStepComplete('i90', 'renewal', 'card-details', {
 				personFacts: validPersonFacts,
 				form: { ...base, nameChangedSinceIssuance: 'neverReceivedCard' },
+			}),
+		).toBe(false)
+		expect(
+			isStepComplete('i90', 'replacement', 'card-details', {
+				personFacts: validPersonFacts,
+				form: {
+					cardStatus: 'permanentResident',
+					replacementReason: 'nameChange',
+					nameChangedSinceIssuance: 'no',
+				},
+			}),
+		).toBe(false)
+		expect(
+			isStepComplete('i90', 'replacement', 'card-details', {
+				personFacts: validPersonFacts,
+				form: {
+					cardStatus: 'permanentResident',
+					replacementReason: 'nameChange',
+					nameChangedSinceIssuance: 'yes',
+					previousFamilyName: 'Santos',
+					previousGivenName: 'Maria',
+				},
 			}),
 		).toBe(true)
 	})

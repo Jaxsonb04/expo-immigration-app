@@ -24,18 +24,17 @@ const rise = (order: number) =>
 /** The documents checklist: required slots joined with their attachment state. */
 function ReviewDocuments({
 	documentKeys,
-	requirements,
+	blockedKeys,
 }: {
 	documentKeys: string[]
-	requirements: { requirementKey: string; status: string }[]
+	blockedKeys: ReadonlySet<string>
 }) {
 	if (documentKeys.length === 0) return null
 	return (
 		<View className="gap-tight">
 			<Typography.Heading className="text-base font-semibold">Documents</Typography.Heading>
 			{documentKeys.map((key) => {
-				const slot = requirements.find((r) => r.requirementKey === key)
-				const resolved = slot?.status === 'attached' || slot?.status === 'waived'
+				const resolved = !blockedKeys.has(key)
 				return (
 					<View key={key} className="flex-row items-center gap-tight">
 						<StyledLucideIcon
@@ -84,7 +83,7 @@ export function ReviewScreen({ applicationId }: { applicationId: Id<'application
 		)
 	}
 
-	const { application, applicant, draft, readiness, requirements } = detail
+	const { application, applicant, draft, readiness } = detail
 
 	if (application.status !== 'draft') {
 		return (
@@ -103,6 +102,11 @@ export function ReviewScreen({ applicationId }: { applicationId: Id<'application
 	const meta = formMetaFor(draft.formType)
 	const applicantName = applicant?.displayName ?? 'your'
 	const model = buildReviewModel(draft.formType, application.applicationKind, draft.answers)
+	const blockedDocumentKeys = new Set(
+		readiness.blockers.flatMap((blocker) =>
+			blocker.kind === 'document' ? [blocker.requirementKey] : [],
+		),
+	)
 
 	// Jump the interview to exactly this step and return here after the save.
 	function editStep(stepKey: string) {
@@ -161,7 +165,7 @@ export function ReviewScreen({ applicationId }: { applicationId: Id<'application
 			))}
 
 			<Animated.View entering={rise(model.groups.length + 1)} className="gap-section">
-				<ReviewDocuments documentKeys={model.documentKeys} requirements={requirements} />
+				<ReviewDocuments documentKeys={model.documentKeys} blockedKeys={blockedDocumentKeys} />
 				{/* The documents checklist above already shows per-document needed/
 				    attached state, so the blockers notice here carries only the
 				    form-wide coverage (honesty) items — no double-listing. */}

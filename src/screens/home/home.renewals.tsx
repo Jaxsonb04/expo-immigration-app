@@ -114,7 +114,7 @@ export function AddRenewalEntry({ onOpenChange }: { onOpenChange?: (open: boolea
 	if (!open) {
 		return (
 			<Button variant="ghost" size="sm" onPress={() => setOpen(true)}>
-				<Button.Label>Add a card or filing date</Button.Label>
+				<Button.Label maxFontSizeMultiplier={1.5}>Add a card or filing date</Button.Label>
 			</Button>
 		)
 	}
@@ -147,7 +147,7 @@ export function AddRenewalEntry({ onOpenChange }: { onOpenChange?: (open: boolea
 			onPress={onPress}
 			accessibilityState={{ selected }}
 		>
-			<Button.Label>{label}</Button.Label>
+			<Button.Label maxFontSizeMultiplier={1.5}>{label}</Button.Label>
 		</Button>
 	)
 
@@ -182,8 +182,12 @@ export function AddRenewalEntry({ onOpenChange }: { onOpenChange?: (open: boolea
 									<Calendar.NavButton slot="next" />
 								</Calendar.Header>
 								<Calendar.Grid>
-									<Calendar.GridHeader>{(day) => <Calendar.HeaderCell day={day} />}</Calendar.GridHeader>
-									<Calendar.GridBody>{(gridDate) => <Calendar.Cell date={gridDate} />}</Calendar.GridBody>
+									<Calendar.GridHeader>
+										{(day) => <Calendar.HeaderCell day={day} />}
+									</Calendar.GridHeader>
+									<Calendar.GridBody>
+										{(gridDate) => <Calendar.Cell date={gridDate} />}
+									</Calendar.GridBody>
 								</Calendar.Grid>
 								<Calendar.YearPickerGrid>
 									<Calendar.YearPickerGridBody>
@@ -199,10 +203,10 @@ export function AddRenewalEntry({ onOpenChange }: { onOpenChange?: (open: boolea
 			</DatePicker>
 			<View className="flex-row gap-tight">
 				<Button size="sm" isDisabled={busy || date === undefined} onPress={() => void save()}>
-					<Button.Label>{busy ? 'Adding…' : 'Add'}</Button.Label>
+					<Button.Label maxFontSizeMultiplier={1.5}>{busy ? 'Adding…' : 'Add'}</Button.Label>
 				</Button>
 				<Button size="sm" variant="ghost" isDisabled={busy} onPress={() => setOpen(false)}>
-					<Button.Label>Cancel</Button.Label>
+					<Button.Label maxFontSizeMultiplier={1.5}>Cancel</Button.Label>
 				</Button>
 			</View>
 		</View>

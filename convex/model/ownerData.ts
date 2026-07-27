@@ -7,6 +7,255 @@ import { targetKeyFor } from '../shared/community'
 // two can never drift apart.
 
 const DELETE_BATCH = 100
+const SAFE_DELETE_BATCH = 25
+
+/** Every non-global schema table that can retain one account's data. Tests
+ * compare this inventory with schema.ts so adding a table fails closed until
+ * its deletion behavior is reviewed. */
+export const OWNER_DATA_TABLES = [
+	'applicants',
+	'applications',
+	'applicationDrafts',
+	'applicationDocuments',
+	'documents',
+	'cases',
+	'entitlements',
+	'assistantUsage',
+	'ownerPreferences',
+	'renewalEntries',
+	'communityProfiles',
+	'forumPosts',
+	'forumComments',
+	'communityBlocks',
+	'forumReports',
+] as const
+
+export const OWNER_DELETION_PHASES = [
+	'documents',
+	'applicationDocuments',
+	'applicationDrafts',
+	'entitlements',
+	'cases',
+	'applications',
+	'applicants',
+	'assistantUsage',
+	'ownerPreferences',
+	'renewalEntries',
+	'filedReports',
+	'comments',
+	'posts',
+	'createdBlocks',
+	'profiles',
+] as const
+
+export type OwnerDeletionPhase = (typeof OWNER_DELETION_PHASES)[number]
+
+export type OwnerDeletionBatchResult =
+	{ done: true } | { done: false; nextPhase: OwnerDeletionPhase }
+
+function repeatPhase(phase: OwnerDeletionPhase): OwnerDeletionBatchResult {
+	return { done: false, nextPhase: phase }
+}
+
+function advancePhase(phase: OwnerDeletionPhase): OwnerDeletionBatchResult {
+	const index = OWNER_DELETION_PHASES.indexOf(phase)
+	const nextPhase = OWNER_DELETION_PHASES[index + 1]
+	return nextPhase === undefined ? { done: true } : { done: false, nextPhase }
+}
+
+/**
+ * Delete one bounded portion of an owner's data. Each call is intended to run
+ * as its own mutation transaction; an action repeatedly invokes it until
+ * `done` so large accounts never accumulate every read/write in one Convex
+ * transaction.
+ */
+export async function deleteOwnerDataBatch(
+	ctx: MutationCtx,
+	ownerId: string,
+	phase: OwnerDeletionPhase,
+): Promise<OwnerDeletionBatchResult> {
+	switch (phase) {
+		case 'documents': {
+			const rows = await ctx.db
+				.query('documents')
+				.withIndex('by_ownerId', (q) => q.eq('ownerId', ownerId))
+				.take(SAFE_DELETE_BATCH)
+			if (rows.length === 0) return advancePhase(phase)
+			for (const row of rows) {
+				await ctx.storage.delete(row.storageId)
+				await ctx.db.delete('documents', row._id)
+			}
+			return repeatPhase(phase)
+		}
+		case 'applicationDocuments': {
+			const rows = await ctx.db
+				.query('applicationDocuments')
+				.withIndex('by_ownerId_and_status', (q) => q.eq('ownerId', ownerId))
+				.take(SAFE_DELETE_BATCH)
+			if (rows.length === 0) return advancePhase(phase)
+			for (const row of rows) await ctx.db.delete('applicationDocuments', row._id)
+			return repeatPhase(phase)
+		}
+		case 'applicationDrafts': {
+			const rows = await ctx.db
+				.query('applicationDrafts')
+				.withIndex('by_ownerId', (q) => q.eq('ownerId', ownerId))
+				.take(SAFE_DELETE_BATCH)
+			if (rows.length === 0) return advancePhase(phase)
+			for (const row of rows) await ctx.db.delete('applicationDrafts', row._id)
+			return repeatPhase(phase)
+		}
+		case 'entitlements': {
+			const rows = await ctx.db
+				.query('entitlements')
+				.withIndex('by_ownerId', (q) => q.eq('ownerId', ownerId))
+				.take(SAFE_DELETE_BATCH)
+			if (rows.length === 0) return advancePhase(phase)
+			for (const row of rows) await ctx.db.delete('entitlements', row._id)
+			return repeatPhase(phase)
+		}
+		case 'cases': {
+			const rows = await ctx.db
+				.query('cases')
+				.withIndex('by_ownerId_and_receiptNumber', (q) => q.eq('ownerId', ownerId))
+				.take(SAFE_DELETE_BATCH)
+			if (rows.length === 0) return advancePhase(phase)
+			for (const row of rows) await ctx.db.delete('cases', row._id)
+			return repeatPhase(phase)
+		}
+		case 'applications': {
+			const rows = await ctx.db
+				.query('applications')
+				.withIndex('by_ownerId_and_status', (q) => q.eq('ownerId', ownerId))
+				.take(SAFE_DELETE_BATCH)
+			if (rows.length === 0) return advancePhase(phase)
+			for (const row of rows) await ctx.db.delete('applications', row._id)
+			return repeatPhase(phase)
+		}
+		case 'applicants': {
+			const rows = await ctx.db
+				.query('applicants')
+				.withIndex('by_ownerId', (q) => q.eq('ownerId', ownerId))
+				.take(SAFE_DELETE_BATCH)
+			if (rows.length === 0) return advancePhase(phase)
+			for (const row of rows) await ctx.db.delete('applicants', row._id)
+			return repeatPhase(phase)
+		}
+		case 'assistantUsage': {
+			const rows = await ctx.db
+				.query('assistantUsage')
+				.withIndex('by_ownerId_and_day', (q) => q.eq('ownerId', ownerId))
+				.take(SAFE_DELETE_BATCH)
+			if (rows.length === 0) return advancePhase(phase)
+			for (const row of rows) await ctx.db.delete('assistantUsage', row._id)
+			return repeatPhase(phase)
+		}
+		case 'ownerPreferences': {
+			const rows = await ctx.db
+				.query('ownerPreferences')
+				.withIndex('by_ownerId_and_key', (q) => q.eq('ownerId', ownerId))
+				.take(SAFE_DELETE_BATCH)
+			if (rows.length === 0) return advancePhase(phase)
+			for (const row of rows) await ctx.db.delete('ownerPreferences', row._id)
+			return repeatPhase(phase)
+		}
+		case 'renewalEntries': {
+			const rows = await ctx.db
+				.query('renewalEntries')
+				.withIndex('by_ownerId', (q) => q.eq('ownerId', ownerId))
+				.take(SAFE_DELETE_BATCH)
+			if (rows.length === 0) return advancePhase(phase)
+			for (const row of rows) await ctx.db.delete('renewalEntries', row._id)
+			return repeatPhase(phase)
+		}
+		case 'filedReports': {
+			const rows = await ctx.db
+				.query('forumReports')
+				.withIndex('by_reporter_and_targetKey', (q) => q.eq('reporterOwnerId', ownerId))
+				.take(SAFE_DELETE_BATCH)
+			if (rows.length === 0) return advancePhase(phase)
+			for (const row of rows) await ctx.db.delete('forumReports', row._id)
+			return repeatPhase(phase)
+		}
+		case 'comments': {
+			const row = await ctx.db
+				.query('forumComments')
+				.withIndex('by_author', (q) => q.eq('authorOwnerId', ownerId))
+				.first()
+			if (row === null) return advancePhase(phase)
+
+			const reports = await ctx.db
+				.query('forumReports')
+				.withIndex('by_targetKey', (q) => q.eq('targetKey', targetKeyFor('comment', row._id)))
+				.take(SAFE_DELETE_BATCH)
+			if (reports.length > 0) {
+				for (const report of reports) await ctx.db.delete('forumReports', report._id)
+				return repeatPhase(phase)
+			}
+
+			if (row.moderationStatus === 'visible') {
+				const post = await ctx.db.get('forumPosts', row.postId)
+				if (
+					post !== null &&
+					post.moderationStatus !== 'removed' &&
+					post.authorOwnerId !== ownerId
+				) {
+					await ctx.db.patch('forumPosts', post._id, {
+						commentCount: Math.max(0, post.commentCount - 1),
+						updatedAt: Date.now(),
+					})
+				}
+			}
+			await ctx.db.delete('forumComments', row._id)
+			return repeatPhase(phase)
+		}
+		case 'posts': {
+			const row = await ctx.db
+				.query('forumPosts')
+				.withIndex('by_author', (q) => q.eq('authorOwnerId', ownerId))
+				.first()
+			if (row === null) return advancePhase(phase)
+
+			const reports = await ctx.db
+				.query('forumReports')
+				.withIndex('by_targetKey', (q) => q.eq('targetKey', targetKeyFor('post', row._id)))
+				.take(SAFE_DELETE_BATCH)
+			if (reports.length > 0) {
+				for (const report of reports) await ctx.db.delete('forumReports', report._id)
+				return repeatPhase(phase)
+			}
+			await ctx.db.delete('forumPosts', row._id)
+			return repeatPhase(phase)
+		}
+		case 'createdBlocks': {
+			const rows = await ctx.db
+				.query('communityBlocks')
+				.withIndex('by_blocker', (q) => q.eq('blockerOwnerId', ownerId))
+				.take(SAFE_DELETE_BATCH)
+			if (rows.length === 0) return advancePhase(phase)
+			for (const row of rows) await ctx.db.delete('communityBlocks', row._id)
+			return repeatPhase(phase)
+		}
+		case 'profiles': {
+			const row = await ctx.db
+				.query('communityProfiles')
+				.withIndex('by_ownerId', (q) => q.eq('ownerId', ownerId))
+				.first()
+			if (row === null) return advancePhase(phase)
+
+			const blocks = await ctx.db
+				.query('communityBlocks')
+				.withIndex('by_blockedProfile', (q) => q.eq('blockedProfileId', row._id))
+				.take(SAFE_DELETE_BATCH)
+			if (blocks.length > 0) {
+				for (const block of blocks) await ctx.db.delete('communityBlocks', block._id)
+				return repeatPhase(phase)
+			}
+			await ctx.db.delete('communityProfiles', row._id)
+			return repeatPhase(phase)
+		}
+	}
+}
 
 /**
  * Delete every report pointing at a given target (all reporters). Used during
@@ -154,7 +403,11 @@ export async function deleteOwnerData(ctx: MutationCtx, ownerId: string): Promis
 		for (const row of rows) {
 			if (row.moderationStatus === 'visible') {
 				const post = await ctx.db.get('forumPosts', row.postId)
-				if (post !== null && post.moderationStatus !== 'removed' && post.authorOwnerId !== ownerId) {
+				if (
+					post !== null &&
+					post.moderationStatus !== 'removed' &&
+					post.authorOwnerId !== ownerId
+				) {
 					await ctx.db.patch('forumPosts', post._id, {
 						commentCount: Math.max(0, post.commentCount - 1),
 						updatedAt: Date.now(),
@@ -240,12 +493,20 @@ export async function reassignOwnerData(
 	toOwnerId: string,
 ): Promise<void> {
 	if (fromOwnerId === toOwnerId) return
+	for (const ownerId of [fromOwnerId, toOwnerId]) {
+		const deletion = await ctx.db
+			.query('accountDeletionTombstones')
+			.withIndex('by_ownerId', (q) => q.eq('ownerId', ownerId))
+			.unique()
+		if (deletion !== null) throw new Error('Account deletion is in progress')
+	}
 
-	const targetHasSelf =
-		(await ctx.db
+	const targetHasSelf = (
+		await ctx.db
 			.query('applicants')
 			.withIndex('by_ownerId', (q) => q.eq('ownerId', toOwnerId))
-			.collect()).some((row) => row.isSelf)
+			.collect()
+	).some((row) => row.isSelf)
 	for (;;) {
 		const rows = await ctx.db
 			.query('applicants')
@@ -260,7 +521,12 @@ export async function reassignOwnerData(
 		}
 	}
 
-	for (const table of ['applicationDrafts', 'documents', 'entitlements', 'renewalEntries'] as const) {
+	for (const table of [
+		'applicationDrafts',
+		'documents',
+		'entitlements',
+		'renewalEntries',
+	] as const) {
 		for (;;) {
 			const rows = await ctx.db
 				.query(table)

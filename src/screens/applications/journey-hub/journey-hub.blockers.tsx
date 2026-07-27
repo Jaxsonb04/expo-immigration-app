@@ -76,7 +76,7 @@ export function ReadinessBlockers({
 			<Typography.Paragraph className="font-medium">Before this can be filed</Typography.Paragraph>
 			{answerItems.length > 0 && <BlockerList title="Finish your answers" items={answerItems} />}
 			{documentItems.length > 0 && (
-				<BlockerList title="Add the required documents" items={documentItems} />
+				<BlockerList title="Attach and confirm the evidence checklist" items={documentItems} />
 			)}
 			{coverageItems.length > 0 && (
 				<View className="gap-hairline">

@@ -15,7 +15,12 @@ import {
 	personFactsShape,
 	requirementStatuses,
 } from './shared/applicationShapes'
-import { moderationStatuses, reportReasons, reportStatuses, reportTargetTypes } from './shared/community'
+import {
+	moderationStatuses,
+	reportReasons,
+	reportStatuses,
+	reportTargetTypes,
+} from './shared/community'
 
 // Seven app-owned tables (REARCHITECTURE.md "Resolved Decisions", 2026-07-01)
 // plus the M4 community-forum tables. Every table is scoped by a server-derived
@@ -64,6 +69,10 @@ export default defineSchema({
 		completedStepCount: v.number(),
 		totalStepCount: v.number(),
 		filedAt: v.optional(v.number()),
+		// Present only when filing happened under the confirmation-aware evidence
+		// contract. Its absence identifies genuinely legacy filing records.
+		filingEvidenceContractVersion: v.optional(v.string()),
+		filingRequirementKeys: v.optional(v.array(v.string())),
 		closedAt: v.optional(v.number()),
 		updatedAt: v.number(),
 	})
@@ -80,6 +89,7 @@ export default defineSchema({
 				formType: v.literal('i765'),
 				answers: zodToConvex(i765DraftAnswersShape),
 				stepCompletion: v.record(v.string(), v.boolean()),
+				evidenceRevision: v.optional(v.number()),
 				updatedAt: v.number(),
 			}),
 			v.object({
@@ -88,6 +98,7 @@ export default defineSchema({
 				formType: v.literal('i90'),
 				answers: zodToConvex(i90DraftAnswersShape),
 				stepCompletion: v.record(v.string(), v.boolean()),
+				evidenceRevision: v.optional(v.number()),
 				updatedAt: v.number(),
 			}),
 		),
@@ -97,13 +108,22 @@ export default defineSchema({
 
 	// Explicit requirement slots (decision 7): materialized from the
 	// per-(formType, applicationKind) template at creation and reconciled
-	// after each Next-save. "Needed" is a row state, never absence of a row.
+	// after each Next-save. Current code derives the expected keys independently
+	// so a missing legacy row fails closed until reconciliation backfills it.
 	applicationDocuments: defineTable({
 		ownerId: v.string(),
 		applicationId: v.id('applications'),
 		requirementKey: v.string(),
 		status: requirementStatus,
 		documentId: v.optional(v.id('documents')),
+		// A document attachment is not evidence-complete until the owner reviews
+		// the exact file version against the current requirement checklist.
+		confirmedDocumentId: v.optional(v.id('documents')),
+		confirmationVersion: v.optional(v.string()),
+		// Binds confirmation to the exact semantic answer revision. Any actual
+		// answer edit invalidates every prior evidence confirmation fail closed.
+		confirmationRevision: v.optional(v.number()),
+		confirmedAt: v.optional(v.number()),
 		updatedAt: v.number(),
 	})
 		.index('by_applicationId', ['applicationId'])
@@ -205,6 +225,16 @@ export default defineSchema({
 		updatedAt: v.number(),
 	}).index('by_ownerId_and_key', ['ownerId', 'key']),
 
+	// Short-lived write gate for complete account deletion. It remains after
+	// the auth identity is removed until every previously issued Convex JWT has
+	// expired, preventing a racing client from recreating rows after a deletion
+	// phase has passed.
+	accountDeletionTombstones: defineTable({
+		ownerId: v.string(),
+		createdAt: v.number(),
+		expiresAt: v.number(),
+	}).index('by_ownerId', ['ownerId']),
+
 	// M6-T6 manual renewal entries: a document expiry or a prior filing date
 	// the person logs by hand (no upload required), so Upcoming renewals can
 	// remind against the real USCIS filing windows alongside vault documents
@@ -261,7 +291,11 @@ export default defineSchema({
 		createdAt: v.number(),
 		updatedAt: v.number(),
 	})
-		.index('by_postId_and_moderationStatus_and_createdAt', ['postId', 'moderationStatus', 'createdAt'])
+		.index('by_postId_and_moderationStatus_and_createdAt', [
+			'postId',
+			'moderationStatus',
+			'createdAt',
+		])
 		.index('by_author', ['authorOwnerId']),
 
 	// Per-viewer block list (M4-T3). NOT moderation: a block only filters the

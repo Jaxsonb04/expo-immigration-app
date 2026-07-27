@@ -5,6 +5,7 @@ import { internal } from '../_generated/api'
 import { requireOwnerId } from '../lib/auth'
 import { deleteOwnerData } from '../model/ownerData'
 import type { FormType } from '../shared/applicationShapes'
+import { EVIDENCE_CONTRACT_VERSION } from '../shared/evidenceRequirements'
 import { interviewStepKeys } from '../shared/interviewSteps'
 
 const completeAllSteps = (formType: FormType): Record<string, boolean> =>
@@ -46,6 +47,7 @@ async function storeDemoBlobs(ctx: ActionCtx) {
 		eadCurrent: await store('Maria EAD (current)'),
 		passport: await store('Maria passport'),
 		permanentResidentCard: await store('Diego Permanent Resident Card'),
+		pendingI485: await store('Maria I-485 receipt notice'),
 	}
 }
 
@@ -109,6 +111,7 @@ export const insertDemoData = internalMutation({
 			eadCurrent: v.id('_storage'),
 			passport: v.id('_storage'),
 			permanentResidentCard: v.id('_storage'),
+			pendingI485: v.id('_storage'),
 		}),
 	},
 	handler: async (ctx, { ownerId, storageIds }) => {
@@ -212,7 +215,15 @@ export const insertDemoData = internalMutation({
 			type: 'permanentResidentCard',
 			label: 'Permanent Resident Card',
 			storageId: storageIds.permanentResidentCard,
-			expiryDate: isoDateFromNow(8 * 365),
+			expiryDate: isoDateFromNow(-30),
+			updatedAt: now,
+		})
+		const pendingI485Id = await ctx.db.insert('documents', {
+			ownerId,
+			applicantId: mariaId,
+			type: 'other',
+			label: 'I-485 receipt notice',
+			storageId: storageIds.pendingI485,
 			updatedAt: now,
 		})
 
@@ -238,6 +249,7 @@ export const insertDemoData = internalMutation({
 				form: {},
 			},
 			stepCompletion: { 'legal-name': true, 'date-of-birth': true },
+			evidenceRevision: 0,
 			updatedAt: now,
 		})
 		await ctx.db.insert('applicationDocuments', {
@@ -246,6 +258,22 @@ export const insertDemoData = internalMutation({
 			requirementKey: 'eadCard',
 			status: 'attached',
 			documentId: eadCurrentId,
+			confirmedDocumentId: eadCurrentId,
+			confirmationVersion: EVIDENCE_CONTRACT_VERSION,
+			confirmationRevision: 0,
+			confirmedAt: now,
+			updatedAt: now,
+		})
+		await ctx.db.insert('applicationDocuments', {
+			ownerId,
+			applicationId: app1,
+			requirementKey: 'entryDocument',
+			status: 'attached',
+			documentId: passportId,
+			confirmedDocumentId: passportId,
+			confirmationVersion: EVIDENCE_CONTRACT_VERSION,
+			confirmationRevision: 0,
+			confirmedAt: now,
 			updatedAt: now,
 		})
 		await ctx.db.insert('applicationDocuments', {
@@ -304,7 +332,7 @@ export const insertDemoData = internalMutation({
 				},
 				form: {
 					cardStatus: 'permanentResident',
-					cardExpirationDate: isoDateFromNow(8 * 365),
+					cardExpirationDate: isoDateFromNow(-30),
 					nameChangedSinceIssuance: 'no',
 					physicalAddressSameAsMailing: 'yes',
 					preparedSelfInEnglish: 'yes',
@@ -312,6 +340,7 @@ export const insertDemoData = internalMutation({
 				},
 			},
 			stepCompletion: completeAllSteps('i90'),
+			evidenceRevision: 0,
 			updatedAt: now,
 		})
 		await ctx.db.insert('applicationDocuments', {
@@ -320,13 +349,10 @@ export const insertDemoData = internalMutation({
 			requirementKey: 'permanentResidentCard',
 			status: 'attached',
 			documentId: prcId,
-			updatedAt: now,
-		})
-		await ctx.db.insert('applicationDocuments', {
-			ownerId,
-			applicationId: app2,
-			requirementKey: 'passportPhoto',
-			status: 'waived',
+			confirmedDocumentId: prcId,
+			confirmationVersion: EVIDENCE_CONTRACT_VERSION,
+			confirmationRevision: 0,
+			confirmedAt: now,
 			updatedAt: now,
 		})
 
@@ -378,21 +404,41 @@ export const insertDemoData = internalMutation({
 				},
 			},
 			stepCompletion: completeAllSteps('i765'),
+			evidenceRevision: 0,
 			updatedAt: now,
 		})
 		await ctx.db.insert('applicationDocuments', {
 			ownerId,
 			applicationId: app3,
-			requirementKey: 'passport',
+			requirementKey: 'identityEvidence',
 			status: 'attached',
 			documentId: passportId,
+			confirmedDocumentId: passportId,
+			confirmationVersion: EVIDENCE_CONTRACT_VERSION,
+			confirmationRevision: 0,
+			confirmedAt: now,
 			updatedAt: now,
 		})
 		await ctx.db.insert('applicationDocuments', {
 			ownerId,
 			applicationId: app3,
 			requirementKey: 'passportPhoto',
-			status: 'waived',
+			status: 'confirmed',
+			confirmationVersion: EVIDENCE_CONTRACT_VERSION,
+			confirmationRevision: 0,
+			confirmedAt: now,
+			updatedAt: now,
+		})
+		await ctx.db.insert('applicationDocuments', {
+			ownerId,
+			applicationId: app3,
+			requirementKey: 'pendingI485Evidence',
+			status: 'attached',
+			documentId: pendingI485Id,
+			confirmedDocumentId: pendingI485Id,
+			confirmationVersion: EVIDENCE_CONTRACT_VERSION,
+			confirmationRevision: 0,
+			confirmedAt: now,
 			updatedAt: now,
 		})
 		await ctx.db.insert('entitlements', {
@@ -452,6 +498,7 @@ export const insertDemoData = internalMutation({
 				},
 			},
 			stepCompletion: completeAllSteps('i765'),
+			evidenceRevision: 0,
 			updatedAt: now,
 		})
 		await ctx.db.insert('applicationDocuments', {
@@ -539,6 +586,7 @@ export const insertDemoData = internalMutation({
 				},
 			},
 			stepCompletion: completeAllSteps('i90'),
+			evidenceRevision: 0,
 			updatedAt: now,
 		})
 		await ctx.db.insert('entitlements', {
@@ -565,6 +613,6 @@ export const insertDemoData = internalMutation({
 			updatedAt: now,
 		})
 
-		return { applicants: 3, applications: 5, documents: 4 }
+		return { applicants: 3, applications: 5, documents: 5 }
 	},
 })

@@ -1,0 +1,25 @@
+{
+	"cli": {
+		"appVersionSource": "remote"
+	},
+	"build": {
+		"development": {
+			"distribution": "internal",
+			"environment": "development"
+		},
+		"preview": {
+			"distribution": "internal",
+			"environment": "preview"
+		},
+		"production": {
+			"autoIncrement": true,
+			"environment": "production",
+			"env": {
+				"IMMIFILE_RELEASE_BUILD": "true"
+			}
+		}
+	},
+	"submit": {
+		"production": {}
+	}
+}

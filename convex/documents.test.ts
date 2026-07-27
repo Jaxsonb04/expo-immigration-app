@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { api } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import schema from './schema'
+import { EVIDENCE_CONTRACT_VERSION, evidenceRequirementFor } from './shared/evidenceRequirements'
 
 const modules = import.meta.glob('./**/*.ts')
 const newT = () => convexTest(schema, modules)
@@ -92,6 +93,29 @@ describe('attachDocument', () => {
 
 		const updated = await t.run((ctx) => ctx.db.get('applicationDocuments', slot._id))
 		expect(updated).toMatchObject({ status: 'attached', documentId })
+		expect(updated!.confirmedDocumentId).toBeUndefined()
+	})
+
+	test('confirmation is bound to the exact attached document version', async () => {
+		const { t, alice, applicantId, applicationId, storageId } = await setup()
+		const documentId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'ead',
+			storageId,
+		})
+		const slot = await firstSlot(alice, applicationId)
+		await alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId })
+		await alice.mutation(api.documents.confirmRequirement, { slotId: slot._id })
+
+		const confirmed = await t.run((ctx) => ctx.db.get('applicationDocuments', slot._id))
+		expect(confirmed).toMatchObject({
+			status: 'attached',
+			documentId,
+			confirmedDocumentId: documentId,
+			confirmationVersion: EVIDENCE_CONTRACT_VERSION,
+			confirmationRevision: 0,
+		})
+		expect(confirmed!.confirmedAt).toEqual(expect.any(Number))
 	})
 
 	test("rejects another owner's slot or document", async () => {
@@ -184,6 +208,7 @@ describe('uploadNewVersion', () => {
 		})
 		const slot = await firstSlot(alice, applicationId)
 		await alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId: oldId })
+		await alice.mutation(api.documents.confirmRequirement, { slotId: slot._id })
 
 		const newStorageId = await t.run((ctx) =>
 			ctx.storage.store(new Blob(['ead2'], { type: 'image/jpeg' })),
@@ -203,6 +228,50 @@ describe('uploadNewVersion', () => {
 		expect(newDoc).toMatchObject({ supersedesId: oldId, type: 'ead', expiryDate: '2032-06-01' })
 		// The attachment now follows the current version.
 		expect(updatedSlot!.documentId).toBe(newId)
+		expect(updatedSlot!.confirmedDocumentId).toBeUndefined()
+		expect(updatedSlot!.confirmationVersion).toBeUndefined()
+		expect(updatedSlot!.confirmationRevision).toBeUndefined()
+	})
+
+	test('a filed record stays bound to the exact confirmed file when the Vault gets a new version', async () => {
+		const { t, alice, applicantId, applicationId, storageId } = await setup()
+		const oldId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'ead',
+			storageId,
+		})
+		const slot = await firstSlot(alice, applicationId)
+		await alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId: oldId })
+		await alice.mutation(api.documents.confirmRequirement, { slotId: slot._id })
+		await alice.mutation(api.applications.markFiled, {
+			applicationId,
+			filedAt: Date.now(),
+			acknowledgeNotReady: true,
+		})
+
+		const newStorageId = await t.run((ctx) =>
+			ctx.storage.store(new Blob(['ead2'], { type: 'image/jpeg' })),
+		)
+		const newId = await alice.mutation(api.documents.uploadNewVersion, {
+			supersedesId: oldId,
+			storageId: newStorageId,
+		})
+		const updatedSlot = await t.run((ctx) => ctx.db.get('applicationDocuments', slot._id))
+		expect(updatedSlot).toMatchObject({
+			documentId: oldId,
+			confirmedDocumentId: oldId,
+			confirmationVersion: EVIDENCE_CONTRACT_VERSION,
+			confirmationRevision: 0,
+		})
+		expect(updatedSlot!.documentId).not.toBe(newId)
+		const detail = (await alice.query(api.applications.getApplication, { applicationId }))!
+		expect(detail.readiness.blockers).not.toContainEqual({
+			kind: 'document',
+			requirementKey: 'eadCard',
+		})
+		await expect(
+			alice.mutation(api.documents.deleteDocument, { documentId: oldId }),
+		).rejects.toThrow(/attached to an application/i)
 	})
 
 	test('refuses to branch an already-superseded version', async () => {
@@ -240,20 +309,55 @@ describe('attach rules: type compatibility, versions, and filed freeze', () => {
 		).rejects.toThrow(/can't satisfy this requirement \(accepts: ead\)/)
 	})
 
-	test('accepts the matching type for each slot of the renewal template', async () => {
+	test('a single uploaded image cannot satisfy the two-photo physical requirement', async () => {
+		const { alice, applicantId, applicationId, storageId } = await setup()
+		const photoId = await alice.mutation(api.documents.saveDocument, {
+			applicantId,
+			type: 'photo',
+			storageId,
+		})
+		const detail = (await alice.query(api.applications.getApplication, { applicationId }))!
+		const slot = detail.requirements.find(
+			(candidate) => candidate.requirementKey === 'passportPhoto',
+		)!
+		await expect(
+			alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId: photoId }),
+		).rejects.toThrow(/confirmed without uploading/i)
+	})
+
+	test('accepts matching documents and confirms physical checklist items', async () => {
 		const { alice, applicantId, applicationId, storageId } = await setup()
 		const detail = (await alice.query(api.applications.getApplication, { applicationId }))!
-		const bySlot = { eadCard: 'ead', passportPhoto: 'photo' } as const
 		for (const slot of detail.requirements) {
+			const requirement = evidenceRequirementFor(slot.requirementKey)!
+			if (requirement.fulfillment === 'physical') {
+				await alice.mutation(api.documents.confirmRequirement, { slotId: slot._id })
+				continue
+			}
 			const documentId = await alice.mutation(api.documents.saveDocument, {
 				applicantId,
-				type: bySlot[slot.requirementKey as keyof typeof bySlot],
+				type: requirement.acceptedDocumentTypes[0]!,
 				storageId,
 			})
 			await alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId })
+			await alice.mutation(api.documents.confirmRequirement, { slotId: slot._id })
 		}
 		const after = (await alice.query(api.applications.getApplication, { applicationId }))!
-		expect(after.requirements.every((r) => r.status === 'attached')).toBe(true)
+		expect(after.requirements).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					requirementKey: 'eadCard',
+					status: 'attached',
+					confirmationVersion: EVIDENCE_CONTRACT_VERSION,
+				}),
+				expect.objectContaining({
+					requirementKey: 'passportPhoto',
+					status: 'confirmed',
+					confirmationVersion: EVIDENCE_CONTRACT_VERSION,
+				}),
+			]),
+		)
+		expect(after.readiness.documentsComplete).toBe(true)
 	})
 
 	test('rejects a superseded document version', async () => {

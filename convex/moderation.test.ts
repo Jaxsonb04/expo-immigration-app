@@ -43,7 +43,14 @@ function collectKeys(value: unknown, keys: Set<string> = new Set()): Set<string>
 	return keys
 }
 
-const PRIVATE_KEYS = ['ownerId', 'authorOwnerId', 'reporterOwnerId', 'blockerOwnerId', 'email', 'reportCount']
+const PRIVATE_KEYS = [
+	'ownerId',
+	'authorOwnerId',
+	'reporterOwnerId',
+	'blockerOwnerId',
+	'email',
+	'reportCount',
+]
 
 async function seedReportedPost(t: ReturnType<typeof newT>) {
 	const alice = credentialed(t, 'alice')
@@ -103,9 +110,9 @@ describe('moderator authorization', () => {
 			targetKey: targetKeyFor('post', postId),
 			status: 'hidden',
 		} as const
-		await expect(t.query(api.moderation.listReports, { paginationOpts: firstPage })).rejects.toThrow(
-			/authenticat/i,
-		)
+		await expect(
+			t.query(api.moderation.listReports, { paginationOpts: firstPage }),
+		).rejects.toThrow(/authenticat/i)
 		await expect(
 			anon(t, 'a').query(api.moderation.listReports, { paginationOpts: firstPage }),
 		).rejects.toThrow(/account/i)
@@ -114,12 +121,17 @@ describe('moderator authorization', () => {
 				paginationOpts: firstPage,
 			}),
 		).rejects.toThrow(/authorized/i)
-		await expect(t.mutation(api.moderation.setModerationStatus, hide)).rejects.toThrow(/authenticat/i)
+		await expect(t.mutation(api.moderation.setModerationStatus, hide)).rejects.toThrow(
+			/authenticat/i,
+		)
 		await expect(anon(t, 'a').mutation(api.moderation.setModerationStatus, hide)).rejects.toThrow(
 			/account/i,
 		)
 		await expect(
-			credentialed(t, 'eve', 'eve@immifile.test').mutation(api.moderation.setModerationStatus, hide),
+			credentialed(t, 'eve', 'eve@immifile.test').mutation(
+				api.moderation.setModerationStatus,
+				hide,
+			),
 		).rejects.toThrow(/authorized/i)
 	})
 
@@ -206,7 +218,9 @@ describe('setModerationStatus — hide and restore', () => {
 			targetKey,
 			status: 'hidden',
 		})
-		expect((await t.query(api.community.listPosts, { paginationOpts: firstPage })).page).toHaveLength(0)
+		expect(
+			(await t.query(api.community.listPosts, { paginationOpts: firstPage })).page,
+		).toHaveLength(0)
 		expect(await t.query(api.community.getPost, { postId })).toBeNull()
 
 		await mod.mutation(api.moderation.setModerationStatus, {
@@ -247,7 +261,10 @@ describe('setModerationStatus — hide and restore', () => {
 		const hide = { targetType: 'comment', targetKey, status: 'hidden' } as const
 		await mod.mutation(api.moderation.setModerationStatus, hide)
 		expect(await count()).toBe(0)
-		const comments = await t.query(api.community.listComments, { postId, paginationOpts: firstPage })
+		const comments = await t.query(api.community.listComments, {
+			postId,
+			paginationOpts: firstPage,
+		})
 		expect(comments.page).toHaveLength(0)
 		await mod.mutation(api.moderation.setModerationStatus, hide) // idempotent re-hide
 		expect(await count()).toBe(0) // not -1
@@ -302,12 +319,21 @@ describe('resolveReport', () => {
 			}),
 		).rejects.toThrow(/authorized/i)
 
-		await mod.mutation(api.moderation.resolveReport, { reportId: first!._id, resolution: 'resolved' })
+		await mod.mutation(api.moderation.resolveReport, {
+			reportId: first!._id,
+			resolution: 'resolved',
+		})
 		expect((await queue()).map((r) => r._id)).toEqual([second!._id])
-		await mod.mutation(api.moderation.resolveReport, { reportId: second!._id, resolution: 'dismissed' })
+		await mod.mutation(api.moderation.resolveReport, {
+			reportId: second!._id,
+			resolution: 'dismissed',
+		})
 		expect(await queue()).toHaveLength(0)
 		// Idempotent: closing an already-closed report is a no-op, not an error.
-		await mod.mutation(api.moderation.resolveReport, { reportId: first!._id, resolution: 'dismissed' })
+		await mod.mutation(api.moderation.resolveReport, {
+			reportId: first!._id,
+			resolution: 'dismissed',
+		})
 		const statuses = await t.run(async (ctx) =>
 			(await ctx.db.query('forumReports').collect()).map((r) => r.status).sort(),
 		)
@@ -320,13 +346,23 @@ describe('per-viewer blocks', () => {
 		const alice = credentialed(t, 'alice')
 		const bob = credentialed(t, 'bob')
 		const bobPostId = await bob.mutation(api.community.createPost, { title: 'Bobs', body: 'post' })
-		const alicePostId = await alice.mutation(api.community.createPost, { title: 'Alices', body: 'post' })
+		const alicePostId = await alice.mutation(api.community.createPost, {
+			title: 'Alices',
+			body: 'post',
+		})
 		const aliceCommentId = await alice.mutation(api.community.addComment, {
 			postId: bobPostId,
 			body: 'alice comments',
 		})
 		const alicePost = await t.query(api.community.getPost, { postId: alicePostId })
-		return { alice, bob, bobPostId, alicePostId, aliceCommentId, aliceHandle: alicePost!.authorHandle }
+		return {
+			alice,
+			bob,
+			bobPostId,
+			alicePostId,
+			aliceCommentId,
+			aliceHandle: alicePost!.authorHandle,
+		}
 	}
 
 	test('blocking hides the author for the blocker only; unblocking restores', async () => {
@@ -371,18 +407,18 @@ describe('per-viewer blocks', () => {
 	test('cannot block yourself; blocking requires a credentialed account; unknown handle rejected; idempotent re-block', async () => {
 		const t = newT()
 		const { alice, bob, aliceHandle } = await seedAlicePostAndComment(t)
-		await expect(alice.mutation(api.community.blockAuthor, { handle: aliceHandle })).rejects.toThrow(
-			/yourself/i,
-		)
+		await expect(
+			alice.mutation(api.community.blockAuthor, { handle: aliceHandle }),
+		).rejects.toThrow(/yourself/i)
 		await expect(t.mutation(api.community.blockAuthor, { handle: aliceHandle })).rejects.toThrow(
 			/authenticat/i,
 		)
 		await expect(
 			anon(t, 'a').mutation(api.community.blockAuthor, { handle: aliceHandle }),
 		).rejects.toThrow(/account/i)
-		await expect(bob.mutation(api.community.blockAuthor, { handle: 'NoSuchHandle999' })).rejects.toThrow(
-			/not found/i,
-		)
+		await expect(
+			bob.mutation(api.community.blockAuthor, { handle: 'NoSuchHandle999' }),
+		).rejects.toThrow(/not found/i)
 		await bob.mutation(api.community.blockAuthor, { handle: aliceHandle })
 		await bob.mutation(api.community.blockAuthor, { handle: aliceHandle }) // idempotent
 		expect(await bob.query(api.community.listMyBlocks, {})).toHaveLength(1)
@@ -395,7 +431,7 @@ describe('per-viewer blocks', () => {
 		await bob.mutation(api.community.blockAuthor, { handle: aliceHandle }) // bob -> alice's profile
 		await alice.mutation(api.community.blockAuthor, { handle: bobHandle }) // alice -> bob's profile
 
-		await alice.mutation(api.account.deleteAccountData, {})
+		await alice.action(api.account.deleteAccountData, {})
 
 		// Alice-as-blocker rows AND rows pointing at alice's profile are both gone.
 		const remaining = await t.run(async (ctx) => await ctx.db.query('communityBlocks').collect())

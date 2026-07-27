@@ -31,9 +31,9 @@ describe('write gate — identity + credentials', () => {
 	test('anonymous accounts cannot post, comment, or report', async () => {
 		const t = newT()
 		const a = anon(t, 'anon-1')
-		await expect(a.mutation(api.community.createPost, { title: 'Hi', body: 'there' })).rejects.toThrow(
-			/account/i,
-		)
+		await expect(
+			a.mutation(api.community.createPost, { title: 'Hi', body: 'there' }),
+		).rejects.toThrow(/account/i)
 		await expect(a.mutation(api.community.ensureProfile, {})).rejects.toThrow(/account/i)
 	})
 
@@ -55,13 +55,19 @@ describe('write gate — identity + credentials', () => {
 		// The credentialed gate is the first line of every write, so it fires before
 		// any ownership/existence check even for a foreign caller.
 		const report = { targetType: 'post', targetId: postId, reason: 'spam' } as const
-		await expect(t.mutation(api.community.addComment, { postId, body: 'x' })).rejects.toThrow(/authenticat/i)
-		await expect(a.mutation(api.community.addComment, { postId, body: 'x' })).rejects.toThrow(/account/i)
+		await expect(t.mutation(api.community.addComment, { postId, body: 'x' })).rejects.toThrow(
+			/authenticat/i,
+		)
+		await expect(a.mutation(api.community.addComment, { postId, body: 'x' })).rejects.toThrow(
+			/account/i,
+		)
 		await expect(t.mutation(api.community.reportContent, report)).rejects.toThrow(/authenticat/i)
 		await expect(a.mutation(api.community.reportContent, report)).rejects.toThrow(/account/i)
 		await expect(t.mutation(api.community.deletePost, { postId })).rejects.toThrow(/authenticat/i)
 		await expect(a.mutation(api.community.deletePost, { postId })).rejects.toThrow(/account/i)
-		await expect(t.mutation(api.community.deleteComment, { commentId })).rejects.toThrow(/authenticat/i)
+		await expect(t.mutation(api.community.deleteComment, { commentId })).rejects.toThrow(
+			/authenticat/i,
+		)
 		await expect(a.mutation(api.community.deleteComment, { commentId })).rejects.toThrow(/account/i)
 	})
 })
@@ -130,7 +136,9 @@ describe('posts — create, validate, read', () => {
 		{ title: 'x'.repeat(121), body: 'ok' },
 	])('rejects invalid post %o', async (args) => {
 		const t = newT()
-		await expect(credentialed(t, 'alice').mutation(api.community.createPost, args)).rejects.toThrow()
+		await expect(
+			credentialed(t, 'alice').mutation(api.community.createPost, args),
+		).rejects.toThrow()
 	})
 
 	test('listPosts is a public read (works unauthenticated) and only shows visible posts', async () => {
@@ -158,13 +166,17 @@ describe('posts — create, validate, read', () => {
 			await ctx.db.patch('forumPosts', b, { lastActivityAt: 2000 })
 		})
 		expect(
-			(await t.query(api.community.listPosts, { paginationOpts: firstPage })).page.map((p) => p._id),
+			(await t.query(api.community.listPosts, { paginationOpts: firstPage })).page.map(
+				(p) => p._id,
+			),
 		).toEqual([b, a])
 
 		// A new comment on `a` bumps its lastActivityAt to now (>> 2000), so it leads.
 		await alice.mutation(api.community.addComment, { postId: a, body: 'bump' })
 		expect(
-			(await t.query(api.community.listPosts, { paginationOpts: firstPage })).page.map((p) => p._id),
+			(await t.query(api.community.listPosts, { paginationOpts: firstPage })).page.map(
+				(p) => p._id,
+			),
 		).toEqual([a, b])
 	})
 
@@ -194,7 +206,8 @@ describe('privacy — public reads never leak the owner identity', () => {
 		})
 
 		const reader = anon(t, 'reader') // an anonymous reader
-		const listed = (await reader.query(api.community.listPosts, { paginationOpts: firstPage })).page[0]
+		const listed = (await reader.query(api.community.listPosts, { paginationOpts: firstPage }))
+			.page[0]
 		const fetched = await reader.query(api.community.getPost, { postId })
 		for (const shape of [listed, fetched]) {
 			const keys = Object.keys(shape ?? {})
@@ -210,7 +223,9 @@ describe('privacy — public reads never leak the owner identity', () => {
 		const alice = credentialed(t, 'alice')
 		const postId = await alice.mutation(api.community.createPost, { title: 'Mine', body: 'b' })
 		expect((await alice.query(api.community.getPost, { postId }))?.isMine).toBe(true)
-		expect((await credentialed(t, 'bob').query(api.community.getPost, { postId }))?.isMine).toBe(false)
+		expect((await credentialed(t, 'bob').query(api.community.getPost, { postId }))?.isMine).toBe(
+			false,
+		)
 		expect((await t.query(api.community.getPost, { postId }))?.isMine).toBe(false)
 	})
 })
@@ -225,7 +240,10 @@ describe('comments', () => {
 		await alice.mutation(api.community.addComment, { postId, body: 'second' })
 
 		expect((await t.query(api.community.getPost, { postId }))?.commentCount).toBe(2)
-		const comments = await t.query(api.community.listComments, { postId, paginationOpts: firstPage })
+		const comments = await t.query(api.community.listComments, {
+			postId,
+			paginationOpts: firstPage,
+		})
 		expect(comments.page.map((c) => c.body)).toEqual(['first', 'second'])
 		const keys = Object.keys(comments.page[0] ?? {})
 		expect(keys).not.toContain('authorOwnerId')
@@ -253,7 +271,10 @@ describe('comments', () => {
 		await t.run(async (ctx) => {
 			await ctx.db.patch('forumPosts', postId, { moderationStatus: 'hidden' })
 		})
-		const comments = await t.query(api.community.listComments, { postId, paginationOpts: firstPage })
+		const comments = await t.query(api.community.listComments, {
+			postId,
+			paginationOpts: firstPage,
+		})
 		expect(comments.page).toHaveLength(0)
 	})
 })
@@ -280,7 +301,10 @@ describe('author deletion (tombstone)', () => {
 		await alice.mutation(api.community.deleteComment, { commentId })
 		await alice.mutation(api.community.deleteComment, { commentId }) // double-delete
 		expect((await t.query(api.community.getPost, { postId }))?.commentCount).toBe(0) // not -1
-		const comments = await t.query(api.community.listComments, { postId, paginationOpts: firstPage })
+		const comments = await t.query(api.community.listComments, {
+			postId,
+			paginationOpts: firstPage,
+		})
 		expect(comments.page).toHaveLength(0)
 	})
 })
@@ -341,7 +365,11 @@ describe('reports', () => {
 		const alice = credentialed(t, 'alice')
 		const postId = await alice.mutation(api.community.createPost, { title: 'P', body: 'b' })
 		await expect(
-			alice.mutation(api.community.reportContent, { targetType: 'post', targetId: postId, reason: 'spam' }),
+			alice.mutation(api.community.reportContent, {
+				targetType: 'post',
+				targetId: postId,
+				reason: 'spam',
+			}),
 		).rejects.toThrow(/your own/i)
 		await alice.mutation(api.community.deletePost, { postId })
 		await expect(
@@ -382,7 +410,7 @@ describe('account deletion cascade wipes all forum data', () => {
 		// Bob's post now has 1 (visible) comment from alice.
 		expect((await t.query(api.community.getPost, { postId: bobPost }))?.commentCount).toBe(1)
 
-		await alice.mutation(api.account.deleteAccountData, {})
+		await alice.action(api.account.deleteAccountData, {})
 
 		const counts = await t.run(async (ctx) => ({
 			profiles: (await ctx.db.query('communityProfiles').collect()).length,
@@ -397,7 +425,10 @@ describe('account deletion cascade wipes all forum data', () => {
 		// Bob's post survives with its commentCount decremented for alice's erased comment.
 		const survivor = await t.query(api.community.getPost, { postId: bobPost })
 		expect(survivor?.commentCount).toBe(0)
-		// Alice's own profile is gone.
-		expect(await alice.query(api.community.getMyProfile, {})).toBeNull()
+		// Alice's profile is gone (covered by the inventory above), and her
+		// previously issued session cannot read or recreate owner-scoped data.
+		await expect(alice.query(api.community.getMyProfile, {})).rejects.toThrow(
+			/deletion is in progress/i,
+		)
 	})
 })

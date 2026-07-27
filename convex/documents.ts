@@ -3,9 +3,11 @@ import { v } from 'convex/values'
 import type { Doc, Id } from './_generated/dataModel'
 import { type MutationCtx, type QueryCtx, mutation, query } from './_generated/server'
 import { requireOwnerId } from './lib/auth'
-import { getOwnedApplication } from './model/applications'
+import { getDraftForApplication, getOwnedApplication } from './model/applications'
 import { documentTypes } from './shared/applicationShapes'
 import { compatibleDocumentTypes, isDocumentCompatible } from './shared/documentCompatibility'
+import { EVIDENCE_CONTRACT_VERSION, evidenceRequirementFor } from './shared/evidenceRequirements'
+import { requiredSlotKeys } from './shared/interviewSteps'
 
 // M2-T3 document saver. Real uploads, versioning, requirement attachment, and
 // expiry metadata for the append-only Vault (schema `documents` +
@@ -44,6 +46,23 @@ async function getOwnedApplicant(
 	const applicant = await ctx.db.get('applicants', applicantId)
 	if (applicant === null || applicant.ownerId !== ownerId) throw new Error('Applicant not found')
 	return applicant
+}
+
+async function getCurrentRequirementDraft(
+	ctx: MutationCtx,
+	application: Doc<'applications'>,
+	slot: Doc<'applicationDocuments'>,
+): Promise<Doc<'applicationDrafts'>> {
+	const draft = await getDraftForApplication(ctx, application._id)
+	const activeKeys = requiredSlotKeys(
+		application.formType,
+		application.applicationKind,
+		draft.answers,
+	)
+	if (!activeKeys.includes(slot.requirementKey)) {
+		throw new Error('This evidence item is no longer required by the current answers')
+	}
+	return draft
 }
 
 function validateExpiry(expiryDate: string | undefined): void {
@@ -139,20 +158,85 @@ export const attachDocument = mutation({
 		if (application.status !== 'draft') {
 			throw new Error('Only draft applications can change their documents')
 		}
+		await getCurrentRequirementDraft(ctx, application, slot)
 		if (document.applicantId !== application.applicantId) {
 			throw new Error('That document belongs to a different applicant')
 		}
 		if (document.supersededById !== undefined) {
 			throw new Error('That document has a newer version — attach the newest one instead')
 		}
+		const requirement = evidenceRequirementFor(slot.requirementKey)
+		if (requirement === undefined || requirement.fulfillment !== 'document') {
+			throw new Error('This checklist item is confirmed without uploading a file')
+		}
 		if (!isDocumentCompatible(slot.requirementKey, document.type)) {
 			const accepted = compatibleDocumentTypes[slot.requirementKey]?.join(', ') ?? 'none'
 			throw new Error(`That document type can't satisfy this requirement (accepts: ${accepted})`)
 		}
+		if (slot.status === 'attached' && slot.documentId === document._id) return
 		await ctx.db.patch('applicationDocuments', slot._id, {
 			status: 'attached',
 			documentId: document._id,
+			confirmedDocumentId: undefined,
+			confirmationVersion: undefined,
+			confirmationRevision: undefined,
+			confirmedAt: undefined,
 			updatedAt: Date.now(),
+		})
+	},
+})
+
+/**
+ * Record the owner's explicit checklist review. Document requirements are
+ * bound to the exact current document id; physical/package requirements are
+ * confirmed without accepting an arbitrary upload as a substitute.
+ */
+export const confirmRequirement = mutation({
+	args: { slotId: v.id('applicationDocuments') },
+	handler: async (ctx, args) => {
+		const ownerId = await requireOwnerId(ctx)
+		const slot = await getOwnedSlot(ctx, ownerId, args.slotId)
+		const application = await getOwnedApplication(ctx, ownerId, slot.applicationId)
+		if (application.status !== 'draft') {
+			throw new Error('Only draft applications can change their documents')
+		}
+		const draft = await getCurrentRequirementDraft(ctx, application, slot)
+		const requirement = evidenceRequirementFor(slot.requirementKey)
+		if (requirement === undefined) throw new Error('Unknown evidence requirement')
+		const now = Date.now()
+
+		if (requirement.fulfillment === 'physical') {
+			await ctx.db.patch('applicationDocuments', slot._id, {
+				status: 'confirmed',
+				documentId: undefined,
+				confirmedDocumentId: undefined,
+				confirmationVersion: EVIDENCE_CONTRACT_VERSION,
+				confirmationRevision: draft.evidenceRevision ?? 0,
+				confirmedAt: now,
+				updatedAt: now,
+			})
+			return
+		}
+
+		if (slot.status !== 'attached' || slot.documentId === undefined) {
+			throw new Error('Attach the evidence before confirming it')
+		}
+		const document = await getOwnedDocument(ctx, ownerId, slot.documentId)
+		if (document.applicantId !== application.applicantId) {
+			throw new Error('That document belongs to a different applicant')
+		}
+		if (document.supersededById !== undefined) {
+			throw new Error('Review and attach the newest document version')
+		}
+		if (!isDocumentCompatible(slot.requirementKey, document.type)) {
+			throw new Error('The attached file type does not match this requirement')
+		}
+		await ctx.db.patch('applicationDocuments', slot._id, {
+			confirmedDocumentId: document._id,
+			confirmationVersion: EVIDENCE_CONTRACT_VERSION,
+			confirmationRevision: draft.evidenceRevision ?? 0,
+			confirmedAt: now,
+			updatedAt: now,
 		})
 	},
 })
@@ -171,6 +255,10 @@ export const detachDocument = mutation({
 		await ctx.db.patch('applicationDocuments', slot._id, {
 			status: 'needed',
 			documentId: undefined,
+			confirmedDocumentId: undefined,
+			confirmationVersion: undefined,
+			confirmationRevision: undefined,
+			confirmedAt: undefined,
 			updatedAt: Date.now(),
 		})
 	},
@@ -179,9 +267,9 @@ export const detachDocument = mutation({
 /**
  * Replace a document with a newer file (decision 9). Appends a new Vault row
  * linked to the old one (supersedesId / supersededById), and re-points every
- * requirement slot that used the old version to the new one so attachments
- * always follow the current document. Refuses to branch an already-superseded
- * version.
+ * DRAFT requirement slot that used the old version to the new one. Filed
+ * records remain bound to the exact file reviewed at filing. Refuses to branch
+ * an already-superseded version.
  */
 export const uploadNewVersion = mutation({
 	args: {
@@ -218,7 +306,16 @@ export const uploadNewVersion = mutation({
 			.withIndex('by_documentId', (q) => q.eq('documentId', previous._id))
 			.take(MAX_REPOINTED_SLOTS)
 		for (const slot of slots) {
-			await ctx.db.patch('applicationDocuments', slot._id, { documentId: newId, updatedAt: now })
+			const application = await ctx.db.get('applications', slot.applicationId)
+			if (application?.status !== 'draft') continue
+			await ctx.db.patch('applicationDocuments', slot._id, {
+				documentId: newId,
+				confirmedDocumentId: undefined,
+				confirmationVersion: undefined,
+				confirmationRevision: undefined,
+				confirmedAt: undefined,
+				updatedAt: now,
+			})
 		}
 		return newId
 	},

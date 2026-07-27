@@ -15,6 +15,7 @@ export const CardDetailsStep = withForm({
 	render: function Render({ form, applicationKind, formType }) {
 		const reasonValidator = fieldValidators.replacementReason(applicationKind)
 		const statusValidator = fieldValidators.cardStatus(applicationKind)
+		const expirationValidator = fieldValidators.cardExpirationDate(applicationKind)
 		return (
 			<View className="gap-card">
 				<form.AppField
@@ -45,14 +46,19 @@ export const CardDetailsStep = withForm({
 				<form.AppField
 					name="form.cardExpirationDate"
 					validators={{
-						onBlur: fieldValidators.cardExpirationDate,
-						onSubmit: fieldValidators.cardExpirationDate,
+						onBlur: expirationValidator,
+						onSubmit: expirationValidator,
 					}}
 				>
 					{(field) => (
 						<field.DateField
 							label="Card expiration date"
-							description="On the front of your Permanent Resident Card. Leave blank if you no longer have the card."
+							description={
+								applicationKind === 'renewal'
+									? 'Required: Form I-90 renewal reason 2.f applies only when the card is expired or expires within six months.'
+									: 'On the front of your Permanent Resident Card. Leave blank if you no longer have the card.'
+							}
+							isRequired={applicationKind === 'renewal'}
 						/>
 					)}
 				</form.AppField>
@@ -70,21 +76,31 @@ export const CardDetailsStep = withForm({
 						)}
 					</form.AppField>
 				)}
-				<form.AppField
-					name="form.nameChangedSinceIssuance"
-					validators={{
-						onBlur: fieldValidators.requiredChoice,
-						onSubmit: fieldValidators.requiredChoice,
+				<form.Subscribe selector={(state) => state.values.form.replacementReason}>
+					{(replacementReason) => {
+						const nameChangeValidator = fieldValidators.nameChangedSinceIssuance(
+							applicationKind,
+							replacementReason,
+						)
+						return (
+							<form.AppField
+								name="form.nameChangedSinceIssuance"
+								validators={{
+									onBlur: nameChangeValidator,
+									onSubmit: nameChangeValidator,
+								}}
+							>
+								{(field) => (
+									<field.RadioGroupField
+										label="Has your name legally changed since this card was issued?"
+										options={[...nameChangeOptions]}
+										isRequired
+									/>
+								)}
+							</form.AppField>
+						)
 					}}
-				>
-					{(field) => (
-						<field.RadioGroupField
-							label="Has your name legally changed since this card was issued?"
-							options={[...nameChangeOptions]}
-							isRequired
-						/>
-					)}
-				</form.AppField>
+				</form.Subscribe>
 				<form.Subscribe selector={(state) => state.values.form.nameChangedSinceIssuance}>
 					{(answer) =>
 						answer === 'yes' ? (
