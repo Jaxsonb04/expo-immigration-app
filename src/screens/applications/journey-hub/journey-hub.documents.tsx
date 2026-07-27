@@ -2,9 +2,11 @@ import { SectionHeading } from '@/components/core'
 import { StyledLucideIcon } from '@/components/styled-icon'
 import { documentTypeLabel, requirementLabel } from '@/lib/application-labels'
 import { isDocumentCompatible } from '@convex/shared/documentCompatibility'
+import { evidenceRequirementFor } from '@convex/shared/evidenceRequirements'
+import { useRouter } from 'expo-router'
 import { Button, Spinner, Typography } from 'heroui-native'
 import { useState } from 'react'
-import { Pressable, View } from 'react-native'
+import { Alert, Pressable, View } from 'react-native'
 import { useJourneyHub } from './journey-hub.context'
 import { useDocumentActions } from './journey-hub.documents.data'
 
@@ -18,11 +20,8 @@ function isExpired(expiryDate: string | undefined): boolean {
 type Requirement = ReturnType<typeof useJourneyHub>['requirements'][number]
 type ApplicantDocument = ReturnType<typeof useJourneyHub>['applicantDocuments'][number]
 
-function StatusIcon({ status }: { status: Requirement['status'] }) {
-	if (status === 'attached')
-		return <StyledLucideIcon name="circle-check" size={20} className="text-success" />
-	if (status === 'waived')
-		return <StyledLucideIcon name="circle-minus" size={20} className="text-muted" />
+function StatusIcon({ satisfied }: { satisfied: boolean }) {
+	if (satisfied) return <StyledLucideIcon name="circle-check" size={20} className="text-success" />
 	return <StyledLucideIcon name="circle-alert" size={20} className="text-warning" />
 }
 
@@ -66,21 +65,43 @@ function SlotRow(props: {
 	reusable: ApplicantDocument[]
 	busy: boolean
 	readOnly: boolean
+	satisfied: boolean
 	onUpload: () => void
 	onReuse: (documentId: ApplicantDocument['_id']) => void
+	onReview: () => void
+	onConfirm: () => void
 	onDetach: () => void
 }) {
-	const { slot, attachedDoc, reusable, busy, readOnly } = props
+	const { slot, attachedDoc, reusable, busy, readOnly, satisfied } = props
 	const [showReuse, setShowReuse] = useState(false)
+	const requirement = evidenceRequirementFor(slot.requirementKey)
+	const isPhysical = requirement?.fulfillment === 'physical'
+
+	function confirm() {
+		if (!requirement) return
+		Alert.alert(
+			'Confirm this evidence',
+			`${requirement.guidance}\n\n${requirement.confirmationItems.map((item) => `• ${item}`).join('\n')}\n\nImmifile does not inspect the contents. Confirm only after you checked each item.`,
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{ text: 'I checked every item', onPress: props.onConfirm },
+			],
+		)
+	}
 
 	return (
 		<View className="gap-hairline py-hairline">
 			<View className="flex-row items-center gap-control">
-				<StatusIcon status={slot.status} />
+				<StatusIcon satisfied={satisfied} />
 				<View className="flex-1">
 					<Typography.Paragraph className="font-medium">
 						{requirementLabel(slot.requirementKey)}
 					</Typography.Paragraph>
+					{requirement ? (
+						<Typography.Paragraph color="muted" className="text-xs leading-relaxed">
+							{requirement.guidance}
+						</Typography.Paragraph>
+					) : null}
 					{slot.status === 'attached' && attachedDoc ? (
 						<Typography.Paragraph color="muted" className="text-sm">
 							{attachedDoc.label ?? documentTypeLabel(attachedDoc.type)}
@@ -92,7 +113,7 @@ function SlotRow(props: {
 				{busy ? <Spinner size="sm" /> : null}
 			</View>
 
-			{!busy && !readOnly && slot.status !== 'attached' && slot.status !== 'waived' ? (
+			{!busy && !readOnly && !isPhysical && slot.status !== 'attached' ? (
 				<View className="flex-row gap-tight pl-8">
 					<Button variant="secondary" size="sm" onPress={props.onUpload}>
 						<Button.Label>Upload</Button.Label>
@@ -105,15 +126,41 @@ function SlotRow(props: {
 				</View>
 			) : null}
 
-			{!busy && !readOnly && slot.status === 'attached' ? (
-				<View className="pl-8">
+			{!busy && !readOnly && !isPhysical && slot.status === 'attached' ? (
+				<View className="flex-row flex-wrap gap-tight pl-8">
+					{attachedDoc ? (
+						<Button variant="ghost" size="sm" onPress={props.onReview}>
+							<Button.Label>Review file</Button.Label>
+						</Button>
+					) : null}
+					{!satisfied ? (
+						<Button variant="secondary" size="sm" onPress={confirm}>
+							<Button.Label>Confirm evidence</Button.Label>
+						</Button>
+					) : null}
 					<Button variant="ghost" size="sm" onPress={props.onDetach}>
 						<Button.Label>Remove</Button.Label>
 					</Button>
 				</View>
 			) : null}
 
-			{showReuse && slot.status !== 'attached' ? (
+			{!busy && !readOnly && isPhysical && !satisfied ? (
+				<View className="pl-8">
+					<Button variant="secondary" size="sm" onPress={confirm}>
+						<Button.Label>Confirm ready</Button.Label>
+					</Button>
+				</View>
+			) : null}
+
+			{!busy && !readOnly && isPhysical && satisfied ? (
+				<View className="pl-8">
+					<Button variant="ghost" size="sm" onPress={props.onDetach}>
+						<Button.Label>Undo confirmation</Button.Label>
+					</Button>
+				</View>
+			) : null}
+
+			{showReuse && !isPhysical && slot.status !== 'attached' ? (
 				<View className="pl-8">
 					<ReuseList
 						documents={reusable}
@@ -129,14 +176,34 @@ function SlotRow(props: {
 }
 
 export function Documents() {
-	const { requirements, applicantDocuments, application } = useJourneyHub()
-	const { busySlotId, uploadForSlot, attachExisting, detach } = useDocumentActions(
+	const router = useRouter()
+	const { requirements, requirementsReconciled, applicantDocuments, application, readiness } =
+		useJourneyHub()
+	const { busySlotId, uploadForSlot, attachExisting, confirm, detach } = useDocumentActions(
 		application.applicantId,
+	)
+	const blockedRequirementKeys = new Set(
+		readiness.blockers.flatMap((blocker) =>
+			blocker.kind === 'document' ? [blocker.requirementKey] : [],
+		),
 	)
 
 	return (
 		<View className="gap-tight">
 			<SectionHeading title="Documents" />
+			<Typography.Paragraph color="muted" className="text-sm leading-relaxed">
+				Immifile checks that the right requirement and file type are connected, but it cannot read
+				or approve an upload. Open each file, check the requirement-specific list, and confirm it
+				before readiness can turn complete.
+			</Typography.Paragraph>
+			{!requirementsReconciled ? (
+				<View className="flex-row items-center gap-tight">
+					<Spinner size="sm" />
+					<Typography.Paragraph color="muted" className="text-sm">
+						Updating this application’s evidence checklist…
+					</Typography.Paragraph>
+				</View>
+			) : null}
 			{requirements.length === 0 ? (
 				<Typography.Paragraph color="muted">
 					No documents are required for this application.
@@ -152,8 +219,11 @@ export function Documents() {
 				// already attached to this slot.
 				const reusable = applicantDocuments.filter(
 					(doc) =>
-						doc._id !== slot.documentId && isDocumentCompatible(slot.requirementKey, doc.type),
+						doc.isCurrent &&
+						doc._id !== slot.documentId &&
+						isDocumentCompatible(slot.requirementKey, doc.type),
 				)
+				const satisfied = !blockedRequirementKeys.has(slot.requirementKey)
 				return (
 					<SlotRow
 						key={slot._id}
@@ -161,11 +231,16 @@ export function Documents() {
 						attachedDoc={attachedDoc}
 						reusable={reusable}
 						busy={busySlotId === slot._id}
+						satisfied={satisfied}
 						// The checklist freezes with the filing record (the server
 						// rejects non-draft attach/detach — don't offer the buttons).
 						readOnly={application.status !== 'draft'}
 						onUpload={() => uploadForSlot(slot)}
 						onReuse={(documentId) => attachExisting(slot._id, documentId)}
+						onReview={() => {
+							if (attachedDoc) router.push(`/documents/${attachedDoc._id}`)
+						}}
+						onConfirm={() => confirm(slot._id)}
 						onDetach={() => detach(slot._id)}
 					/>
 				)

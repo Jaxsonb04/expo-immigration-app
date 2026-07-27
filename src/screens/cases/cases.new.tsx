@@ -1,6 +1,8 @@
+import { useRequireAccount } from '@/components/account'
 import { BodyScrollView } from '@/components/core'
 import { situationLabel } from '@/lib/application-labels'
 import { humanErrorMessage } from '@/lib/error-message'
+import { RELEASE_FEATURES, releaseApplicationLink } from '@/lib/release-policy'
 import type { Id } from '@convex/_generated/dataModel'
 import { isValidReceiptNumber, normalizeReceiptNumber } from '@convex/shared/applicationShapes'
 import { router } from 'expo-router'
@@ -42,8 +44,9 @@ function ApplicationOption(props: {
 /** Create-case modal (M3-T2): enter a USCIS receipt number and optionally link
  * a filed application, then track it. */
 export function NewCaseScreen() {
+	const requireAccount = useRequireAccount()
 	const createCase = useCreateCase()
-	const applications = useLinkableApplications()
+	const applications = useLinkableApplications(RELEASE_FEATURES.filingPreparation)
 	const [receipt, setReceipt] = useState('')
 	const [linkedId, setLinkedId] = useState<Id<'applications'> | null>(null)
 	const [showError, setShowError] = useState(false)
@@ -57,9 +60,18 @@ export function NewCaseScreen() {
 			setShowError(true)
 			return
 		}
+		const hasAccount = await requireAccount({
+			title: 'Create an account to save a case',
+			description:
+				'A permanent account keeps your receipt number out of a temporary workspace that becomes eligible for hourly deletion after 48 hours.',
+		})
+		if (!hasAccount) return
 		setBusy(true)
 		try {
-			await createCase({ receiptNumber: normalized, applicationId: linkedId ?? undefined })
+			await createCase({
+				receiptNumber: normalized,
+				applicationId: releaseApplicationLink(linkedId),
+			})
 			router.back()
 		} catch (error) {
 			Alert.alert('Could not add case', humanErrorMessage(error, 'Please try again.'))
@@ -72,7 +84,8 @@ export function NewCaseScreen() {
 		<BodyScrollView contentContainerClassName="gap-section py-gutter">
 			<View className="gap-hairline">
 				<Typography.Paragraph color="muted">
-					Add the USCIS receipt number from your filing notice to follow its status and timeline.
+					Save the USCIS receipt number from your notice for quick access. Immifile does not
+					automatically receive status updates from USCIS.
 				</Typography.Paragraph>
 			</View>
 
@@ -95,7 +108,7 @@ export function NewCaseScreen() {
 				) : null}
 			</TextField>
 
-			{applications && applications.length > 0 ? (
+			{RELEASE_FEATURES.filingPreparation && applications && applications.length > 0 ? (
 				<View className="gap-tight">
 					<Typography.Heading className="text-base font-semibold">
 						Link an application (optional)

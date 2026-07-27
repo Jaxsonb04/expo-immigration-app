@@ -14,6 +14,7 @@ import {
 	c26ReceiptApplies,
 	c8QuestionApplies,
 	immigrantVisaDetailsApply,
+	i90RenewalCardIsEligible,
 	isStepComplete,
 	otherNamesApply,
 	physicalAddressApplies,
@@ -58,6 +59,8 @@ export type GroupBlockerCode =
 	| 'proceedings-need-explanation'
 	| 'category-unsupported'
 	| 'card-not-eligible'
+	| 'card-renewal-window'
+	| 'card-reason-mismatch'
 	| 'needs-preparer-parts'
 	| 'accommodation-detail-missing'
 	| 'travel-doc-number-missing'
@@ -170,6 +173,9 @@ function rowApplies(
 
 /** Whether an applicable row is required to complete its step. */
 function rowRequired(key: string, formType: FormType, applicationKind: ApplicationKind): boolean {
+	if (key === 'cardExpirationDate' && formType === 'i90' && applicationKind === 'renewal') {
+		return true
+	}
 	if (ALWAYS_OPTIONAL.has(key)) return false
 	if (key === 'aNumber') return aNumberRequired(formType, applicationKind)
 	return true
@@ -233,6 +239,13 @@ function blockedKeysFor(blocker: GroupBlockerCode | undefined, answers: Answers)
 		case 'card-not-eligible':
 			keys.add('cardStatus')
 			break
+		case 'card-renewal-window':
+			keys.add('cardExpirationDate')
+			break
+		case 'card-reason-mismatch':
+			keys.add('nameChangedSinceIssuance')
+			if (answers.form.replacementReason === 'nameChange') keys.add('replacementReason')
+			break
 		case 'needs-preparer-parts':
 			keys.add('preparedSelfInEnglish')
 			break
@@ -273,10 +286,28 @@ function groupBlocker(
 				? 'category-unsupported'
 				: undefined
 		case 'card-details':
-			return isI90CardStatus(form.cardStatus) &&
+			if (
+				isI90CardStatus(form.cardStatus) &&
 				!screenI90(form.cardStatus, applicationKind).supported
-				? 'card-not-eligible'
-				: undefined
+			) {
+				return 'card-not-eligible'
+			}
+			if (
+				applicationKind === 'renewal' &&
+				!isEmptyValue(form.cardExpirationDate) &&
+				!i90RenewalCardIsEligible(form.cardExpirationDate)
+			) {
+				return 'card-renewal-window'
+			}
+			if (
+				(applicationKind === 'renewal' &&
+					!isEmptyValue(form.nameChangedSinceIssuance) &&
+					form.nameChangedSinceIssuance !== 'no') ||
+				(form.replacementReason === 'nameChange' && form.nameChangedSinceIssuance !== 'yes')
+			) {
+				return 'card-reason-mismatch'
+			}
+			return undefined
 		case 'applicant-statement':
 			if (form.preparedSelfInEnglish === 'no') return 'needs-preparer-parts'
 			if (

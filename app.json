@@ -1,68 +1,78 @@
 {
-  "expo": {
-    "name": "Immifile",
-    "slug": "immigration-renewal-help",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "immigrationrenewalhelp",
-    "userInterfaceStyle": "automatic",
-    "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "dev.uing.immigrationrenewalhelp",
-      "appleTeamId": "F8V4932HJN",
-      "infoPlist": {
-        "NSCameraUsageDescription": "$(PRODUCT_NAME) needs access to your Camera to capture photos and videos.",
-        "NSMicrophoneUsageDescription": "$(PRODUCT_NAME) needs access to your Microphone to record audio for video recordings."
-      }
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#f7f3eb"
-      },
-      "predictiveBackGestureEnabled": false,
-      "package": "dev.uing.immigrationrenewalhelp",
-      "permissions": [
-        "android.permission.CAMERA",
-        "android.permission.RECORD_AUDIO"
-      ]
-    },
-    "plugins": [
-      "expo-router",
-      "expo-font",
-      [
-        "expo-splash-screen",
-        {
-          "image": "./assets/images/splash-icon.png",
-          "resizeMode": "contain",
-          "backgroundColor": "#f7f3eb",
-          "dark": {
-            "image": "./assets/images/splash-icon-dark.png",
-            "backgroundColor": "#130f0a"
-          }
-        }
-      ],
-      "expo-secure-store",
-      "expo-localization",
-      "expo-image",
-      "expo-web-browser",
-      "expo-notifications",
-      "@react-native-vector-icons/lucide",
-      "expo-sharing",
-      "expo-asset",
-      "expo-status-bar",
-      [
-        "expo-local-authentication",
-        {
-          "faceIDPermission": "$(PRODUCT_NAME) needs access to your Face ID to use Face ID."
-        }
-      ],
-      "expo-widgets"
-    ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
-    }
-  }
+	"expo": {
+		"name": "Immifile",
+		"slug": "immifile",
+		"owner": "jaxson04s-team",
+		"version": "1.0.0",
+		"description": "Track USCIS receipt numbers and open official immigration resources.",
+		"orientation": "portrait",
+		"icon": "./assets/images/icon.png",
+		"scheme": "immigrationrenewalhelp",
+		"userInterfaceStyle": "automatic",
+		"ios": {
+			"supportsTablet": true,
+			"bundleIdentifier": "dev.uing.immigrationrenewalhelp",
+			"appleTeamId": "F8V4932HJN",
+			"buildNumber": "1",
+			"config": {
+				"usesNonExemptEncryption": false
+			},
+			"infoPlist": {
+				"NSAppTransportSecurity": {
+					"NSAllowsArbitraryLoads": false,
+					"NSAllowsLocalNetworking": false
+				}
+			}
+		},
+		"android": {
+			"adaptiveIcon": {
+				"foregroundImage": "./assets/images/adaptive-icon.png",
+				"backgroundColor": "#f7f3eb"
+			},
+			"predictiveBackGestureEnabled": false,
+			"package": "dev.uing.immigrationrenewalhelp",
+			"versionCode": 1
+		},
+		"plugins": [
+			"expo-router",
+			"expo-font",
+			[
+				"expo-splash-screen",
+				{
+					"image": "./assets/images/splash-icon.png",
+					"resizeMode": "contain",
+					"backgroundColor": "#f7f3eb",
+					"dark": {
+						"image": "./assets/images/splash-icon-dark.png",
+						"backgroundColor": "#130f0a"
+					}
+				}
+			],
+			[
+				"expo-secure-store",
+				{
+					"faceIDPermission": false
+				}
+			],
+			"expo-localization",
+			"expo-image",
+			"expo-web-browser",
+			"@react-native-vector-icons/lucide",
+			"expo-sharing",
+			"expo-asset",
+			"expo-status-bar"
+		],
+		"experiments": {
+			"typedRoutes": true,
+			"reactCompiler": true
+		},
+		"extra": {
+			"router": {
+				"sitemap": false
+			},
+			"eas": {
+				"projectId": "ba1f9a98-c9d2-439c-92d0-50f591ddc8cf"
+			}
+		}
+	}
 }

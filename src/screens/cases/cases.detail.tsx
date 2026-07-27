@@ -3,7 +3,18 @@ import { StyledLucideIcon } from '@/components/styled-icon'
 import { caseStatusLabels } from '@/lib/application-labels'
 import type { Id } from '@convex/_generated/dataModel'
 import { caseStatuses, type CaseStatus } from '@convex/shared/applicationShapes'
-import { Alert, Button, Chip, Input, Separator, Surface, TextField, Typography } from 'heroui-native'
+import { CASE_NOTE_MAX } from '@convex/shared/cases'
+import { router } from 'expo-router'
+import {
+	Alert,
+	Button,
+	Chip,
+	Input,
+	Separator,
+	Surface,
+	TextField,
+	Typography,
+} from 'heroui-native'
 import { useState } from 'react'
 import { Alert as RNAlert, Linking, Pressable, View } from 'react-native'
 import {
@@ -12,6 +23,7 @@ import {
 	statusTone,
 	useAddStatusUpdate,
 	useCase,
+	useDeleteCase,
 	type CaseDetail,
 } from './cases.data'
 
@@ -94,6 +106,7 @@ function AddUpdate({ caseId }: { caseId: Id<'cases'> }) {
 					onChangeText={setNote}
 					placeholder="Add a note (optional)"
 					multiline
+					maxLength={CASE_NOTE_MAX}
 					className="min-h-11"
 				/>
 			</TextField>
@@ -101,11 +114,7 @@ function AddUpdate({ caseId }: { caseId: Id<'cases'> }) {
 				<Button variant="ghost" className="flex-1" isDisabled={busy} onPress={() => setOpen(false)}>
 					<Button.Label>Cancel</Button.Label>
 				</Button>
-				<Button
-					className="flex-[2]"
-					isDisabled={busy || status === null}
-					onPress={save}
-				>
+				<Button className="flex-[2]" isDisabled={busy || status === null} onPress={save}>
 					<Button.Label>{busy ? 'Saving…' : 'Save update'}</Button.Label>
 				</Button>
 			</View>
@@ -117,12 +126,37 @@ function AddUpdate({ caseId }: { caseId: Id<'cases'> }) {
  * emphasis, and manual status updates. */
 export function CaseDetailScreen({ caseId }: { caseId: Id<'cases'> }) {
 	const detail = useCase(caseId)
+	const deleteCase = useDeleteCase()
 
 	if (detail === undefined) return <ScreenLoading />
 	if (detail === null) return <ScreenError title="Case not found" />
 
 	const isRfe = detail.status === 'requestForEvidence'
 	const timeline = [...detail.statusHistory].sort((a, b) => b.occurredAt - a.occurredAt)
+
+	function confirmDelete() {
+		RNAlert.alert(
+			'Remove this case?',
+			'This permanently deletes the receipt number and the timeline you entered from Immifile. It does not affect the case at USCIS.',
+			[
+				{ text: 'Cancel', style: 'cancel' },
+				{
+					text: 'Remove case',
+					style: 'destructive',
+					onPress: () => {
+						void deleteCase({ caseId })
+							.then(() => router.back())
+							.catch((error) => {
+								RNAlert.alert(
+									'Could not remove case',
+									error instanceof Error ? error.message : 'Please try again.',
+								)
+							})
+					},
+				},
+			],
+		)
+	}
 
 	return (
 		<BodyScrollView contentContainerClassName="gap-gutter py-card">
@@ -131,7 +165,16 @@ export function CaseDetailScreen({ caseId }: { caseId: Id<'cases'> }) {
 					{detail.receiptNumber}
 				</Typography.Heading>
 				<View className="flex-row">
-					<Chip variant="soft" color={statusTone(detail.status) === 'positive' ? 'success' : statusTone(detail.status) === 'attention' ? 'warning' : 'default'}>
+					<Chip
+						variant="soft"
+						color={
+							statusTone(detail.status) === 'positive'
+								? 'success'
+								: statusTone(detail.status) === 'attention'
+									? 'warning'
+									: 'default'
+						}
+					>
 						<Chip.Label>{caseStatusLabels[detail.status]}</Chip.Label>
 					</Chip>
 				</View>
@@ -143,8 +186,8 @@ export function CaseDetailScreen({ caseId }: { caseId: Id<'cases'> }) {
 					<Alert.Content>
 						<Alert.Title>Request for Evidence</Alert.Title>
 						<Alert.Description>
-							USCIS needs more from you. Respond by the deadline printed on your RFE notice — a late
-							or missed response can lead to a denial.
+							Follow the deadline and instructions printed on your USCIS notice. For advice about
+							your response, contact a qualified legal representative.
 						</Alert.Description>
 					</Alert.Content>
 				</Alert>
@@ -154,7 +197,10 @@ export function CaseDetailScreen({ caseId }: { caseId: Id<'cases'> }) {
 				accessibilityRole="link"
 				onPress={() => void Linking.openURL(USCIS_CASE_STATUS_URL)}
 			>
-				<Surface variant="secondary" className="flex-row items-center gap-control rounded-2xl p-card">
+				<Surface
+					variant="secondary"
+					className="flex-row items-center gap-control rounded-2xl p-card"
+				>
 					<StyledLucideIcon name="external-link" size={20} className="text-accent" />
 					<View className="flex-1">
 						<Typography.Paragraph className="font-medium">
@@ -171,11 +217,23 @@ export function CaseDetailScreen({ caseId }: { caseId: Id<'cases'> }) {
 				<Typography.Heading className="text-base font-semibold">Timeline</Typography.Heading>
 				<View>
 					{timeline.map((entry, index) => (
-						<TimelineRow key={`${entry.status}-${entry.occurredAt}`} entry={entry} isLatest={index === 0} />
+						<TimelineRow
+							key={`${entry.status}-${entry.occurredAt}`}
+							entry={entry}
+							isLatest={index === 0}
+						/>
 					))}
 				</View>
 				<Separator />
 				<AddUpdate caseId={caseId} />
+			</View>
+
+			<View className="gap-control">
+				<Separator />
+				<Typography.Heading className="text-base font-semibold">Manage case</Typography.Heading>
+				<Button variant="ghost" onPress={confirmDelete}>
+					<Button.Label className="text-danger">Remove from Immifile</Button.Label>
+				</Button>
 			</View>
 		</BodyScrollView>
 	)

@@ -49,3 +49,4 @@ yarn-error.*
 # Stale scratch (not part of the app)
 apps/
 FABLE_BRIEF.md
+.gstack/

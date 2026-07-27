@@ -1,7 +1,8 @@
 import type { GenericDocument, PaginationResult } from 'convex/server'
 import { v } from 'convex/values'
-import { components, internal } from './_generated/api'
+import { components } from './_generated/api'
 import { internalAction, query } from './_generated/server'
+import { purgeOwnerDataInBatches } from './account'
 import { authComponent, createAuth } from './auth'
 import { getAccountIdentity } from './lib/auth'
 import {
@@ -33,7 +34,7 @@ export const tempAccountStatus = query({
 const PAGE_SIZE = 50
 
 /**
- * Daily cleanup of expired temp accounts (M6-T4): permanently deletes
+ * Hourly cleanup of expired temp accounts (M6-T4): permanently deletes
  * anonymous Better Auth accounts created more than 48 hours ago that never
  * converted, together with all of their app data.
  *
@@ -57,9 +58,8 @@ export const cleanupTempAccounts = internalAction({
 	returns: v.object({ deleted: v.number(), skipped: v.number() }),
 	handler: async (ctx) => {
 		const now = Date.now()
-		const siteUrl = (
-			globalThis as { process?: { env?: Record<string, string | undefined> } }
-		).process?.env?.CONVEX_SITE_URL
+		const siteUrl = (globalThis as { process?: { env?: Record<string, string | undefined> } })
+			.process?.env?.CONVEX_SITE_URL
 		if (!siteUrl) throw new Error('CONVEX_SITE_URL is not set; cannot derive owner ids')
 
 		// Collect candidate ids first (isAnonymous only — the age check happens
@@ -97,7 +97,7 @@ export const cleanupTempAccounts = internalAction({
 				continue
 			}
 			const ownerId = `${siteUrl}|${userId}`
-			await ctx.runMutation(internal.account.purgeOwnerData, { ownerId })
+			await purgeOwnerDataInBatches(ctx, ownerId)
 			// Sessions + oauth accounts + the user row.
 			await authContext.internalAdapter.deleteUser(userId)
 			deleted += 1

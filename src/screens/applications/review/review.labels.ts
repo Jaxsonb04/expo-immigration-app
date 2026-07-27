@@ -225,6 +225,10 @@ export function blockerMessage(code: GroupBlockerCode): string {
 			return "This eligibility category isn't one the app prepares yet — check the official Form I-765 instructions."
 		case 'card-not-eligible':
 			return "This card and situation can't be filed with Form I-90 in the app."
+		case 'card-renewal-window':
+			return 'Form I-90 renewal reason 2.f is only for a card that is expired or expires within six months.'
+		case 'card-reason-mismatch':
+			return 'The selected I-90 reason does not match the legal-name or never-received answer. Start the matching replacement reason instead.'
 		case 'needs-preparer-parts':
 			// Both forms have interpreter/preparer parts (I-765 Parts 4-5, I-90
 			// Parts 6-7), so this stays form-neutral.

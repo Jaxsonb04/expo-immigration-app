@@ -2,7 +2,7 @@ import { TempAccountDeletionBanner } from '@/components/account'
 import { FilingStackHero } from '@/components/core'
 import { Typography } from 'heroui-native'
 import { useState } from 'react'
-import { Text, useWindowDimensions, View } from 'react-native'
+import { ScrollView, Text, useWindowDimensions, View } from 'react-native'
 import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { AddRenewalEntry } from './home.renewals'
@@ -19,28 +19,39 @@ const rise = (order: number) =>
  * the intro's feature pitch lives in home.intro.tsx and never repeats.
  */
 export function EmptyDashboard() {
-	const { height } = useWindowDimensions()
-	// Device-aware sizing (M7 fix): the whole state — hero, copy, AND both
-	// actions — must rest above the tab bar on every device, iPhone SE
-	// included. Nothing may sit beneath the bar at rest.
+	const { height, fontScale } = useWindowDimensions()
+	// Device-aware sizing (M7 fix): keep the decorative hero compact on iPhone
+	// SE-class screens; the persistent warning makes the complete state
+	// scrollable, with both actions stopping above the tab bar.
 	const compact = height < 750
+	const showsScrollIndicator = compact || fontScale > 1.2
 	const insets = useSafeAreaInsets()
 	// While the add-a-date form is open it needs the vertical room — the hero
 	// and headline step aside so Add/Cancel stay above the tab bar.
 	const [addingDate, setAddingDate] = useState(false)
-	// A plain, non-scrolling layout with explicit header/tab-bar clearance:
-	// flexGrow inside an inset-adjusted ScrollView sizes to the full frame and
-	// silently pushed the actions below the tab bar. Fixed geometry keeps the
-	// CTA above the bar on every device, deterministically.
+	// The always-visible temporary-account notice makes this surface taller than
+	// an iPhone SE even at standard text sizes. Keep explicit header/tab-bar
+	// clearance and a real scroll path so both application actions remain
+	// reachable; large Dynamic Type also gets a visible scroll indicator.
 	return (
-		<View
-			className="flex-1 px-gutter"
-			style={{ paddingTop: insets.top + 96, paddingBottom: insets.bottom + 12 }}
+		<ScrollView
+			className="flex-1"
+			contentContainerClassName="grow px-gutter"
+			contentContainerStyle={{
+				paddingBottom: insets.bottom + 12,
+			}}
+			automaticallyAdjustsScrollIndicatorInsets
+			contentInsetAdjustmentBehavior="automatic"
+			scrollEnabled
+			bounces
+			showsVerticalScrollIndicator={showsScrollIndicator}
 		>
-			{/* M6-T4: a temp session in its final 24 hours is warned even here. */}
+			{/* P0-4: warn from the first empty dashboard, not only near deletion. */}
 			<TempAccountDeletionBanner />
 
-			<View className={`grow items-center justify-center gap-card ${addingDate ? 'opacity-0' : ''}`}>
+			<View
+				className={`grow items-center justify-center gap-card ${addingDate ? 'opacity-0' : ''}`}
+			>
 				<Animated.View entering={rise(0)}>
 					<FilingStackHero width={compact ? 100 : 126} />
 				</Animated.View>
@@ -66,6 +77,6 @@ export function EmptyDashboard() {
 				    adding a date populates the dashboard's Upcoming renewals. */}
 				<AddRenewalEntry onOpenChange={setAddingDate} />
 			</Animated.View>
-		</View>
+		</ScrollView>
 	)
 }

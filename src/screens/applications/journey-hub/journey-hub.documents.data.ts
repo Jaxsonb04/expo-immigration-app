@@ -1,3 +1,5 @@
+import { useRequireAccount } from '@/components/account'
+import { runAccountGatedAction } from '@/lib/account-gated-action'
 import { pickAndUploadFile } from '@/lib/document-upload'
 import { humanErrorMessage } from '@/lib/error-message'
 import { api } from '@convex/_generated/api'
@@ -19,9 +21,11 @@ import { Alert } from 'react-native'
 type Slot = { _id: Id<'applicationDocuments'>; requirementKey: string }
 
 export function useDocumentActions(applicantId: Id<'applicants'>) {
+	const requireAccount = useRequireAccount()
 	const generateUploadUrl = useMutation(api.documents.generateUploadUrl)
 	const saveDocument = useMutation(api.documents.saveDocument)
 	const attachDocument = useMutation(api.documents.attachDocument)
+	const confirmRequirement = useMutation(api.documents.confirmRequirement)
 	const detachDocument = useMutation(api.documents.detachDocument)
 	const [busySlotId, setBusySlotId] = useState<string | null>(null)
 
@@ -39,18 +43,27 @@ export function useDocumentActions(applicantId: Id<'applicants'>) {
 	/** Pick a file, upload it to Convex storage, save it to the Vault for this
 	 * applicant, and attach it to the slot. A no-op if the user cancels. */
 	function uploadForSlot(slot: Slot) {
-		return run(slot._id, async () => {
-			const picked = await pickAndUploadFile(() => generateUploadUrl({}))
-			if (picked === null) return
+		return runAccountGatedAction(
+			requireAccount,
+			{
+				title: 'Create an account before uploading',
+				description:
+					'Immigration documents contain sensitive information. Create an account or continue with Google first; your existing answers will carry over.',
+			},
+			() =>
+				run(slot._id, async () => {
+					const picked = await pickAndUploadFile(() => generateUploadUrl({}))
+					if (picked === null) return
 
-			const documentId = await saveDocument({
-				applicantId,
-				type: uploadDocumentType(slot.requirementKey),
-				storageId: picked.storageId,
-				label: picked.fileName,
-			})
-			await attachDocument({ slotId: slot._id, documentId })
-		})
+					const documentId = await saveDocument({
+						applicantId,
+						type: uploadDocumentType(slot.requirementKey),
+						storageId: picked.storageId,
+						label: picked.fileName,
+					})
+					await attachDocument({ slotId: slot._id, documentId })
+				}),
+		)
 	}
 
 	/** Attach an already-uploaded Vault document (reuse — no new upload). */
@@ -62,5 +75,9 @@ export function useDocumentActions(applicantId: Id<'applicants'>) {
 		return run(slotId, () => detachDocument({ slotId }))
 	}
 
-	return { busySlotId, uploadForSlot, attachExisting, detach }
+	function confirm(slotId: Id<'applicationDocuments'>) {
+		return run(slotId, () => confirmRequirement({ slotId }))
+	}
+
+	return { busySlotId, uploadForSlot, attachExisting, confirm, detach }
 }

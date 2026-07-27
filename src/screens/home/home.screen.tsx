@@ -11,11 +11,10 @@ import { StartApplicationButton } from './home.start-application-button'
 import { Summary } from './home.summary'
 
 /**
- * Forms tab (M7-T4): a compact one-screen hub. Each product area — renewals,
+ * Forms tab (M7-T4): a compact hub. Each product area — renewals,
  * drafts, attention, completed — collapses to a single glanceable block with
- * a "see all" push into its full list, so the tab root never scrolls
- * (MASTER_PLAN Layout). The first-run intro is the route-owned TabIntro
- * overlay (M7-T5); the empty state is unchanged.
+ * a "see all" push into its full list (MASTER_PLAN Layout). The first-run intro
+ * is the route-owned TabIntro overlay (M7-T5).
  */
 export function HomeScreen() {
 	const dashboard = useHomeDashboard()
@@ -44,13 +43,11 @@ export function HomeScreen() {
 
 	return (
 		<DashboardProvider dashboard={dashboard}>
-			{/* One-screen root: content is sized to fit a single screen (iPhone SE
-			    included), so the surface never actually scrolls. Scrolling and
-			    bounce must stay natively enabled — disabling either makes iOS clamp
-			    the resting offset to 0 and skip the automatic content inset, which
-			    shoves this content under the transparent large-title header. */}
+			{/* Scrolling and bounce stay natively enabled so the persistent
+			    temporary-account notice remains compatible with compact screens
+			    and large Dynamic Type. */}
 			<BodyScrollView contentContainerClassName="gap-card pt-hairline">
-				{/* M6-T4: only renders for a temp session in its final 24 hours. */}
+				{/* P0-4: visible for a temp session throughout its 48-hour lifetime. */}
 				<TempAccountDeletionBanner />
 
 				<View className="gap-hairline">

@@ -11,6 +11,7 @@ import {
 	RECEIPT_NUMBER_RE,
 } from '@convex/shared/applicationShapes'
 import { preReviewStepKeys } from '@convex/shared/interviewSteps'
+import { i90RenewalCardIsEligible } from '@convex/shared/interviewValidation'
 import {
 	I765_CATEGORY_NOT_LISTED,
 	isI90CardStatus,
@@ -416,7 +417,29 @@ export const fieldValidators = {
 		kind === 'replacement'
 			? z.string().min(1, 'Choose what happened to your card')
 			: orEmpty(z.string()),
-	cardExpirationDate: orEmpty(personFactsShape.shape.dateOfBirth),
+	nameChangedSinceIssuance: (
+		kind: ApplicationKind,
+		replacementReason: string,
+	): z.ZodType<string, string> =>
+		z
+			.string()
+			.min(1, 'Choose an answer')
+			.refine(
+				(value) =>
+					kind === 'renewal'
+						? value === 'no'
+						: replacementReason !== 'nameChange' || value === 'yes',
+				kind === 'renewal'
+					? 'A legal name change or never-received card uses a different I-90 reason; start a replacement instead'
+					: 'Choose Yes because this replacement reason says your legal name changed',
+			),
+	cardExpirationDate: (kind: ApplicationKind): z.ZodType<string, string> =>
+		kind === 'renewal'
+			? personFactsShape.shape.dateOfBirth.refine(
+					(value) => i90RenewalCardIsEligible(value),
+					'Form I-90 renewal is for a card that is expired or expires within six months',
+				)
+			: orEmpty(personFactsShape.shape.dateOfBirth),
 	// Kind-aware: the value set is enforced by the radio options; the refine
 	// blocks the one unsupported combination (conditional resident + renewal,
 	// shared/screening.ts) with an inline explanation below the field.
@@ -1045,7 +1068,17 @@ export const nameChangeOptions = [
 export const replacementReasonOptions = (formType: FormType) => [
 	{ value: 'lost', label: 'It was lost' },
 	{ value: 'stolen', label: 'It was stolen' },
-	{ value: 'damaged', label: 'It was damaged' },
-	{ value: 'error', label: 'It has a mistake on it' },
+	{ value: 'destroyed', label: 'It was destroyed' },
+	{
+		value: 'damaged',
+		label: formType === 'i90' ? 'It was damaged or mutilated' : 'It was damaged',
+	},
+	{
+		value: 'error',
+		label:
+			formType === 'i90'
+				? 'DHS put incorrect data on it'
+				: 'It has incorrect data not caused by USCIS',
+	},
 	...(formType === 'i90' ? [{ value: 'nameChange', label: 'My name changed' }] : []),
 ]

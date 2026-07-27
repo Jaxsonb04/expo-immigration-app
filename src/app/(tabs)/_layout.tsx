@@ -1,12 +1,12 @@
 import { TabBarContext } from '@/hooks/use-tab-bar'
 import { useTabLayoutStyle } from '@/hooks/use-layout-style'
+import { isReleaseTabVisible } from '@/lib/release-policy'
 import { NativeTabs } from 'expo-router/unstable-native-tabs'
 import { useMemo, useState } from 'react'
 
-// Tab order is a product decision (MASTER_PLAN Layout, M7-T1, revised post-M7):
-// Forms is the primary surface and holds the index route, so the app opens
-// there. The assistant sits between Cases and Community — a floating bubble
-// crowded each surface it sat on, so it's back to being its own tab.
+// All triggers stay statically declared because NativeTabs requires a trigger
+// for every tab. Review-sensitive surfaces are hidden by the source-controlled
+// release policy and protected separately against deep links in the root layout.
 export default function TabsLayout() {
 	const { tabBarStyle } = useTabLayoutStyle()
 	// Full-surface moments (the one-time tab intros) hide the bar entirely so
@@ -16,7 +16,7 @@ export default function TabsLayout() {
 	return (
 		<TabBarContext value={tabBarContext}>
 			<NativeTabs {...tabBarStyle} hidden={isTabBarHidden} sidebarAdaptable>
-				<NativeTabs.Trigger name="(forms)">
+				<NativeTabs.Trigger name="(forms)" hidden={!isReleaseTabVisible('(forms)')}>
 					<NativeTabs.Trigger.Icon sf="doc.text.fill" md="description" />
 					<NativeTabs.Trigger.Label>Forms</NativeTabs.Trigger.Label>
 				</NativeTabs.Trigger>
@@ -24,11 +24,15 @@ export default function TabsLayout() {
 					<NativeTabs.Trigger.Icon sf="tray.full.fill" md="inbox" />
 					<NativeTabs.Trigger.Label>Cases</NativeTabs.Trigger.Label>
 				</NativeTabs.Trigger>
-				<NativeTabs.Trigger name="assistant">
+				<NativeTabs.Trigger name="resources">
+					<NativeTabs.Trigger.Icon sf="safari.fill" md="language" />
+					<NativeTabs.Trigger.Label>Resources</NativeTabs.Trigger.Label>
+				</NativeTabs.Trigger>
+				<NativeTabs.Trigger name="assistant" hidden={!isReleaseTabVisible('assistant')}>
 					<NativeTabs.Trigger.Icon sf="sparkles" md="auto_awesome" />
 					<NativeTabs.Trigger.Label>Assistant</NativeTabs.Trigger.Label>
 				</NativeTabs.Trigger>
-				<NativeTabs.Trigger name="community">
+				<NativeTabs.Trigger name="community" hidden={!isReleaseTabVisible('community')}>
 					<NativeTabs.Trigger.Icon sf="person.2.fill" md="groups" />
 					<NativeTabs.Trigger.Label>Community</NativeTabs.Trigger.Label>
 				</NativeTabs.Trigger>

@@ -6,7 +6,10 @@ import { authClient } from '@/lib/auth-client'
  * `refetch` lives on the atom's *value*; `subscribe` lives on the atom itself.
  */
 type SessionAtomValue = {
-	data?: { session?: unknown } | null
+	data?: {
+		session?: unknown
+		user?: { id?: string }
+	} | null
 	isPending?: boolean
 	refetch: (params?: { query?: { disableCookieCache?: boolean } }) => Promise<unknown>
 }
@@ -57,28 +60,36 @@ const SESSION_RESOLVE_INTERVAL_MS = 200
  * the server authenticated the request (a cold start reads the cookie fine).
  *
  * Re-drive the atom's own `refetch` (cookie cache bypassed) until it reflects
- * the persisted session, then notify once so the Convex provider fetches its
- * token. Bounded so a genuinely-signed-out caller still gets control back.
- * Returns whether a session is present when it finishes.
+ * the persisted session. When a sign-in just created a user, `expectedUserId`
+ * prevents a still-valid local cache entry for an older session from being
+ * mistaken for the new identity. The awaited refetch publishes the session
+ * atom itself, which changes the Convex provider's token fetcher when the
+ * session id changes.
+ *
+ * Bounded so a genuinely-signed-out caller still gets control back. Returns
+ * whether the expected session is present when it finishes.
  */
-export async function ensureSessionResolved(): Promise<boolean> {
+export async function ensureSessionResolved(expectedUserId?: string): Promise<boolean> {
 	const atom = getSessionAtom()
 
-	const settle = (): boolean => {
-		if (!atom.get().data?.session) return false
-		authClient.$store.notify('$sessionSignal')
-		return true
+	const matchesExpectedSession = (): boolean => {
+		const data = atom.get().data
+		if (!data?.session) return false
+		return expectedUserId === undefined || data.user?.id === expectedUserId
 	}
 
 	for (let attempt = 0; attempt < SESSION_RESOLVE_ATTEMPTS; attempt += 1) {
-		if (settle()) return true
+		let refreshed = false
 		try {
 			await atom.get().refetch({ query: { disableCookieCache: true } })
+			refreshed = true
 		} catch {
 			// A refetch aborted by an overlapping one throws; the next attempt retries.
 		}
-		if (settle()) return true
-		await new Promise((resolve) => setTimeout(resolve, SESSION_RESOLVE_INTERVAL_MS))
+		if (refreshed && matchesExpectedSession()) return true
+		if (attempt < SESSION_RESOLVE_ATTEMPTS - 1) {
+			await new Promise((resolve) => setTimeout(resolve, SESSION_RESOLVE_INTERVAL_MS))
+		}
 	}
 	return false
 }

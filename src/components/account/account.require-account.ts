@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router'
 import { useCallback, useEffect, useRef } from 'react'
 import { accountGateStore, type InvestedProgress } from './account.data'
-import { useAccountSession } from './account.session'
+import { useCredentialedAccountReadiness } from './account.session'
 
 /**
  * The shared account gate. Returns a `requireAccount(recap?)` guard you can
@@ -21,10 +21,11 @@ import { useAccountSession } from './account.session'
  * ```
  *
  * Behaviour:
- * - Already credentialed → resolves `true` immediately (no prompt).
+ * - Credentialed and confirmed by Convex → resolves `true` immediately.
  * - Anonymous → opens the upgrade surface (the AccountGateProvider's bottom
  *   sheet if mounted, otherwise the `/upgrade` modal) and resolves `true` only
- *   after a successful anonymous → credentialed link; `false` if dismissed.
+ *   after a successful anonymous → credentialed link and server identity
+ *   handoff; `false` if dismissed.
  *
  * The anonymous-created data is preserved by the upgrade itself (Better Auth
  * `onLinkAccount` → convex/account.ts), so the resumed action runs against the
@@ -32,17 +33,17 @@ import { useAccountSession } from './account.session'
  */
 export function useRequireAccount(): (recap?: InvestedProgress) => Promise<boolean> {
 	const router = useRouter()
-	const { isCredentialed } = useAccountSession()
+	const { isCredentialedReady } = useCredentialedAccountReadiness()
 
 	// Read the latest value inside the stable callback without re-creating it.
-	const isCredentialedRef = useRef(isCredentialed)
+	const isCredentialedReadyRef = useRef(isCredentialedReady)
 	useEffect(() => {
-		isCredentialedRef.current = isCredentialed
-	}, [isCredentialed])
+		isCredentialedReadyRef.current = isCredentialedReady
+	}, [isCredentialedReady])
 
 	return useCallback(
 		async (recap?: InvestedProgress): Promise<boolean> => {
-			if (isCredentialedRef.current) {
+			if (isCredentialedReadyRef.current) {
 				return true
 			}
 

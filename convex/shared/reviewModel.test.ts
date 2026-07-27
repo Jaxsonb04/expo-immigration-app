@@ -75,6 +75,7 @@ function completeFor(formType: FormType, applicationKind: ApplicationKind) {
 	}
 	if (formType === 'i90') {
 		form.cardStatus = 'permanentResident'
+		if (applicationKind === 'renewal') form.cardExpirationDate = '2020-01-01'
 		form.nameChangedSinceIssuance = 'no'
 		form.physicalAddressSameAsMailing = 'yes'
 		form.preparedSelfInEnglish = 'yes'

@@ -1,0 +1,111 @@
+import { readFileSync } from 'node:fs'
+
+const app = JSON.parse(readFileSync(new URL('../app.json', import.meta.url), 'utf8')).expo
+const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+const eas = JSON.parse(readFileSync(new URL('../eas.json', import.meta.url), 'utf8'))
+const policy = JSON.parse(readFileSync(new URL('../release-policy.json', import.meta.url), 'utf8'))
+
+function assert(condition, message) {
+	if (!condition) throw new Error(`Release config: ${message}`)
+}
+
+function isConfigured(value) {
+	return Boolean(value) && !/REQUIRED/i.test(value)
+}
+
+assert(app.version === '1.0.0', 'set an explicit public version')
+assert(/^\d+$/.test(app.ios?.buildNumber ?? ''), 'ios.buildNumber must be numeric')
+assert(Number.isInteger(app.android?.versionCode), 'android.versionCode must be an integer')
+assert(Boolean(app.ios?.bundleIdentifier), 'ios.bundleIdentifier is required')
+assert(app.ios?.config?.usesNonExemptEncryption === false, 'declare standard/exempt encryption use')
+assert(app.extra?.router?.sitemap === false, 'Expo Router sitemap must be disabled')
+assert(!app.ios?.infoPlist?.NSCameraUsageDescription, 'camera permission must not ship')
+assert(!app.ios?.infoPlist?.NSMicrophoneUsageDescription, 'microphone permission must not ship')
+assert(
+	app.ios?.infoPlist?.NSAppTransportSecurity?.NSAllowsArbitraryLoads === false,
+	'App Transport Security must reject arbitrary loads',
+)
+assert(
+	app.ios?.infoPlist?.NSAppTransportSecurity?.NSAllowsLocalNetworking === false,
+	'unused local-network exceptions must not ship',
+)
+assert(
+	!(app.android?.permissions ?? []).includes('android.permission.CAMERA'),
+	'camera permission must not ship',
+)
+assert(
+	!(app.android?.permissions ?? []).includes('android.permission.RECORD_AUDIO'),
+	'microphone permission must not ship',
+)
+
+const pluginNames = (app.plugins ?? []).map((plugin) =>
+	Array.isArray(plugin) ? plugin[0] : plugin,
+)
+const secureStorePlugin = (app.plugins ?? []).find(
+	(plugin) => Array.isArray(plugin) && plugin[0] === 'expo-secure-store',
+)
+assert(
+	Array.isArray(secureStorePlugin) && secureStorePlugin[1]?.faceIDPermission === false,
+	'expo-secure-store must explicitly disable the unused Face ID permission string',
+)
+for (const forbidden of ['expo-local-authentication', 'expo-notifications', 'expo-widgets']) {
+	assert(!pluginNames.includes(forbidden), `${forbidden} must not be configured`)
+}
+for (const dependency of [
+	'expo-dev-client',
+	'expo-local-authentication',
+	'expo-notifications',
+	'expo-widgets',
+	'react-native-vision-camera',
+]) {
+	assert(!pkg.dependencies?.[dependency], `${dependency} must not be installed`)
+}
+
+for (const feature of ['filingPreparation', 'assistant', 'community', 'socialLogin']) {
+	assert(policy[feature] === false, `${feature} must be pinned off for the first review build`)
+}
+assert(
+	eas.build?.production?.environment === 'production',
+	'EAS production profile must use production env',
+)
+
+if (process.env.IMMIFILE_RELEASE_BUILD === 'true') {
+	assert(
+		/^hp_\S+$/.test(process.env.HEROUI_KEY ?? '') && isConfigured(process.env.HEROUI_KEY),
+		'HEROUI_KEY is missing or invalid; add the trusted hp_ key as an EAS production secret',
+	)
+	const requiredPublicEnvironment = [
+		['EXPO_PUBLIC_CONVEX_URL', process.env.EXPO_PUBLIC_CONVEX_URL],
+		['EXPO_PUBLIC_CONVEX_SITE_URL', process.env.EXPO_PUBLIC_CONVEX_SITE_URL],
+		['EXPO_PUBLIC_AUTH_SITE_URL', process.env.EXPO_PUBLIC_AUTH_SITE_URL],
+		['EXPO_PUBLIC_PRIVACY_URL', process.env.EXPO_PUBLIC_PRIVACY_URL],
+		['EXPO_PUBLIC_SUPPORT_URL', process.env.EXPO_PUBLIC_SUPPORT_URL],
+	]
+	for (const [name, value] of requiredPublicEnvironment) {
+		assert(
+			isConfigured(value),
+			`${name} is missing or still contains a placeholder in the EAS production environment`,
+		)
+		assert(/^https:\/\//.test(value), `${name} must use HTTPS`)
+		assert(!/localhost|127\.0\.0\.1/i.test(value), `${name} cannot target a local service`)
+	}
+	assert(
+		process.env.EXPO_PUBLIC_PASSWORD_RECOVERY_ENABLED === 'true',
+		'password recovery must be enabled in the first public release',
+	)
+	assert(
+		/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(process.env.EXPO_PUBLIC_SUPPORT_EMAIL ?? '') &&
+			isConfigured(process.env.EXPO_PUBLIC_SUPPORT_EMAIL),
+		'EXPO_PUBLIC_SUPPORT_EMAIL must be a monitored private support address',
+	)
+	assert(
+		process.env.IMMIFILE_PRODUCTION_BACKEND_CONFIRMED === 'true',
+		'set IMMIFILE_PRODUCTION_BACKEND_CONFIRMED=true only after deploying Convex production with DEV_SEED_ENABLED disabled',
+	)
+	assert(
+		process.env.IMMIFILE_AUTH_EMAIL_CONFIRMED === 'true',
+		'set IMMIFILE_AUTH_EMAIL_CONFIRMED=true only after the production reset-email webhook succeeds end to end',
+	)
+}
+
+console.log('Release configuration checks passed.')

@@ -1,5 +1,15 @@
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 
+async function assertOwnerIsActive(ctx: QueryCtx | MutationCtx, ownerId: string): Promise<void> {
+	const deletion = await ctx.db
+		.query('accountDeletionTombstones')
+		.withIndex('by_ownerId', (q) => q.eq('ownerId', ownerId))
+		.unique()
+	if (deletion !== null) {
+		throw new Error('Account deletion is in progress')
+	}
+}
+
 /**
  * The account holder's stable identity key. Derived from the authenticated
  * identity's `tokenIdentifier` (never from a client-supplied argument), so it
@@ -7,7 +17,9 @@ import type { MutationCtx, QueryCtx } from '../_generated/server'
  */
 export async function getOwnerId(ctx: QueryCtx | MutationCtx): Promise<string | null> {
 	const identity = await ctx.auth.getUserIdentity()
-	return identity?.tokenIdentifier ?? null
+	if (identity === null) return null
+	await assertOwnerIsActive(ctx, identity.tokenIdentifier)
+	return identity.tokenIdentifier
 }
 
 /** Like {@link getOwnerId}, but throws when the caller is not authenticated. */
@@ -33,6 +45,7 @@ export async function getAccountIdentity(
 ): Promise<{ ownerId: string; isAnonymous: boolean } | null> {
 	const identity = await ctx.auth.getUserIdentity()
 	if (identity === null) return null
+	await assertOwnerIsActive(ctx, identity.tokenIdentifier)
 	const isAnonymous = (identity as { isAnonymous?: boolean | null }).isAnonymous === true
 	return { ownerId: identity.tokenIdentifier, isAnonymous }
 }
@@ -52,7 +65,7 @@ export async function requireCredentialedOwnerId(ctx: QueryCtx | MutationCtx): P
 	const account = await getAccountIdentity(ctx)
 	if (account === null) throw new Error('Not authenticated')
 	if (account.isAnonymous) {
-		throw new Error('Create a free account to take part in the community')
+		throw new Error('Create a free account before saving or sharing information')
 	}
 	return account.ownerId
 }

@@ -1,5 +1,7 @@
+import { useRequireAccount } from '@/components/account'
 import { BodyScrollView, ScreenError, ScreenLoading } from '@/components/core'
 import { StyledLucideIcon } from '@/components/styled-icon'
+import { runAccountGatedAction } from '@/lib/account-gated-action'
 import {
 	documentTypeLabel,
 	formatIsoDate,
@@ -147,6 +149,7 @@ function AttachedToList({ attachedTo }: { attachedTo: DocumentDetail['attachedTo
 
 function ManageSection({ detail }: { detail: DocumentDetail }) {
 	const router = useRouter()
+	const requireAccount = useRequireAccount()
 	const generateUploadUrl = useGenerateUploadUrl()
 	const uploadNewVersion = useUploadNewVersion()
 	const deleteDocument = useDeleteDocument()
@@ -154,20 +157,32 @@ function ManageSection({ detail }: { detail: DocumentDetail }) {
 	const isAttached = detail.attachedTo.length > 0
 
 	async function replace() {
-		setBusy(true)
 		try {
-			const picked = await pickAndUploadFile(() => generateUploadUrl({}))
-			if (picked === null) return
-			await uploadNewVersion({
-				supersedesId: detail._id,
-				storageId: picked.storageId,
-				label: picked.fileName,
-			})
-			router.back()
+			await runAccountGatedAction(
+				requireAccount,
+				{
+					title: 'Create an account before replacing this file',
+					description:
+						'Immigration documents contain sensitive information. Create an account or continue with Google first; your saved work will carry over.',
+				},
+				async () => {
+					setBusy(true)
+					try {
+						const picked = await pickAndUploadFile(() => generateUploadUrl({}))
+						if (picked === null) return
+						await uploadNewVersion({
+							supersedesId: detail._id,
+							storageId: picked.storageId,
+							label: picked.fileName,
+						})
+						router.back()
+					} finally {
+						setBusy(false)
+					}
+				},
+			)
 		} catch (error) {
 			RNAlert.alert("Couldn't replace document", humanErrorMessage(error))
-		} finally {
-			setBusy(false)
 		}
 	}
 

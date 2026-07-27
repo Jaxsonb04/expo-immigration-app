@@ -3,6 +3,7 @@ import { convexTest } from 'convex-test'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { api } from './_generated/api'
 import schema from './schema'
+import { EVIDENCE_CONTRACT_VERSION } from './shared/evidenceRequirements'
 
 const modules = import.meta.glob('./**/*.ts')
 const newT = () => convexTest(schema, modules)
@@ -20,8 +21,16 @@ describe('createCase', () => {
 		const caseId = await alice.mutation(api.cases.createCase, { receiptNumber: RECEIPT })
 		const tracked = await alice.query(api.cases.getCase, { caseId })
 		expect(tracked).toMatchObject({ receiptNumber: RECEIPT, status: 'caseReceived' })
-		expect(tracked.statusHistory).toHaveLength(1)
-		expect(tracked.statusHistory[0]).toMatchObject({ status: 'caseReceived' })
+		expect(tracked!.statusHistory).toHaveLength(1)
+		expect(tracked!.statusHistory[0]).toMatchObject({ status: 'caseReceived' })
+	})
+
+	test('requires a permanent account before storing a receipt number', async () => {
+		const t = newT()
+		const temporary = t.withIdentity({ subject: 'temp', isAnonymous: true })
+		await expect(
+			temporary.mutation(api.cases.createCase, { receiptNumber: RECEIPT }),
+		).rejects.toThrow(/account/i)
 	})
 
 	test('normalizes case and whitespace before validating', async () => {
@@ -31,7 +40,7 @@ describe('createCase', () => {
 			receiptNumber: '  eac 123 456 7890 ',
 		})
 		const tracked = await alice.query(api.cases.getCase, { caseId })
-		expect(tracked.receiptNumber).toBe(RECEIPT)
+		expect(tracked!.receiptNumber).toBe(RECEIPT)
 	})
 
 	test.each(['EAC123', 'EA1234567890', 'EAC12345678901', '1234567890EAC', 'EACABCDEFGHIJ'])(
@@ -75,7 +84,7 @@ describe('createCase', () => {
 			receiptNumber: RECEIPT,
 			applicationId,
 		})
-		expect((await alice.query(api.cases.getCase, { caseId })).applicationId).toBe(applicationId)
+		expect((await alice.query(api.cases.getCase, { caseId }))!.applicationId).toBe(applicationId)
 
 		const bob = t.withIdentity({ subject: 'bob' })
 		await expect(
@@ -95,9 +104,9 @@ describe('addStatusUpdate', () => {
 			note: 'ASC appointment 8/1',
 		})
 		const tracked = await alice.query(api.cases.getCase, { caseId })
-		expect(tracked.status).toBe('biometrics')
-		expect(tracked.statusHistory).toHaveLength(2)
-		expect(tracked.statusHistory[1]).toMatchObject({
+		expect(tracked!.status).toBe('biometrics')
+		expect(tracked!.statusHistory).toHaveLength(2)
+		expect(tracked!.statusHistory[1]).toMatchObject({
 			status: 'biometrics',
 			note: 'ASC appointment 8/1',
 		})
@@ -113,7 +122,28 @@ describe('addStatusUpdate', () => {
 			occurredAt: 1_700_000_000_000,
 		})
 		const tracked = await alice.query(api.cases.getCase, { caseId })
-		expect(tracked.statusHistory[1]!.occurredAt).toBe(1_700_000_000_000)
+		expect(tracked!.statusHistory[1]!.occurredAt).toBe(1_700_000_000_000)
+	})
+
+	test('a temporary session cannot update an existing case', async () => {
+		const t = newT()
+		const credentialed = t.withIdentity({ subject: 'same-owner' })
+		const temporary = t.withIdentity({ subject: 'same-owner', isAnonymous: true })
+		const caseId = await credentialed.mutation(api.cases.createCase, {
+			receiptNumber: RECEIPT,
+		})
+
+		await expect(
+			temporary.mutation(api.cases.addStatusUpdate, {
+				caseId,
+				status: 'approved',
+				note: 'must not persist',
+			}),
+		).rejects.toThrow(/account/i)
+
+		const tracked = await credentialed.query(api.cases.getCase, { caseId })
+		expect(tracked!.status).toBe('caseReceived')
+		expect(tracked!.statusHistory).toHaveLength(1)
 	})
 })
 
@@ -124,7 +154,7 @@ describe('authorization / owner isolation', () => {
 		const bob = t.withIdentity({ subject: 'bob' })
 		const caseId = await alice.mutation(api.cases.createCase, { receiptNumber: RECEIPT })
 
-		await expect(bob.query(api.cases.getCase, { caseId })).rejects.toThrow('Case not found')
+		expect(await bob.query(api.cases.getCase, { caseId })).toBeNull()
 		await expect(
 			bob.mutation(api.cases.addStatusUpdate, { caseId, status: 'approved' }),
 		).rejects.toThrow('Case not found')
@@ -136,6 +166,19 @@ describe('authorization / owner isolation', () => {
 		const t = newT()
 		await expect(t.query(api.cases.listCases, {})).rejects.toThrow()
 		await expect(t.mutation(api.cases.createCase, { receiptNumber: RECEIPT })).rejects.toThrow()
+	})
+})
+
+describe('deleteCase', () => {
+	test('removes only the owner’s tracked case', async () => {
+		const t = newT()
+		const alice = t.withIdentity({ subject: 'alice' })
+		const bob = t.withIdentity({ subject: 'bob' })
+		const caseId = await alice.mutation(api.cases.createCase, { receiptNumber: RECEIPT })
+
+		await expect(bob.mutation(api.cases.deleteCase, { caseId })).rejects.toThrow('Case not found')
+		await expect(alice.mutation(api.cases.deleteCase, { caseId })).resolves.toBeNull()
+		expect(await alice.query(api.cases.getCase, { caseId })).toBeNull()
 	})
 })
 
@@ -161,9 +204,19 @@ describe('receipt-number filing reconcile', () => {
 		const { alice, applicationId } = await setupDraft(t)
 		const before = Date.now()
 		await alice.mutation(api.cases.createCase, { receiptNumber: RECEIPT, applicationId })
-		const { application } = (await alice.query(api.applications.getApplication, { applicationId }))!
+		const { application, readiness, requirements } = (await alice.query(
+			api.applications.getApplication,
+			{ applicationId },
+		))!
 		expect(application.status).toBe('filed')
 		expect(application.filedAt).toBeGreaterThanOrEqual(before)
+		expect(application.filingEvidenceContractVersion).toBe(EVIDENCE_CONTRACT_VERSION)
+		expect(readiness.isReadyToFile).toBe(false)
+		expect(requirements.map((requirement) => requirement.requirementKey).sort()).toEqual([
+			'eadCard',
+			'entryDocument',
+			'passportPhoto',
+		])
 	})
 
 	test('linking an already-filed application keeps its original filedAt', async () => {

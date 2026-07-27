@@ -1,21 +1,13 @@
 import { authClient } from '@/lib/auth-client'
+import { PASSWORD_RECOVERY_ENABLED } from '@/lib/password-recovery'
 import { ensureSessionResolved } from '@/lib/session-sync'
-import { Button, Input, Label, Separator, TextField, Typography } from 'heroui-native'
-import { SocialAuthButton, type SocialAuthButtonProvider } from 'heroui-native-pro'
+import { useRouter } from 'expo-router'
+import { Button, Input, Label, TextField, Typography } from 'heroui-native'
 import { useState } from 'react'
 import { Alert, Text, View } from 'react-native'
 import { KeyboardAwareScrollView } from 'react-native-keyboard-controller'
 
 type Mode = 'sign-in' | 'sign-up'
-
-// Google is the only social provider wired up for now; Apple is planned next.
-// GitHub is intentionally excluded — a developer identity provider makes no
-// sense for this app's audience (immigrants filing USCIS paperwork). Keep this
-// list to providers heroui-native-pro renders an icon for and Better Auth
-// supports.
-type SocialProvider = Extract<SocialAuthButtonProvider, 'google' | 'apple'>
-
-const SOCIAL_PROVIDERS: SocialProvider[] = ['google']
 
 /**
  * Dedicated sign-in screen for returning users, pushed from the Welcome screen
@@ -24,6 +16,7 @@ const SOCIAL_PROVIDERS: SocialProvider[] = ['google']
  * account. The sign-up toggle is retained for now.
  */
 export default function SignInScreen() {
+	const router = useRouter()
 	const [mode, setMode] = useState<Mode>('sign-in')
 	const [name, setName] = useState('')
 	const [email, setEmail] = useState('')
@@ -57,32 +50,8 @@ export default function SignInScreen() {
 			// refetch race so the redirect is not stranded (see ensureSessionResolved).
 			const resolved = await ensureSessionResolved()
 			if (!resolved) {
-				Alert.alert(
-					'Almost there',
-					"We couldn't finish loading your session. Please try again.",
-				)
+				Alert.alert('Almost there', "We couldn't finish loading your session. Please try again.")
 			}
-		} catch (err) {
-			Alert.alert('Something went wrong', err instanceof Error ? err.message : 'Please try again.')
-		} finally {
-			setPending(false)
-		}
-	}
-
-	async function handleSocialAuth(provider: SocialProvider): Promise<void> {
-		setPending(true)
-		try {
-			const { error } = await authClient.signIn.social({ provider, callbackURL: '/' })
-			if (error) {
-				Alert.alert('Authentication failed', error.message ?? 'Please try again.')
-				return
-			}
-			// `signIn.social` resolves only after the OAuth browser flow writes the
-			// session cookie (or the user dismisses it). Drive the reactive atom so
-			// a successful sign-in isn't stranded by the refetch race; if it never
-			// resolves the user simply dismissed the browser, so stay silent — the
-			// root reconciler still recovers any session that did land.
-			await ensureSessionResolved()
 		} catch (err) {
 			Alert.alert('Something went wrong', err instanceof Error ? err.message : 'Please try again.')
 		} finally {
@@ -103,28 +72,9 @@ export default function SignInScreen() {
 				</Text>
 				<Typography.Paragraph color="muted" className="text-[15px]">
 					{isSignUp
-						? 'Save your progress and file with confidence.'
-						: 'Sign in to pick up right where you left off.'}
+						? 'Save cases and keep your account across devices.'
+						: 'Sign in to return to your saved cases.'}
 				</Typography.Paragraph>
-			</View>
-
-			<View className="gap-control">
-				{SOCIAL_PROVIDERS.map((provider) => (
-					<SocialAuthButton
-						key={provider}
-						provider={provider}
-						isDisabled={pending}
-						onPress={() => handleSocialAuth(provider)}
-					/>
-				))}
-			</View>
-
-			<View className="flex-row items-center gap-card">
-				<Separator className="flex-1" />
-				<Typography.Paragraph color="muted" className="text-sm">
-					or continue with email
-				</Typography.Paragraph>
-				<Separator className="flex-1" />
 			</View>
 
 			<View className="gap-card">
@@ -193,6 +143,15 @@ export default function SignInScreen() {
 						{isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
 					</Button.Label>
 				</Button>
+				{!isSignUp && PASSWORD_RECOVERY_ENABLED ? (
+					<Button
+						variant="ghost"
+						isDisabled={pending}
+						onPress={() => router.push('/forgot-password')}
+					>
+						<Button.Label>Forgot password?</Button.Label>
+					</Button>
+				) : null}
 			</View>
 		</KeyboardAwareScrollView>
 	)

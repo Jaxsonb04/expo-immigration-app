@@ -14,11 +14,15 @@ import {
  * guarantees recovery no matter which path created the session — including any
  * future sign-in that forgets to await `ensureSessionResolved`.
  *
- * Whenever the reactive session settles signed-out while a session cookie is
- * still persisted in secure storage, that's a stranded session, so re-drive the
- * refetch loop. Each distinct cookie is reconciled at most once (tracked by
- * value) so an expired/invalid cookie can't spin the loop forever, while a
- * fresh sign-in (new cookie) always earns a fresh attempt.
+ * Revalidate every distinct persisted cookie once, even when the reactive atom
+ * already contains a session. The Expo plugin can hydrate that atom from a
+ * separate local session cache after the cookie itself has become invalid; in
+ * that split-brain state, accepting `hasSession` without a server refetch keeps
+ * Convex unauthenticated forever.
+ *
+ * A session with no cookie is also revalidated once so the stale local cache is
+ * cleared. Keys are deduplicated so an expired/invalid cookie cannot spin the
+ * loop forever, while a fresh sign-in cookie always earns a new attempt.
  */
 export function useSessionReconciler(): void {
 	const reconciledCookie = useRef<string | null>(null)
@@ -26,21 +30,17 @@ export function useSessionReconciler(): void {
 	useEffect(() => {
 		const reconcile = () => {
 			const { hasSession, isPending } = getSessionSnapshot()
-			if (hasSession) {
-				// Signed in — clear the guard so a later sign-out → sign-in reconciles.
-				reconciledCookie.current = null
-				return
-			}
 			if (isPending) return
 
 			const cookie = getPersistedSessionCookie()
-			if (!cookie) {
+			const reconciliationKey = cookie || (hasSession ? 'session-without-cookie' : '')
+			if (!reconciliationKey) {
 				// Genuinely signed out; nothing to recover.
 				reconciledCookie.current = null
 				return
 			}
-			if (cookie === reconciledCookie.current) return
-			reconciledCookie.current = cookie
+			if (reconciliationKey === reconciledCookie.current) return
+			reconciledCookie.current = reconciliationKey
 			void ensureSessionResolved()
 		}
 

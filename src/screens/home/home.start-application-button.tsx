@@ -8,7 +8,7 @@ export function StartApplicationButton(props: {
 	const router = useRouter()
 	return (
 		<Button variant={props.variant} onPress={() => router.push('/new-application')}>
-			<Button.Label>Start an application</Button.Label>
+			<Button.Label maxFontSizeMultiplier={1.5}>Start an application</Button.Label>
 		</Button>
 	)
 }

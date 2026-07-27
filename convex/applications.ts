@@ -9,6 +9,7 @@ import {
 	getDraftForApplication,
 	getOwnedApplication,
 	reconcileRequirements,
+	requirementsForReadiness,
 } from './model/applications'
 import {
 	applicationKinds,
@@ -20,14 +21,41 @@ import {
 	type PersonFacts,
 } from './shared/applicationShapes'
 import { screenI90 } from './shared/screening'
-import { interviewStepKeys, preReviewStepKeys } from './shared/interviewSteps'
+import { interviewStepKeys, preReviewStepKeys, requiredSlotKeys } from './shared/interviewSteps'
 import { isStepComplete, stepOwnedKeys } from './shared/interviewValidation'
 import { computeReadiness } from './shared/readiness'
+import { EVIDENCE_CONTRACT_VERSION } from './shared/evidenceRequirements'
 
 const draftShapeFor = { i765: i765DraftAnswersShape, i90: i90DraftAnswersShape } as const
 
 function definedEntries<T extends Record<string, unknown>>(value: T): Partial<T> {
 	return Object.fromEntries(Object.entries(value).filter(([, x]) => x !== undefined)) as Partial<T>
+}
+
+/** JSON-value equality that ignores object key insertion order. */
+function sameJsonValue(left: unknown, right: unknown): boolean {
+	if (Object.is(left, right)) return true
+	if (Array.isArray(left) || Array.isArray(right)) {
+		return (
+			Array.isArray(left) &&
+			Array.isArray(right) &&
+			left.length === right.length &&
+			left.every((value, index) => sameJsonValue(value, right[index]))
+		)
+	}
+	if (typeof left !== 'object' || left === null || typeof right !== 'object' || right === null) {
+		return false
+	}
+	const leftRecord = left as Record<string, unknown>
+	const rightRecord = right as Record<string, unknown>
+	const leftKeys = Object.keys(leftRecord).sort()
+	const rightKeys = Object.keys(rightRecord).sort()
+	return (
+		leftKeys.length === rightKeys.length &&
+		leftKeys.every(
+			(key, index) => key === rightKeys[index] && sameJsonValue(leftRecord[key], rightRecord[key]),
+		)
+	)
 }
 
 /**
@@ -91,6 +119,7 @@ export const createApplication = mutation({
 				formType: 'i765',
 				answers: { personFacts: seededPersonFacts, form: {} },
 				stepCompletion: {},
+				evidenceRevision: 0,
 				updatedAt: now,
 			})
 		} else {
@@ -102,6 +131,7 @@ export const createApplication = mutation({
 				// card-details step re-shows it for confirmation and edit.
 				answers: { personFacts: seededPersonFacts, form: { cardStatus: args.i90CardStatus } },
 				stepCompletion: {},
+				evidenceRevision: 0,
 				updatedAt: now,
 			})
 		}
@@ -173,34 +203,95 @@ export const getApplication = query({
 					.withIndex('by_applicantId', (q) => q.eq('applicantId', application.applicantId))
 					.take(100),
 			])
+		const expectedRequirementKeys = requiredSlotKeys(
+			application.formType,
+			application.applicationKind,
+			draft.answers,
+		)
+		const usesCurrentDraftRequirements =
+			application.status === 'draft' ||
+			(application.status === 'closed' && application.filedAt === undefined)
+		const usesVersionedFilingRequirements =
+			application.filedAt !== undefined && application.filingEvidenceContractVersion !== undefined
+		const visibleRequirementKeys = usesVersionedFilingRequirements
+			? (application.filingRequirementKeys ?? [])
+			: expectedRequirementKeys
+		// Obsolete rows may remain when they hold an attachment; hide them from
+		// the active/current filing checklist without deleting the Vault file.
+		const activeRequirements =
+			usesCurrentDraftRequirements || usesVersionedFilingRequirements
+				? requirements.filter((slot) => visibleRequirementKeys.includes(slot.requirementKey))
+				: requirements
+		const readinessRequirements = await requirementsForReadiness(
+			ctx,
+			application,
+			activeRequirements,
+			draft.evidenceRevision ?? 0,
+		)
+		const attachedDocumentIds = new Set(
+			activeRequirements.flatMap((requirement) =>
+				requirement.documentId === undefined ? [] : [requirement.documentId],
+			),
+		)
 		return {
 			application,
 			applicant,
 			draft,
-			requirements,
+			requirements: activeRequirements,
+			requirementsReconciled:
+				application.status !== 'draft' ||
+				(expectedRequirementKeys.every((key) =>
+					activeRequirements.some((slot) => slot.requirementKey === key),
+				) &&
+					!requirements.some(
+						(slot) =>
+							slot.status === 'needed' && !expectedRequirementKeys.includes(slot.requirementKey),
+					)),
 			// Server-authoritative export gate: derived from the persisted draft and
 			// slots here, never from client state, so "ready"/clean-export claims
 			// cannot outrun the data (workflow-repair safety slice).
 			readiness: computeReadiness({
 				formType: application.formType,
 				applicationKind: application.applicationKind,
+				applicationStatus: application.status,
+				hasFilingRecord: application.filedAt !== undefined,
+				filingEvidenceContractVersion: application.filingEvidenceContractVersion,
+				filingRequirementKeys: application.filingRequirementKeys,
 				answers: draft.answers,
-				requirements,
+				requirements: readinessRequirements,
 			}),
 			isUnlocked: isEntitledToCleanExport(entitlement.some((e) => e.status === 'active')),
 			case: linkedCase,
-			// Only current (non-superseded) documents are reusable.
+			// Current documents are reusable. Also return a superseded file when
+			// this exact filing record remains bound to it, so the owner can still
+			// inspect what they confirmed and filed.
 			applicantDocuments: applicantDocs
-				.filter((doc) => doc.supersededById === undefined)
+				.filter((doc) => doc.supersededById === undefined || attachedDocumentIds.has(doc._id))
 				.map((doc) => ({
 					_id: doc._id,
 					type: doc.type,
 					label: doc.label,
 					expiryDate: doc.expiryDate,
+					isCurrent: doc.supersededById === undefined,
 					updatedAt: doc.updatedAt,
 				}))
 				.sort((a, b) => b.updatedAt - a.updatedAt),
 		}
+	},
+})
+
+/**
+ * Idempotent draft backfill for requirement rules added after a draft was
+ * created. The Journey Hub invokes this only when its read payload reports a
+ * missing active row; filed/closed records remain frozen.
+ */
+export const reconcileApplicationRequirements = mutation({
+	args: { applicationId: v.id('applications') },
+	handler: async (ctx, args) => {
+		const ownerId = await requireOwnerId(ctx)
+		const application = await getOwnedApplication(ctx, ownerId, args.applicationId)
+		if (application.status !== 'draft') return
+		await reconcileRequirements(ctx, application)
 	},
 })
 
@@ -258,6 +349,8 @@ export const saveApplicationStep = mutation({
 		}
 
 		const now = Date.now()
+		const evidenceRevision =
+			(draft.evidenceRevision ?? 0) + (sameJsonValue(draft.answers, parsed.data) ? 0 : 1)
 		// Mark the step complete only when its OWNED required fields are actually
 		// present and valid in the persisted draft — server-enforced, not a
 		// client-supplied boolean. A partial/forged save persists its data but
@@ -272,6 +365,7 @@ export const saveApplicationStep = mutation({
 		await ctx.db.patch('applicationDrafts', draft._id, {
 			answers: parsed.data,
 			stepCompletion,
+			evidenceRevision,
 			updatedAt: now,
 		})
 
@@ -347,6 +441,7 @@ export const markFiled = mutation({
 			throw new Error('The filing date can’t be before this application was started')
 		}
 
+		await reconcileRequirements(ctx, application)
 		const [draft, requirements] = await Promise.all([
 			getDraftForApplication(ctx, application._id),
 			ctx.db
@@ -354,11 +449,19 @@ export const markFiled = mutation({
 				.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))
 				.take(50),
 		])
+		const readinessRequirements = await requirementsForReadiness(
+			ctx,
+			application,
+			requirements,
+			draft.evidenceRevision ?? 0,
+		)
 		const readiness = computeReadiness({
 			formType: application.formType,
 			applicationKind: application.applicationKind,
+			applicationStatus: application.status,
+			hasFilingRecord: false,
 			answers: draft.answers,
-			requirements,
+			requirements: readinessRequirements,
 		})
 		if (!readiness.isReadyToFile && args.acknowledgeNotReady !== true) {
 			throw new Error(
@@ -366,9 +469,16 @@ export const markFiled = mutation({
 			)
 		}
 
+		const filingRequirementKeys = requiredSlotKeys(
+			application.formType,
+			application.applicationKind,
+			draft.answers,
+		)
 		await ctx.db.patch('applications', application._id, {
 			status: 'filed',
 			filedAt: args.filedAt,
+			filingEvidenceContractVersion: EVIDENCE_CONTRACT_VERSION,
+			filingRequirementKeys: [...filingRequirementKeys],
 			updatedAt: now,
 		})
 	},
@@ -429,6 +539,8 @@ export const reopenApplication = mutation({
 		await ctx.db.patch('applications', application._id, {
 			status: 'draft',
 			filedAt: undefined,
+			filingEvidenceContractVersion: undefined,
+			filingRequirementKeys: undefined,
 			updatedAt: now,
 		})
 	},

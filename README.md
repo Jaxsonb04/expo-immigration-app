@@ -1,16 +1,31 @@
-# Immigration Renewal Help
+# Immifile
 
-Immigration Renewal Help is an Expo mobile app for people in the United States
-who need help preparing recurring USCIS renewal and replacement applications.
-The current product scope is intentionally narrow: Form I-765 for Employment
-Authorization Documents and Form I-90 for Permanent Resident Cards.
+Immifile is an independent Expo mobile app for manually tracking USCIS cases
+and opening official immigration resources. It does not automatically receive
+case updates, file with USCIS, provide legal advice, represent an applicant, or
+imply government affiliation.
 
-The app is an information-only self-help tool. It helps an applicant collect
-answers, organize supporting documents, preview a completed form, and unlock a
-print-ready filing package. It does not file with USCIS, give legal advice,
-represent the applicant, or imply government affiliation.
+## First App Store Release
 
-## What It Does
+The source-controlled [release policy](./release-policy.json) limits the first
+review build to:
+
+- **Cases:** save a USCIS receipt number, maintain a manual status timeline,
+  and open official USCIS Case Status Online.
+- **Resources:** open curated official USCIS and Department of Justice tools.
+- **Account:** email/password authentication, complete in-app account deletion,
+  privacy information, terms, and support.
+
+Filing preparation, interviews, application/document routes, the AI assistant,
+public community, and social login are disabled. See
+[the release checklist](./docs/APP_STORE_RELEASE.md),
+[privacy policy](./docs/PRIVACY_POLICY.md), and
+[support information](./docs/SUPPORT.md).
+
+## Deferred Filing System
+
+The repository retains a larger filing-preparation system for a later,
+separately reviewed release. That deferred implementation:
 
 - Starts one of five supported situations:
   - Work Permit initial application, renewal, or replacement
@@ -57,8 +72,8 @@ current shape of the app.
 - HeroUI Native and HeroUI Native Pro
 - Uniwind and Tailwind CSS v4 for React Native styling
 - Convex as the single backend
-- Better Auth with Convex integration, email/password, anonymous auth, and
-  optional Google/GitHub OAuth
+- Better Auth with Convex integration and email/password/temporary accounts
+  (social providers are disabled by the first-release policy)
 - TanStack React Form for the multi-step interview
 - pdf-lib for USCIS PDF filling
 - Vitest and convex-test for unit and backend tests

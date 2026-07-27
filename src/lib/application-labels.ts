@@ -4,6 +4,7 @@ import type {
 	DocumentType,
 	FormType,
 } from '@convex/shared/applicationShapes'
+import { evidenceRequirementFor } from '@convex/shared/evidenceRequirements'
 
 // Plain labels first, technical labels second (REARCHITECTURE.md
 // "Terminology"): display copy is composed from formType + applicationKind —
@@ -45,7 +46,11 @@ const requirementLabels: Record<string, string> = {
 }
 
 export function requirementLabel(requirementKey: string): string {
-	return requirementLabels[requirementKey] ?? requirementKey
+	return (
+		evidenceRequirementFor(requirementKey)?.label ??
+		requirementLabels[requirementKey] ??
+		requirementKey
+	)
 }
 
 // The one Vault document-type vocabulary (was drifting into two: journey-hub's

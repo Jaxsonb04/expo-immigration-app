@@ -2,12 +2,14 @@
 import { convexTest } from 'convex-test'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
 import { api } from './_generated/api'
+import type { Id } from './_generated/dataModel'
 import schema from './schema'
 import {
 	type ApplicationKind,
 	type FormType,
 	supportedSituations,
 } from './shared/applicationShapes'
+import { EVIDENCE_CONTRACT_VERSION, evidenceRequirementFor } from './shared/evidenceRequirements'
 
 const modules = import.meta.glob('./**/*.ts')
 
@@ -93,6 +95,7 @@ describe('createApplication', () => {
 		// Slots materialized from the (i765, renewal) template.
 		expect(detail.requirements.map((r) => r.requirementKey).sort()).toEqual([
 			'eadCard',
+			'entryDocument',
 			'passportPhoto',
 		])
 		expect(detail.requirements.every((r) => r.status === 'needed')).toBe(true)
@@ -430,7 +433,7 @@ describe('pipeline reaches Review for every supported situation (M2-T2)', () => 
 					nameChangedSinceIssuance: 'no' as const,
 					...(situation.applicationKind === 'replacement'
 						? reason
-						: { cardExpirationDate: '2030-01-01' }),
+						: { cardExpirationDate: '2020-01-01' }),
 				},
 			},
 		}
@@ -639,7 +642,7 @@ const i90Steps = [
 		stepData: {
 			form: {
 				cardStatus: 'permanentResident' as const,
-				cardExpirationDate: '2030-01-01',
+				cardExpirationDate: '2020-01-01',
 				nameChangedSinceIssuance: 'no' as const,
 			},
 		},
@@ -655,7 +658,7 @@ const i90Steps = [
 	},
 ]
 
-async function setupI90() {
+async function setupI90(applicationKind: 'renewal' | 'replacement' = 'renewal') {
 	const t = newT()
 	const alice = t.withIdentity({ subject: 'alice' })
 	const applicantId = await alice.mutation(api.applicants.createApplicant, {
@@ -665,27 +668,44 @@ async function setupI90() {
 	const applicationId = await alice.mutation(api.applications.createApplication, {
 		applicantId,
 		formType: 'i90',
-		applicationKind: 'renewal',
+		applicationKind,
 		i90CardStatus: 'permanentResident',
 	})
 	return { t, alice, applicationId }
 }
 
-/** Answer every step and waive every document slot: genuinely ready to file. */
+async function confirmAllRequirements(
+	t: ReturnType<typeof newT>,
+	alice: ReturnType<ReturnType<typeof newT>['withIdentity']>,
+	applicationId: Id<'applications'>,
+) {
+	const detail = (await alice.query(api.applications.getApplication, { applicationId }))!
+	const storageId = await t.run((ctx) =>
+		ctx.storage.store(new Blob(['evidence'], { type: 'application/pdf' })),
+	)
+	for (const slot of detail.requirements) {
+		const requirement = evidenceRequirementFor(slot.requirementKey)!
+		if (requirement.fulfillment === 'physical') {
+			await alice.mutation(api.documents.confirmRequirement, { slotId: slot._id })
+			continue
+		}
+		const documentId = await alice.mutation(api.documents.saveDocument, {
+			applicantId: detail.application.applicantId,
+			type: requirement.acceptedDocumentTypes[0]!,
+			storageId,
+		})
+		await alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId })
+		await alice.mutation(api.documents.confirmRequirement, { slotId: slot._id })
+	}
+}
+
+/** Answer every step and confirm every current evidence item: ready to file. */
 async function setupReadyI90() {
 	const { t, alice, applicationId } = await setupI90()
 	for (const step of i90Steps) {
 		await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
 	}
-	await t.run(async (ctx) => {
-		const slots = await ctx.db
-			.query('applicationDocuments')
-			.withIndex('by_applicationId', (q) => q.eq('applicationId', applicationId))
-			.take(50)
-		for (const slot of slots) {
-			await ctx.db.patch('applicationDocuments', slot._id, { status: 'waived' })
-		}
-	})
+	await confirmAllRequirements(t, alice, applicationId)
 	return { t, alice, applicationId }
 }
 
@@ -698,15 +718,7 @@ describe('I-90 end-to-end readiness (milestone)', () => {
 		for (const step of i90Steps) {
 			await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
 		}
-		await t.run(async (ctx) => {
-			const slots = await ctx.db
-				.query('applicationDocuments')
-				.withIndex('by_applicationId', (q) => q.eq('applicationId', applicationId))
-				.take(50)
-			for (const slot of slots) {
-				await ctx.db.patch('applicationDocuments', slot._id, { status: 'waived' })
-			}
-		})
+		await confirmAllRequirements(t, alice, applicationId)
 		const { readiness, application } = (await alice.query(api.applications.getApplication, {
 			applicationId,
 		}))!
@@ -716,13 +728,14 @@ describe('I-90 end-to-end readiness (milestone)', () => {
 	})
 
 	test('answering "name changed" adds the evidence slot; flipping back removes it', async () => {
-		const { alice, applicationId } = await setupI90()
+		const { alice, applicationId } = await setupI90('replacement')
 		await alice.mutation(api.applications.saveApplicationStep, {
 			applicationId,
 			stepKey: 'card-details',
 			stepData: {
 				form: {
 					cardStatus: 'permanentResident' as const,
+					replacementReason: 'lost' as const,
 					nameChangedSinceIssuance: 'yes' as const,
 					previousFamilyName: 'Diaz',
 					previousGivenName: 'Ana',
@@ -738,6 +751,7 @@ describe('I-90 end-to-end readiness (milestone)', () => {
 			stepData: {
 				form: {
 					cardStatus: 'permanentResident' as const,
+					replacementReason: 'lost' as const,
 					nameChangedSinceIssuance: 'no' as const,
 				},
 			},
@@ -832,21 +846,190 @@ describe('getApplication readiness', () => {
 		expect(kinds).toEqual(new Set(['answers', 'document']))
 	})
 
+	test('legacy drafts fail closed on a missing active row and reconcile idempotently', async () => {
+		const { t, alice, applicationId } = await setup()
+		await t.run(async (ctx) => {
+			const slots = await ctx.db
+				.query('applicationDocuments')
+				.withIndex('by_applicationId', (q) => q.eq('applicationId', applicationId))
+				.collect()
+			const entryDocument = slots.find((slot) => slot.requirementKey === 'entryDocument')!
+			await ctx.db.delete('applicationDocuments', entryDocument._id)
+			await ctx.db.insert('applicationDocuments', {
+				ownerId: 'alice',
+				applicationId,
+				requirementKey: 'i94',
+				status: 'needed',
+				updatedAt: Date.now(),
+			})
+		})
+
+		const before = (await alice.query(api.applications.getApplication, { applicationId }))!
+		expect(before.requirementsReconciled).toBe(false)
+		expect(before.requirements.map((slot) => slot.requirementKey)).not.toContain('i94')
+		expect(before.readiness.blockers).toContainEqual({
+			kind: 'document',
+			requirementKey: 'entryDocument',
+		})
+
+		// Home and Vault derive from answers too; the absent row remains visible
+		// alongside the two persisted unresolved requirements.
+		const dashboard = await alice.query(api.home.getHomeDashboard, {})
+		expect(
+			dashboard.attentionItems
+				.filter((item) => item.kind === 'documentNeeded')
+				.map((item) => item.requirementKey)
+				.sort(),
+		).toEqual(['eadCard', 'entryDocument', 'passportPhoto'])
+		const vault = await alice.query(api.home.getVault, {})
+		expect(vault.neededSlots.map((slot) => slot.requirementKey).sort()).toEqual([
+			'eadCard',
+			'entryDocument',
+			'passportPhoto',
+		])
+
+		const bob = t.withIdentity({ subject: 'bob' })
+		await expect(
+			bob.mutation(api.applications.reconcileApplicationRequirements, { applicationId }),
+		).rejects.toThrow('Application not found')
+		await alice.mutation(api.applications.reconcileApplicationRequirements, { applicationId })
+		await alice.mutation(api.applications.reconcileApplicationRequirements, { applicationId })
+
+		const after = (await alice.query(api.applications.getApplication, { applicationId }))!
+		expect(after.requirementsReconciled).toBe(true)
+		expect(after.requirements.map((slot) => slot.requirementKey).sort()).toEqual([
+			'eadCard',
+			'entryDocument',
+			'passportPhoto',
+		])
+		await t.run(async (ctx) => {
+			const persisted = await ctx.db
+				.query('applicationDocuments')
+				.withIndex('by_applicationId', (q) => q.eq('applicationId', applicationId))
+				.collect()
+			expect(persisted.filter((slot) => slot.requirementKey === 'entryDocument')).toHaveLength(1)
+			expect(persisted.map((slot) => slot.requirementKey)).not.toContain('i94')
+		})
+	})
+
+	test('evidence confirmation is bound to semantic answers and inactive slots reject stale calls', async () => {
+		const { t, alice, applicationId } = await setup()
+		const firstNames = {
+			givenName: 'Alice',
+			familyName: 'Anders',
+			hasUsedOtherNames: 'yes' as const,
+			otherNames: [{ familyName: 'Diaz', givenName: 'Alice' }],
+		}
+		await alice.mutation(api.applications.saveApplicationStep, {
+			applicationId,
+			stepKey: 'legal-name',
+			stepData: { personFacts: firstNames },
+		})
+		let detail = (await alice.query(api.applications.getApplication, { applicationId }))!
+		const slot = detail.requirements.find(
+			(requirement) => requirement.requirementKey === 'otherNamesEvidence',
+		)!
+		const storageId = await t.run((ctx) =>
+			ctx.storage.store(new Blob(['name evidence'], { type: 'application/pdf' })),
+		)
+		const documentId = await alice.mutation(api.documents.saveDocument, {
+			applicantId: detail.application.applicantId,
+			type: 'other',
+			storageId,
+		})
+		await alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId })
+		await alice.mutation(api.documents.confirmRequirement, { slotId: slot._id })
+		detail = (await alice.query(api.applications.getApplication, { applicationId }))!
+		expect(
+			detail.readiness.blockers.some(
+				(blocker) => blocker.kind === 'document' && blocker.requirementKey === 'otherNamesEvidence',
+			),
+		).toBe(false)
+
+		// An idempotent re-save does not churn the revision or confirmation.
+		await alice.mutation(api.applications.saveApplicationStep, {
+			applicationId,
+			stepKey: 'legal-name',
+			stepData: { personFacts: firstNames },
+		})
+		detail = (await alice.query(api.applications.getApplication, { applicationId }))!
+		expect(
+			detail.readiness.blockers.some(
+				(blocker) => blocker.kind === 'document' && blocker.requirementKey === 'otherNamesEvidence',
+			),
+		).toBe(false)
+
+		// Same active key, different names: the old review cannot satisfy the
+		// evidence statement that every listed name is covered.
+		await alice.mutation(api.applications.saveApplicationStep, {
+			applicationId,
+			stepKey: 'legal-name',
+			stepData: {
+				personFacts: {
+					...firstNames,
+					otherNames: [{ familyName: 'Rivera', givenName: 'Alice' }],
+				},
+			},
+		})
+		detail = (await alice.query(api.applications.getApplication, { applicationId }))!
+		expect(detail.readiness.blockers).toContainEqual({
+			kind: 'document',
+			requirementKey: 'otherNamesEvidence',
+		})
+		expect((await alice.query(api.home.getHomeDashboard, {})).attentionItems).toContainEqual(
+			expect.objectContaining({
+				kind: 'documentNeeded',
+				requirementKey: 'otherNamesEvidence',
+			}),
+		)
+		expect((await alice.query(api.home.getVault, {})).neededSlots).toContainEqual(
+			expect.objectContaining({ requirementKey: 'otherNamesEvidence' }),
+		)
+
+		await alice.mutation(api.documents.confirmRequirement, { slotId: slot._id })
+		await alice.mutation(api.applications.saveApplicationStep, {
+			applicationId,
+			stepKey: 'legal-name',
+			stepData: {
+				personFacts: {
+					givenName: 'Alice',
+					familyName: 'Anders',
+					hasUsedOtherNames: 'no',
+				},
+			},
+		})
+		await expect(
+			alice.mutation(api.documents.confirmRequirement, { slotId: slot._id }),
+		).rejects.toThrow(/no longer required/i)
+		await expect(
+			alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId }),
+		).rejects.toThrow(/no longer required/i)
+
+		// Turning the requirement back on with another alias reuses the row and
+		// file, but never the stale confirmation.
+		await alice.mutation(api.applications.saveApplicationStep, {
+			applicationId,
+			stepKey: 'legal-name',
+			stepData: {
+				personFacts: {
+					...firstNames,
+					otherNames: [{ familyName: 'Lopez', givenName: 'Alice' }],
+				},
+			},
+		})
+		detail = (await alice.query(api.applications.getApplication, { applicationId }))!
+		expect(detail.readiness.blockers).toContainEqual({
+			kind: 'document',
+			requirementKey: 'otherNamesEvidence',
+		})
+	})
+
 	test('MILESTONE: a fully answered I-765 renewal with resolved documents is ready to file', async () => {
 		const { t, alice, applicationId } = await setup()
 		for (const step of completeSteps) {
 			await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
 		}
-		// Resolve every requirement slot (waived counts as resolved).
-		await t.run(async (ctx) => {
-			const slots = await ctx.db
-				.query('applicationDocuments')
-				.withIndex('by_applicationId', (q) => q.eq('applicationId', applicationId))
-				.take(50)
-			for (const slot of slots) {
-				await ctx.db.patch('applicationDocuments', slot._id, { status: 'waived' })
-			}
-		})
+		await confirmAllRequirements(t, alice, applicationId)
 
 		const { readiness, application } = (await alice.query(api.applications.getApplication, {
 			applicationId,
@@ -942,7 +1125,7 @@ describe('home dashboard + vault', () => {
 		await alice.action(api.dev.seed.seedDemo, {})
 
 		const vault = await alice.query(api.home.getVault, {})
-		expect(vault.documents).toHaveLength(4)
+		expect(vault.documents).toHaveLength(5)
 		expect(vault.documents.filter((d) => !d.isCurrent)).toHaveLength(1)
 		expect(vault.neededSlots).toHaveLength(1)
 		expect(vault.neededSlots[0]).toMatchObject({ requirementKey: 'passportPhoto' })
@@ -991,8 +1174,85 @@ describe('filed lifecycle', () => {
 			filedAt: Date.now(),
 			acknowledgeNotReady: true,
 		})
-		const { application } = (await alice.query(api.applications.getApplication, { applicationId }))!
+		const { application, readiness } = (await alice.query(api.applications.getApplication, {
+			applicationId,
+		}))!
 		expect(application.status).toBe('filed')
+		expect(application.filingEvidenceContractVersion).toBe(EVIDENCE_CONTRACT_VERSION)
+		expect(readiness.isReadyToFile).toBe(false)
+	})
+
+	test('acknowledged filing does not upgrade an attached-but-unconfirmed file', async () => {
+		const { t, alice, applicationId } = await setupI90()
+		for (const step of i90Steps) {
+			await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
+		}
+		const detail = (await alice.query(api.applications.getApplication, { applicationId }))!
+		const slot = detail.requirements.find(
+			(requirement) => requirement.requirementKey === 'permanentResidentCard',
+		)!
+		const storageId = await t.run((ctx) =>
+			ctx.storage.store(new Blob(['card'], { type: 'application/pdf' })),
+		)
+		const documentId = await alice.mutation(api.documents.saveDocument, {
+			applicantId: detail.application.applicantId,
+			type: 'permanentResidentCard',
+			storageId,
+		})
+		await alice.mutation(api.documents.attachDocument, { slotId: slot._id, documentId })
+
+		await alice.mutation(api.applications.markFiled, {
+			applicationId,
+			filedAt: Date.now(),
+			acknowledgeNotReady: true,
+		})
+		const filed = (await alice.query(api.applications.getApplication, { applicationId }))!
+		expect(filed.application.status).toBe('filed')
+		expect(filed.readiness.answersComplete).toBe(true)
+		expect(filed.readiness.isReadyToFile).toBe(false)
+		expect(filed.readiness.blockers).toContainEqual({
+			kind: 'document',
+			requirementKey: 'permanentResidentCard',
+		})
+	})
+
+	test('acknowledged filing preserves waived and missing-row evidence blockers', async () => {
+		for (const legacyState of ['waived', 'missing'] as const) {
+			const { t, alice, applicationId } = await setupI90()
+			for (const step of i90Steps) {
+				await alice.mutation(api.applications.saveApplicationStep, { applicationId, ...step })
+			}
+			await t.run(async (ctx) => {
+				const slot = await ctx.db
+					.query('applicationDocuments')
+					.withIndex('by_applicationId', (q) => q.eq('applicationId', applicationId))
+					.unique()
+				if (legacyState === 'missing') {
+					await ctx.db.delete('applicationDocuments', slot!._id)
+				} else {
+					await ctx.db.patch('applicationDocuments', slot!._id, { status: 'waived' })
+				}
+			})
+
+			await alice.mutation(api.applications.markFiled, {
+				applicationId,
+				filedAt: Date.now(),
+				acknowledgeNotReady: true,
+			})
+			const filed = (await alice.query(api.applications.getApplication, { applicationId }))!
+			expect(filed.readiness.isReadyToFile, legacyState).toBe(false)
+			expect(filed.readiness.blockers, legacyState).toContainEqual({
+				kind: 'document',
+				requirementKey: 'permanentResidentCard',
+			})
+			// markFiled reconciles a genuinely absent expected row before the
+			// filing record is frozen, so versioned filings cannot drop it.
+			expect(
+				filed.requirements.filter(
+					(requirement) => requirement.requirementKey === 'permanentResidentCard',
+				),
+			).toHaveLength(1)
+		}
 	})
 
 	test('markFiled is idempotent: re-confirming keeps the original filing date', async () => {
@@ -1140,7 +1400,7 @@ describe('filed lifecycle', () => {
 		})
 		// The case is a real receipt: kept, but unlinked.
 		const orphanedCase = await alice.query(api.cases.getCase, { caseId })
-		expect(orphanedCase.applicationId).toBeUndefined()
+		expect(orphanedCase!.applicationId).toBeUndefined()
 	})
 
 	test('markFiled on a closed application is refused until reopened', async () => {

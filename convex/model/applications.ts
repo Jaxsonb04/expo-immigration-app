@@ -2,6 +2,7 @@ import type { Doc, Id } from '../_generated/dataModel'
 import type { MutationCtx, QueryCtx } from '../_generated/server'
 import type { FormType } from '../shared/applicationShapes'
 import { interviewStepKeys, requiredSlotKeys } from '../shared/interviewSteps'
+import type { RequirementReadinessInput } from '../shared/readiness'
 
 /**
  * Load an application and enforce ownership. Not-found and not-owned are the
@@ -45,7 +46,7 @@ export function computeProgress(
 /**
  * Ensure the application's requirement slots match its template (decision 7):
  * missing slots are created as `needed`; template-removed slots are dropped
- * only while still `needed` — attachments and waivers are never discarded.
+ * only while still `needed` — resolved rows are never discarded.
  * Idempotent; called at creation and after each Next-save. Loads the draft so
  * answer-aware requirements (an I-90 legal name change requires evidence)
  * reconcile on every save.
@@ -55,11 +56,7 @@ export async function reconcileRequirements(
 	application: Doc<'applications'>,
 ): Promise<void> {
 	const draft = await getDraftForApplication(ctx, application._id)
-	const wanted = requiredSlotKeys(
-		application.formType,
-		application.applicationKind,
-		draft.answers,
-	)
+	const wanted = requiredSlotKeys(application.formType, application.applicationKind, draft.answers)
 	const existing = await ctx.db
 		.query('applicationDocuments')
 		.withIndex('by_applicationId', (q) => q.eq('applicationId', application._id))
@@ -82,4 +79,44 @@ export async function reconcileRequirements(
 			await ctx.db.delete('applicationDocuments', slot._id)
 		}
 	}
+}
+
+/**
+ * Join persisted slots to the minimum document facts the pure readiness
+ * contract needs. This rechecks legacy rows instead of assuming every
+ * historical `attached` state was produced by today's guarded mutation.
+ */
+export async function requirementsForReadiness(
+	ctx: QueryCtx | MutationCtx,
+	application: Doc<'applications'>,
+	slots: readonly Doc<'applicationDocuments'>[],
+	evidenceRevision: number,
+): Promise<RequirementReadinessInput[]> {
+	return await Promise.all(
+		slots.map(async (slot) => {
+			const document =
+				slot.documentId === undefined ? null : await ctx.db.get('documents', slot.documentId)
+			return {
+				requirementKey: slot.requirementKey,
+				status: slot.status,
+				documentId: slot.documentId,
+				confirmedDocumentId: slot.confirmedDocumentId,
+				confirmationVersion: slot.confirmationVersion,
+				confirmationRevision: slot.confirmationRevision,
+				evidenceRevision,
+				documentType: document?.type,
+				// A versioned filing remains bound to the exact file reviewed at
+				// filing time even if the Vault later receives a newer version.
+				documentIsCurrent:
+					document !== null &&
+					(application.status !== 'draft' && application.filedAt !== undefined
+						? true
+						: document.supersededById === undefined),
+				documentMatchesApplicant:
+					document !== null &&
+					document.ownerId === application.ownerId &&
+					document.applicantId === application.applicantId,
+			}
+		}),
+	)
 }

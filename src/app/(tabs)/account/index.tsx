@@ -24,23 +24,23 @@ export default function AccountTab() {
 				<TabIntro
 					prefKey="accountIntroDismissed"
 					hero={<AccountHero size={104} />}
-					title={'Enter it once.\nUse it everywhere.'}
-					body="Your details and documents live here — every form you start is prefilled from them."
+					title={'Your account.\nYour control.'}
+					body="Manage your sign-in, saved case data, privacy choices, and support."
 					features={[
 						{
-							icon: 'user-round',
-							title: 'Your details, reused',
-							detail: 'Name, dates, and address prefill every filing you start.',
-						},
-						{
-							icon: 'folder',
-							title: 'Documents on file',
-							detail: 'Upload once — attach the same document to any filing.',
+							icon: 'lock-keyhole',
+							title: 'Persistent when you choose',
+							detail: 'Create an account before saving a receipt number.',
 						},
 						{
 							icon: 'shield-check',
+							title: 'Privacy in plain language',
+							detail: 'See what is stored and how it is used from this tab.',
+						},
+						{
+							icon: 'trash-2',
 							title: 'Yours to control',
-							detail: 'Everything can be erased permanently, any time, from Settings.',
+							detail: 'Delete your account and its associated data at any time.',
 						},
 					]}
 				>
