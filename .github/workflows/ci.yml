@@ -49,7 +49,7 @@ jobs:
             echo "::notice::heroui-native-pro resolved in full — running the typecheck."
           else
             echo "available=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::heroui-native-pro is a licensed stub because the HEROUI_AUTH_TOKEN repository secret is not set, so its type declarations are absent and the typecheck step is SKIPPED. Add the secret (same hp_ key as EAS) to make CI type-complete."
+            echo "::warning::heroui-native-pro is a licensed stub because the HEROUI_AUTH_TOKEN repository secret is not set. Its type declarations are absent, so the typecheck is SKIPPED and lint runs without import/no-unresolved. Add the secret (the same hp_ key already in EAS) to make CI complete."
           fi
 
       - name: Release configuration
@@ -60,7 +60,14 @@ jobs:
         run: bun run typecheck
 
       - name: Lint
+        if: steps.heroui.outputs.available == 'true'
         run: bun run lint
+
+      # Same rules minus the one that can only fail because of the stub, so a
+      # real lint regression still blocks the PR when the secret is absent.
+      - name: Lint (without the licensed package)
+        if: steps.heroui.outputs.available != 'true'
+        run: bunx eslint . --rule '{"import/no-unresolved":"off"}'
 
       - name: Tests
         run: bun run test:once
