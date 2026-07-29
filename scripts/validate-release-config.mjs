@@ -14,9 +14,21 @@ function isConfigured(value) {
 }
 
 assert(app.version === '1.0.0', 'set an explicit public version')
-assert(/^\d+$/.test(app.ios?.buildNumber ?? ''), 'ios.buildNumber must be numeric')
+assert(
+	eas.cli?.appVersionSource === 'remote',
+	'EAS must own the build number (cli.appVersionSource must be "remote")',
+)
+assert(
+	app.ios?.buildNumber === undefined,
+	'ios.buildNumber is ignored under remote versioning — remove it so the remote value stays the single source of truth',
+)
 assert(Number.isInteger(app.android?.versionCode), 'android.versionCode must be an integer')
 assert(Boolean(app.ios?.bundleIdentifier), 'ios.bundleIdentifier is required')
+// iPhone-only for the first release. Turning iPad support on makes a 13-inch
+// iPad screenshot set mandatory in App Store Connect and puts a portrait-only
+// layout in front of a reviewer in iPad landscape, so it is a deliberate
+// decision with QA attached — not a flag to flip back quietly.
+assert(app.ios?.supportsTablet === false, 'ios.supportsTablet must stay false until iPad is QAd and 13-inch screenshots exist')
 assert(app.ios?.config?.usesNonExemptEncryption === false, 'declare standard/exempt encryption use')
 assert(app.extra?.router?.sitemap === false, 'Expo Router sitemap must be disabled')
 assert(!app.ios?.infoPlist?.NSCameraUsageDescription, 'camera permission must not ship')
@@ -79,6 +91,21 @@ if (process.env.IMMIFILE_RELEASE_BUILD === 'true') {
 	assert(
 		/^hp_\S+$/.test(process.env.HEROUI_KEY ?? '') && isConfigured(process.env.HEROUI_KEY),
 		'HEROUI_KEY is missing or invalid; add the trusted hp_ key as an EAS production secret',
+	)
+	// Two different consumers, two different variable names — verified against
+	// the installed vendor code, not documentation:
+	//   * `hpsetup` (this pre-install hook)            reads HEROUI_KEY
+	//   * heroui-native-pro's own postinstall, run by  reads HEROUI_AUTH_TOKEN
+	//     `bun install` AFTER this hook
+	// The published heroui-native-pro package is a ~9KB stub; its real library is
+	// downloaded by that postinstall. Without HEROUI_AUTH_TOKEN the postinstall
+	// prints "Sign in to finish installing" and exits 0, so the install SUCCEEDS
+	// with a stub and the build fails much later at Metro bundling with an
+	// unrelated-looking module-resolution error. Fail here instead, with a name.
+	assert(
+		/^hp_\S+$/.test(process.env.HEROUI_AUTH_TOKEN ?? '') &&
+			isConfigured(process.env.HEROUI_AUTH_TOKEN),
+		'HEROUI_AUTH_TOKEN is missing or invalid; add the same trusted hp_ key as a second EAS production secret so heroui-native-pro can fetch its library during install',
 	)
 	const requiredPublicEnvironment = [
 		['EXPO_PUBLIC_CONVEX_URL', process.env.EXPO_PUBLIC_CONVEX_URL],

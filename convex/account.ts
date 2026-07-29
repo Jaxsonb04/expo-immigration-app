@@ -35,17 +35,25 @@ export async function purgeOwnerDataInBatches(
 }
 
 /**
- * Delete every app-owned row and stored file for the calling account.
+ * Delete every app-owned row and stored file for the calling ANONYMOUS account.
  *
- * This public action remains for anonymous deletion and focused cascade tests.
- * Current clients use Better Auth's delete-user endpoint, whose `beforeDelete`
- * hook invokes `purgeOwnerData` below before deleting the auth identity.
+ * Restricted to anonymous sessions on purpose. A permanent account deletes
+ * through Better Auth's delete-user endpoint, whose `beforeDelete` hook invokes
+ * `purgeOwnerData` below — and which re-confirms the current password first.
+ * Leaving this path open to a credentialed session would make a bearer token
+ * alone a total-data-destruction primitive that skips that confirmation: a
+ * 15-minute JWT lifted off a device would be enough to irreversibly erase
+ * someone's account. An anonymous session has no password to confirm, so it
+ * keeps this path (see `deleteAnonymousUser` in the client's deletion flow).
  */
 export const deleteAccountData = action({
 	args: {},
 	handler: async (ctx) => {
 		const identity = await ctx.auth.getUserIdentity()
 		if (identity === null) throw new Error('Not authenticated')
+		if ((identity as { isAnonymous?: boolean | null }).isAnonymous !== true) {
+			throw new Error('Deleting a permanent account requires your password')
+		}
 		await purgeOwnerDataInBatches(ctx, identity.tokenIdentifier)
 		return null
 	},

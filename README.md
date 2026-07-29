@@ -18,7 +18,7 @@ review build to:
 
 Filing preparation, interviews, application/document routes, the AI assistant,
 public community, and social login are disabled. See
-[the release checklist](./docs/APP_STORE_RELEASE.md),
+[the release checklist](./docs/internal/APP_STORE_RELEASE.md),
 [privacy policy](./docs/PRIVACY_POLICY.md), and
 [support information](./docs/SUPPORT.md).
 
@@ -91,7 +91,7 @@ convex/                          Schema, auth, queries, mutations, tests
 convex/shared/                   Shared application shapes and step definitions
 convex/model/                    Backend domain helpers
 assets/forms/                    Bundled USCIS PDF templates and metadata
-docs/adr/                        Architecture decision records
+docs/internal/adr/                        Architecture decision records
 ```
 
 Routes in `src/app` should stay thin. Domain behavior belongs in screen modules,
@@ -230,7 +230,7 @@ not keep a separate user-profile table.
 - [CONTEXT.md](./CONTEXT.md): product glossary and preferred domain language
 - [REARCHITECTURE.md](./REARCHITECTURE.md): rebuild context and implementation
   boundaries
-- [docs/adr](./docs/adr): architecture decision records
+- [docs/internal/adr](./docs/internal/adr): architecture decision records
 - [assets/forms/README.md](./assets/forms/README.md): USCIS form asset notes
 - [convex/README.md](./convex/README.md): Convex directory notes
 

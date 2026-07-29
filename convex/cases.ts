@@ -16,6 +16,7 @@ import {
 import { EVIDENCE_CONTRACT_VERSION } from './shared/evidenceRequirements'
 import { requiredSlotKeys } from './shared/interviewSteps'
 import { MAX_CASE_STATUS_HISTORY, normalizeCaseNote } from './shared/cases'
+import { assertFeatureEnabled } from './lib/releaseGate'
 
 // M3-T1 case tracking (ADR-0008). Manual, owner-scoped receipt-number tracking
 // with a status timeline; v1 does NOT scrape USCIS. Every mutation is
@@ -63,6 +64,7 @@ export const getCase = query({
 export const listLinkableApplications = query({
 	args: {},
 	handler: async (ctx) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const [drafts, filed] = await Promise.all([
 			ctx.db

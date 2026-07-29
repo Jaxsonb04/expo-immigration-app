@@ -5,6 +5,7 @@ import {
 	ScreenLoading,
 	SectionHeading,
 } from '@/components/core'
+import { useSlowLoad } from '@/hooks/use-slow-load'
 import { caseStatusLabels } from '@/lib/application-labels'
 import { router } from 'expo-router'
 import { Chip, Surface, Typography } from 'heroui-native'
@@ -51,8 +52,17 @@ function CaseRow({ item }: { item: CaseSummary }) {
  */
 export function CasesScreen() {
 	const cases = useCases()
+	// Convex reports "offline" and "still loading" identically (undefined), so
+	// give a stalled first load words and a way out instead of a bare spinner.
+	const isSlow = useSlowLoad(cases === undefined)
 
-	if (cases === undefined) return <ScreenLoading />
+	if (cases === undefined) {
+		return (
+			<ScreenLoading
+				label={isSlow ? 'Still loading. Check your connection and stay on this screen.' : undefined}
+			/>
+		)
+	}
 
 	if (cases.length === 0) {
 		return (

@@ -8,9 +8,23 @@
 
 Filing preparation, interviews, application/document routes, the AI assistant, public community, Google login, password recovery, camera, microphone, Face ID, widgets, and notification configuration are disabled for this release. Their data and implementation remain intact for a later reviewed release.
 
+Disabling is enforced in **two** places, and both must stay in step:
+
+- **Client** — `src/lib/release-policy.ts` hides the tabs and default-denies
+  every unreviewed deep link.
+- **Server** — `convex/lib/releaseGate.ts`. A hidden tab is not an
+  authorization boundary: every Convex function is a public internet endpoint
+  and an anonymous session token is free to mint, so each disabled feature's
+  handlers assert the policy before touching identity or data.
+  `convex/releaseGate.test.ts` runs against the real `release-policy.json`
+  and fails if any of those endpoints becomes reachable again.
+
+Re-enabling a feature therefore means flipping `release-policy.json`, not
+deleting guards.
+
 ## Required production setup
 
-Follow `docs/PRODUCTION_ACCESS_SETUP.md` for the exact account-role, secret,
+Follow `docs/internal/PRODUCTION_ACCESS_SETUP.md` for the exact account-role, secret,
 mailbox, EAS, and Apple steps. It is written so no secret value needs to be
 shared with Codex or committed to the repository.
 
@@ -23,6 +37,16 @@ shared with Codex or committed to the repository.
    - `EXPO_PUBLIC_SUPPORT_EMAIL`
    - `IMMIFILE_PRODUCTION_BACKEND_CONFIRMED=true`
    - `HEROUI_KEY` as a secret, using the trusted `hp_` API key
+   - `HEROUI_AUTH_TOKEN` as a secret, holding the **same** `hp_` key.
+     Two consumers read two different variable names, verified against the
+     installed vendor code rather than documentation: `hpsetup` (the
+     `eas-build-pre-install` hook) reads `HEROUI_KEY`, while
+     `heroui-native-pro`'s own postinstall — run later by `bun install` —
+     reads `HEROUI_AUTH_TOKEN`. The published package is a ~9KB stub whose
+     real library that postinstall downloads; without the token it prints
+     "Sign in to finish installing", exits 0, and the build fails much later
+     at Metro bundling. `scripts/validate-release-config.mjs` now fails fast
+     if either is missing.
 2. Deploy a production Convex backend. Set a production `BETTER_AUTH_SECRET`, confirm `DEV_SEED_ENABLED` is absent or false, and ensure the public auth proxy routes to that production deployment rather than a development deployment. Leave the three `AUTH_EMAIL_*` values unset for this release.
 3. Publish `docs/PRIVACY_POLICY.md` at a stable public URL. Verify it while signed out, then enter that URL in App Store Connect.
 4. Publish `docs/SUPPORT.md` at a stable public support-information URL with accurate contact information and a monitored private support channel. Verify it while signed out and enter it as the App Store support URL. The public GitHub issue tracker is supplemental and does not satisfy the private-support gate.
@@ -30,9 +54,19 @@ shared with Codex or committed to the repository.
 6. Provide an App Review demo email/password account. Keep the production backend online throughout review.
 7. Confirm production auth has no legacy social-only accounts. Migrate or remove any such accounts, or implement a recent social reauthentication path for account deletion, before submission.
 8. In App Store Connect, describe only the three shipping surfaces above. Screenshots and review notes must not advertise filing, AI, or community features.
-9. Copy the reviewed product-page, review-note, and privacy-answer drafts from `docs/APP_STORE_METADATA.md`, replacing every `REQUIRED:` placeholder.
+9. Copy the reviewed product-page, review-note, and privacy-answer drafts from `docs/internal/APP_STORE_METADATA.md`, replacing every `REQUIRED:` placeholder.
 
-The repository includes `.github/workflows/public-pages.yml`, which builds the two public documents from `docs/` after they reach `main`. GitHub Pages must be enabled once with **Settings → Pages → Source: GitHub Actions** before the first deployment.
+The repository includes `.github/workflows/public-pages.yml`, which builds the
+two public documents from `docs/` after they reach `main`. GitHub Pages must be
+enabled once with **Settings → Pages → Source: GitHub Actions** before the first
+deployment.
+
+Jekyll publishes **every** markdown file in its source directory, not only the
+ones the workflow watches — internal runbooks were briefly reachable on the
+public support site because of this. Only `index.md`, `PRIVACY_POLICY.md`, and
+`SUPPORT.md` now live at `docs/`; everything else is under `docs/internal/`,
+which `docs/_config.yml` excludes. **New internal documents go in
+`docs/internal/`.**
 
 ## App privacy answers to verify
 
@@ -45,12 +79,15 @@ Temporary accounts become eligible for permanent deletion after 48 hours. Cleanu
 Run:
 
 ```sh
-npm run release:config
-npm run typecheck
-npm run lint
-npm run test:once
+bun run release:config
+bun run typecheck
+bun run lint
+bun run test:once
 npx expo export --platform ios
 ```
+
+`.github/workflows/ci.yml` runs the first four on every pull request and on
+`main`, so a regression should surface before release day rather than during it.
 
 Then test a production-profile build on physical iPhone and iPad hardware. Exercise first launch, email sign-up, add/update/delete case, every official resource link, account deletion, stale-session write rejection, temporary-account cleanup after eligibility, offline/error states, Dynamic Type, VoiceOver labels, and disabled-route deep links.
 

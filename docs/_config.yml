@@ -5,3 +5,11 @@ header_pages:
   - index.md
   - PRIVACY_POLICY.md
   - SUPPORT.md
+
+# Only the privacy policy, support page, and index are public. Everything under
+# docs/internal/ is release-engineering material — runbooks, the secret
+# INVENTORY, audits, ADRs — and Jekyll would otherwise publish every markdown
+# file in this directory to the App Store support site. Default-deny: new
+# internal documents go under docs/internal/ and stay unpublished.
+exclude:
+  - internal

@@ -5,6 +5,19 @@ import { api } from './_generated/api'
 import schema from './schema'
 import type { NavigatorFacts } from './shared/navigator'
 
+// This suite exercises the feature implementation itself, so it runs with the
+// release gate open. That the gate actually closes these endpoints in the
+// shipped policy is covered separately by convex/releaseGate.test.ts.
+vi.mock('../release-policy.json', () => ({
+	default: {
+		filingPreparation: true,
+		assistant: true,
+		community: true,
+		socialLogin: true,
+		passwordRecovery: true,
+	},
+}))
+
 const modules = import.meta.glob('./**/*.ts')
 
 const { createMock } = vi.hoisted(() => ({ createMock: vi.fn() }))

@@ -3,10 +3,12 @@ import { zodToConvex } from 'convex-helpers/server/zod4'
 import { mutation, query } from './_generated/server'
 import { requireOwnerId } from './lib/auth'
 import { personFactsShape } from './shared/applicationShapes'
+import { assertFeatureEnabled } from './lib/releaseGate'
 
 export const listApplicants = query({
 	args: {},
 	handler: async (ctx) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		return await ctx.db
 			.query('applicants')
@@ -27,6 +29,7 @@ export const createApplicant = mutation({
 		isSelf: v.boolean(),
 	},
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const displayName = args.displayName.trim()
 		if (displayName.length === 0) throw new Error('Name is required')
@@ -54,6 +57,7 @@ export const createApplicant = mutation({
 export const getSelfApplicant = query({
 	args: {},
 	handler: async (ctx) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const rows = await ctx.db
 			.query('applicants')
@@ -80,6 +84,7 @@ export const updateSelfProfile = mutation({
 		profile: zodToConvex(personFactsShape.partial()),
 	},
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		// Semantic validation against the single-source shape (field formats:
 		// A-Number digits, ISO date of birth, address pieces).

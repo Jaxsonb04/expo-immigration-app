@@ -5,6 +5,7 @@ import { v } from 'convex/values'
 import { action, env } from './_generated/server'
 import { internal } from './_generated/api'
 import type { AssistantUsage } from './assistantQuota'
+import { assertFeatureEnabled } from './lib/releaseGate'
 
 // M1-T1: the validated Claude backend. A "use node" action so it can use the
 // Anthropic SDK; it holds NO database access itself — authorization and the
@@ -55,6 +56,7 @@ export const sendMessage = action({
 		),
 	},
 	handler: async (ctx, args): Promise<SendMessageResult> => {
+		assertFeatureEnabled('assistant')
 		const message = args.message.trim()
 		if (message.length === 0) {
 			throw new Error('Message cannot be empty')

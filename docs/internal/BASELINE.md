@@ -27,7 +27,7 @@ Total: **85 tests, all passing.**
 - Amended in the same task: ADR-0003 now brings the Community forum (M4) and
   Recent news (M5-T2) into v1 scope, and reconciles the stale "monetization"
   exclusion against ADR-0011. See
-  `docs/adr/0003-v1-scope-i90-i765.md` (Amended 2026-07-05).
+  `docs/internal/adr/0003-v1-scope-i90-i765.md` (Amended 2026-07-05).
 - The ADR amendment was reviewed by a 3-lens adversarial panel
   (ADR-consistency, UPL/scope-boundary, factual-wording) — all approved with
   only low-severity wording polish, which was incorporated.

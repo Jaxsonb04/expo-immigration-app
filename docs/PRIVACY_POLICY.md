@@ -8,6 +8,8 @@ permalink: /privacy/
 
 Effective July 25, 2026
 
+Immifile is an independent app. It is not affiliated with, endorsed by, or connected to USCIS, DHS, DOJ, or the U.S. government, and it does not provide legal advice.
+
 This policy describes the first App Store release of Immifile. That release provides a manual USCIS case tracker and links to official government resources. Filing preparation, document uploads, the AI assistant, and the public community are not available.
 
 ## Data we collect
@@ -22,7 +24,7 @@ We use data to authenticate users, display their saved cases, maintain the timel
 
 ## Service providers
 
-Convex provides the hosted application backend, database, and authentication components. Porkbun forwards messages sent to the Immifile support address, and Google provides the monitored destination mailbox. Official USCIS and Department of Justice links open in the device browser.
+Convex provides the hosted application backend, database, and authentication components. Vercel hosts `auth.immifile.app`, the endpoint every sign-in, sign-out, and session request passes through, and therefore processes connection metadata such as IP address and user agent. Porkbun forwards messages sent to the Immifile support address, and Google provides the monitored destination mailbox. Official USCIS and Department of Justice links open in the device browser.
 
 ## Retention and deletion
 
@@ -35,6 +37,8 @@ After either deletion path, Immifile may retain a short-lived opaque deletion-pr
 ## Security and choices
 
 Immifile transmits authentication and application data over encrypted connections and stores the app session using secure device storage. A person can browse official resources without creating a permanent account. Saving a receipt number requires a permanent account.
+
+This release does not include self-service password reset or email verification. Keep the password safe: without it there is no automated way back into an account, and because Immifile cannot confirm ownership of an unverified email address, support cannot reset a password or delete an account on request. Delete an account from inside the app, while signed in, at **Account → Settings → Delete account**.
 
 ## Support and privacy requests
 

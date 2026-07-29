@@ -8,6 +8,7 @@ import {
 	NEWS_STALE_AFTER_MS,
 	parseRssItems,
 } from './shared/news'
+import { assertFeatureEnabled } from './lib/releaseGate'
 
 // M5-T2: cached official USCIS news. A cron-driven internal action fetches the
 // official "All News" RSS feed, parses it with the pure shared/news.ts parser,
@@ -37,6 +38,7 @@ export type LatestNews = {
 export const latestNews = query({
 	args: {},
 	handler: async (ctx): Promise<LatestNews> => {
+		assertFeatureEnabled('community')
 		const rows = await ctx.db
 			.query('newsItems')
 			.withIndex('by_publishedAt')

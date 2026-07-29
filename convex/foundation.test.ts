@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { convexTest } from 'convex-test'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { api } from './_generated/api'
+import { api, internal } from './_generated/api'
 import schema from './schema'
 import { filingWindowDays } from './shared/applicationShapes'
 
@@ -30,7 +30,7 @@ describe('dev seed', () => {
 		const t = newT()
 		const alice = t.withIdentity({ subject: 'alice' })
 
-		const summary = await alice.action(api.dev.seed.seedDemo, {})
+		const summary = await alice.action(internal.dev.seed.seedDemo, {})
 		expect(summary).toEqual({ applicants: 3, applications: 5, documents: 5 })
 
 		await t.run(async (ctx) => {
@@ -124,8 +124,8 @@ describe('dev seed', () => {
 		const t = newT()
 		const alice = t.withIdentity({ subject: 'alice' })
 
-		await alice.action(api.dev.seed.seedDemo, {})
-		await alice.action(api.dev.seed.seedDemo, {})
+		await alice.action(internal.dev.seed.seedDemo, {})
+		await alice.action(internal.dev.seed.seedDemo, {})
 
 		await t.run(async (ctx) => {
 			expect(await ctx.db.query('applicants').collect()).toHaveLength(3)
@@ -138,16 +138,16 @@ describe('dev seed', () => {
 
 	test('requires authentication', async () => {
 		const t = newT()
-		await expect(t.action(api.dev.seed.seedDemo, {})).rejects.toThrow('Not authenticated')
-		await expect(t.mutation(api.dev.seed.resetOwner, {})).rejects.toThrow('Not authenticated')
+		await expect(t.action(internal.dev.seed.seedDemo, {})).rejects.toThrow('Not authenticated')
+		await expect(t.mutation(internal.dev.seed.resetOwner, {})).rejects.toThrow('Not authenticated')
 	})
 
 	test('is disabled unless DEV_SEED_ENABLED=true', async () => {
 		vi.stubEnv('DEV_SEED_ENABLED', '')
 		const t = newT()
 		const alice = t.withIdentity({ subject: 'alice' })
-		await expect(alice.action(api.dev.seed.seedDemo, {})).rejects.toThrow(/disabled/)
-		await expect(alice.mutation(api.dev.seed.resetOwner, {})).rejects.toThrow(/disabled/)
+		await expect(alice.action(internal.dev.seed.seedDemo, {})).rejects.toThrow(/disabled/)
+		await expect(alice.mutation(internal.dev.seed.resetOwner, {})).rejects.toThrow(/disabled/)
 	})
 })
 
@@ -157,10 +157,10 @@ describe('owner scoping', () => {
 		const alice = t.withIdentity({ subject: 'alice' })
 		const bob = t.withIdentity({ subject: 'bob' })
 
-		await alice.action(api.dev.seed.seedDemo, {})
-		await bob.action(api.dev.seed.seedDemo, {})
+		await alice.action(internal.dev.seed.seedDemo, {})
+		await bob.action(internal.dev.seed.seedDemo, {})
 
-		await bob.mutation(api.dev.seed.resetOwner, {})
+		await bob.mutation(internal.dev.seed.resetOwner, {})
 
 		await t.run(async (ctx) => {
 			for (const table of TABLES) {
@@ -181,8 +181,12 @@ describe('account deletion contract', () => {
 		const t = newT()
 		const alice = t.withIdentity({ subject: 'alice' })
 
-		await alice.action(api.dev.seed.seedDemo, {})
-		await alice.action(api.account.deleteAccountData, {})
+		await alice.action(internal.dev.seed.seedDemo, {})
+		// deleteAccountData is the anonymous-session path; a permanent account
+		// deletes through Better Auth's password-confirmed delete-user endpoint.
+		await t
+			.withIdentity({ subject: 'alice', isAnonymous: true })
+			.action(api.account.deleteAccountData, {})
 
 		// A JWT issued before deletion can remain cryptographically valid for a
 		// few minutes, but the tombstone must prevent it from recreating data
@@ -198,6 +202,12 @@ describe('account deletion contract', () => {
 			// No financial records or files survive (REARCHITECTURE.md).
 			expect(await ctx.db.system.query('_storage').collect()).toHaveLength(0)
 		})
+	})
+
+	test('deleteAccountData refuses a credentialed session (password path only)', async () => {
+		const t = newT()
+		const alice = t.withIdentity({ subject: 'alice' })
+		await expect(alice.action(api.account.deleteAccountData, {})).rejects.toThrow(/password/i)
 	})
 
 	test('deleteAccountData requires authentication', async () => {

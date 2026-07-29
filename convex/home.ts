@@ -7,6 +7,7 @@ import { isEntitledToCleanExport } from './model/entitlements'
 import { filingWindowDays } from './shared/applicationShapes'
 import { requiredSlotKeys } from './shared/interviewSteps'
 import { isRequirementSatisfied } from './shared/readiness'
+import { assertFeatureEnabled } from './lib/releaseGate'
 
 // Home dashboard (decision 8): everything here is derived from bounded,
 // indexed reads — no events table, no derived view-model rows, no client-side
@@ -91,6 +92,7 @@ async function unresolvedDraftEvidence(
 export const getHomeDashboard = query({
 	args: {},
 	handler: async (ctx) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const names = await applicantNameLookup(ctx, ownerId)
 
@@ -230,6 +232,7 @@ export const getHomeDashboard = query({
 export const getVault = query({
 	args: {},
 	handler: async (ctx) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const names = await applicantNameLookup(ctx, ownerId)
 
