@@ -3,6 +3,7 @@ import { Redirect, Stack, usePathname } from 'expo-router'
 import { Spinner } from 'heroui-native'
 import { View } from 'react-native'
 
+import { RouteErrorBoundary } from '@/components/core'
 import { Providers } from '@/components/providers'
 import { useLayoutStyle } from '@/hooks/use-layout-style'
 import { useSessionReconciler } from '@/hooks/use-session-reconciler'
@@ -12,6 +13,10 @@ import '../global.css'
 export const unstable_settings = {
 	initialRouteName: 'home',
 }
+
+// Expo Router renders the nearest exported ErrorBoundary when a route throws.
+// Exporting it from the root layout covers every screen in the app.
+export { RouteErrorBoundary as ErrorBoundary }
 
 export default function RootLayout() {
 	return (

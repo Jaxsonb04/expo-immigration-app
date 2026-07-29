@@ -1,11 +1,30 @@
 # Release audit — M5-T3 (2026-07-07)
 
+> **Status: historical record, superseded 2026-07-27.**
+>
+> This is the 2026-07-07 audit, kept as written. Do not use it as the current
+> state of the app — several of its file paths and open items are out of date:
+>
+> - Its §2 FINDING ("the Better Auth user row survives deletion; `user.deleteUser`
+>   must be enabled before public release") **has since been fixed**. Deletion now
+>   runs through Better Auth's password-confirmed `deleteUser` with a
+>   `beforeDelete` cascade, covered by `convex/auth.integration.test.ts`.
+> - Its §4 FINDING on rate limits ("no size bound on owner-scoped writes") is
+>   superseded: the filing and community endpoints are now closed on the server
+>   by the release gate (`convex/lib/releaseGate.ts`), and Better Auth rate
+>   limiting is configured in `convex/auth.ts`.
+> - Screen paths it cites (`src/app/(modal)/account/index.tsx`,
+>   `src/app/(tabs)/forms/index.tsx`) no longer exist; the M7 restructure moved
+>   account settings to `src/screens/account/account.settings.tsx`.
+>
+> The current assessment is `RELEASE_AUDIT_2026-07-27.md` in the repository root.
+
 Scope note: the plan's "Release audit" was reframed for this run per owner
 decision — App Store submission work (store metadata, EAS submit, the App
 Privacy questionnaire) is explicitly deferred. This audit verifies privacy,
 in-app account deletion, accessibility, rate limits, and disclaimers, and ends
 with the "left for release day" list. Contrast and reduced-motion were already
-measured in `docs/FABLE_NOTES.md` and are not re-verified here.
+measured in `docs/internal/FABLE_NOTES.md` and are not re-verified here.
 
 Verdicts: **PASS** (verified, no change), **FIXED** (gap found and fixed in
 this audit), **FINDING** (documented, deliberately not fixed here).
@@ -40,7 +59,7 @@ this audit), **FINDING** (documented, deliberately not fixed here).
 | Reminders Switch | **FIXED** | The heroui-native `Switch` in `src/screens/documents/documents.reminders.tsx` had no label association; added `accessibilityLabel="Renewal reminders"` (Switch extends Pressable props). |
 | Block / report / delete actions | PASS | Already labeled: `community.detail.tsx:48` (`Delete this ${label}`), `:95` (`Block ${handle}`), `community.report.tsx:65` ("Report this content"), rules links labeled in `community.screen.tsx:79` / `community.new.tsx:80`; interview close/help labeled (`interview.header.tsx:17`, `interview.question.tsx:25`). |
 | Moderation queue actions | PASS | Text-labeled buttons, not icon-only (`community.moderation.tsx:119,137,155,195` — Restore / Hide / Resolve / Dismiss / Load more). |
-| Contrast + reduced motion | PASS (prior) | Measured and recorded in `docs/FABLE_NOTES.md`; not re-run per scope. |
+| Contrast + reduced motion | PASS (prior) | Measured and recorded in `docs/internal/FABLE_NOTES.md`; not re-run per scope. |
 
 ## 4. Rate limits and abuse bounds
 
@@ -74,7 +93,7 @@ this audit), **FINDING** (documented, deliberately not fixed here).
    trackers, no third-party analytics; data processors = Convex, Anthropic.
 2. **Scheme + bundle-id rename coordination** — app is branded Immifile but the
    scheme/trustedOrigins are still `immigrationrenewalhelp://` (see
-   `docs/FABLE_NOTES.md` "Immifile rename"; `convex/auth.ts:40` must change in
+   `docs/internal/FABLE_NOTES.md` "Immifile rename"; `convex/auth.ts:40` must change in
    lockstep with `app.json` and the Better Auth deep-link config).
 3. **Production Convex deploy + env** — set `ANTHROPIC_API_KEY`,
    `MODERATOR_EMAILS` on prod; leave `DEV_SEED_ENABLED` unset; verify the

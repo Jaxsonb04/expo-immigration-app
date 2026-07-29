@@ -20,6 +20,7 @@ import {
 	requireText,
 	targetKeyFor,
 } from './shared/community'
+import { assertFeatureEnabled } from './lib/releaseGate'
 
 // M4-T1 community forum backend (ADR-0003 amended scope). Pseudonymous:
 // authorship is stored as a private ownerId for authorization + moderation, but
@@ -181,6 +182,7 @@ async function ensureProfileForOwner(
 export const ensureProfile = mutation({
 	args: { handle: v.optional(v.string()) },
 	handler: async (ctx, args): Promise<Id<'communityProfiles'>> => {
+		assertFeatureEnabled('community')
 		const ownerId = await requireCredentialedOwnerId(ctx)
 		const existing = await findProfile(ctx, ownerId)
 		if (existing !== null) return existing._id
@@ -198,6 +200,7 @@ export const getMyProfile = query({
 		v.object({ _id: v.id('communityProfiles'), handle: v.string(), createdAt: v.number() }),
 	),
 	handler: async (ctx) => {
+		assertFeatureEnabled('community')
 		const ownerId = await getOwnerId(ctx)
 		if (ownerId === null) return null
 		const profile = await findProfile(ctx, ownerId)
@@ -213,6 +216,7 @@ export const getMyProfile = query({
 export const createPost = mutation({
 	args: { title: v.string(), body: v.string() },
 	handler: async (ctx, args): Promise<Id<'forumPosts'>> => {
+		assertFeatureEnabled('community')
 		const ownerId = await requireCredentialedOwnerId(ctx)
 		const title = requireText(args.title, POST_TITLE_MAX, 'Title')
 		const body = requireText(args.body, POST_BODY_MAX, 'Post')
@@ -236,6 +240,7 @@ export const createPost = mutation({
 export const addComment = mutation({
 	args: { postId: v.id('forumPosts'), body: v.string() },
 	handler: async (ctx, args): Promise<Id<'forumComments'>> => {
+		assertFeatureEnabled('community')
 		const ownerId = await requireCredentialedOwnerId(ctx)
 		const body = requireText(args.body, COMMENT_BODY_MAX, 'Comment')
 		const post = await ctx.db.get('forumPosts', args.postId)
@@ -267,6 +272,7 @@ export const addComment = mutation({
 export const deletePost = mutation({
 	args: { postId: v.id('forumPosts') },
 	handler: async (ctx, args): Promise<null> => {
+		assertFeatureEnabled('community')
 		const ownerId = await requireCredentialedOwnerId(ctx)
 		const post = await ctx.db.get('forumPosts', args.postId)
 		// Not-found and not-owned collapse to one error (never leak existence).
@@ -286,6 +292,7 @@ export const deletePost = mutation({
 export const deleteComment = mutation({
 	args: { commentId: v.id('forumComments') },
 	handler: async (ctx, args): Promise<null> => {
+		assertFeatureEnabled('community')
 		const ownerId = await requireCredentialedOwnerId(ctx)
 		const comment = await ctx.db.get('forumComments', args.commentId)
 		if (comment === null || comment.authorOwnerId !== ownerId) throw new Error('Comment not found')
@@ -347,6 +354,7 @@ export const reportContent = mutation({
 		note: v.optional(v.string()),
 	},
 	handler: async (ctx, args): Promise<Id<'forumReports'>> => {
+		assertFeatureEnabled('community')
 		const reporterOwnerId = await requireCredentialedOwnerId(ctx)
 		const note = optionalText(args.note, REPORT_NOTE_MAX, 'Note')
 
@@ -427,6 +435,7 @@ async function blockedHandlesFor(
 export const blockAuthor = mutation({
 	args: { handle: v.string() },
 	handler: async (ctx, args): Promise<null> => {
+		assertFeatureEnabled('community')
 		const ownerId = await requireCredentialedOwnerId(ctx)
 		const handle = normalizeHandle(args.handle)
 		const profile = await ctx.db
@@ -463,6 +472,7 @@ export const blockAuthor = mutation({
 export const unblockAuthor = mutation({
 	args: { profileId: v.id('communityProfiles') },
 	handler: async (ctx, args): Promise<null> => {
+		assertFeatureEnabled('community')
 		const ownerId = await requireCredentialedOwnerId(ctx)
 		const existing = await ctx.db
 			.query('communityBlocks')
@@ -481,6 +491,7 @@ export const listMyBlocks = query({
 	args: {},
 	returns: v.array(publicBlockValidator),
 	handler: async (ctx) => {
+		assertFeatureEnabled('community')
 		const ownerId = await getOwnerId(ctx)
 		if (ownerId === null) return []
 		const blocks = await ctx.db
@@ -503,6 +514,7 @@ export const listPosts = query({
 	args: { paginationOpts: paginationOptsValidator },
 	returns: paginatedValidator(publicPostValidator),
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('community')
 		const account = await getAccountIdentity(ctx) // best-effort; null when unauth
 		const callerOwnerId = account?.ownerId ?? null
 		const opts = { ...args.paginationOpts, numItems: clampPageSize(args.paginationOpts.numItems) }
@@ -524,6 +536,7 @@ export const getPost = query({
 	args: { postId: v.id('forumPosts') },
 	returns: v.union(v.null(), publicPostValidator),
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('community')
 		const account = await getAccountIdentity(ctx)
 		const post = await ctx.db.get('forumPosts', args.postId)
 		if (post === null || post.moderationStatus !== 'visible') return null
@@ -538,6 +551,7 @@ export const listComments = query({
 	args: { postId: v.id('forumPosts'), paginationOpts: paginationOptsValidator },
 	returns: paginatedValidator(publicCommentValidator),
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('community')
 		const account = await getAccountIdentity(ctx)
 		const callerOwnerId = account?.ownerId ?? null
 		const opts = { ...args.paginationOpts, numItems: clampPageSize(args.paginationOpts.numItems) }

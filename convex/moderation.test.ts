@@ -10,6 +10,19 @@ import { parseModeratorEmails, targetIdFromKey, targetKeyFor } from './shared/co
 // a moderator is a credentialed identity whose JWT email is on the
 // MODERATOR_EMAILS allowlist (never a client-supplied flag).
 
+// This suite exercises the feature implementation itself, so it runs with the
+// release gate open. That the gate actually closes these endpoints in the
+// shipped policy is covered separately by convex/releaseGate.test.ts.
+vi.mock('../release-policy.json', () => ({
+	default: {
+		filingPreparation: true,
+		assistant: true,
+		community: true,
+		socialLogin: true,
+		passwordRecovery: true,
+	},
+}))
+
 const modules = import.meta.glob('./**/*.ts')
 const newT = () => convexTest(schema, modules)
 
@@ -431,7 +444,10 @@ describe('per-viewer blocks', () => {
 		await bob.mutation(api.community.blockAuthor, { handle: aliceHandle }) // bob -> alice's profile
 		await alice.mutation(api.community.blockAuthor, { handle: bobHandle }) // alice -> bob's profile
 
-		await alice.action(api.account.deleteAccountData, {})
+		// deleteAccountData is the anonymous-session path (same owner identity).
+		await t
+			.withIdentity({ subject: 'alice', isAnonymous: true })
+			.action(api.account.deleteAccountData, {})
 
 		// Alice-as-blocker rows AND rows pointing at alice's profile are both gone.
 		const remaining = await t.run(async (ctx) => await ctx.db.query('communityBlocks').collect())

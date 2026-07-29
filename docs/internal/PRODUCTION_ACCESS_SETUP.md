@@ -103,7 +103,7 @@ Password recovery is source-controlled off for this first release. No SES
 identity, transactional-email provider, or outbound-email webhook is required.
 Keep `AUTH_EMAIL_WEBHOOK_URL`, `AUTH_EMAIL_WEBHOOK_TOKEN`, and
 `AUTH_EMAIL_FROM` unset in Convex production. A later reviewed release can
-follow `docs/AUTH_EMAIL_WEBHOOK.md` before enabling the feature.
+follow `docs/internal/AUTH_EMAIL_WEBHOOK.md` before enabling the feature.
 
 ## 4. Log in to Expo and link the EAS project
 
@@ -210,7 +210,7 @@ In App Store Connect:
 2. Create the app record for bundle ID
    `dev.uing.immigrationrenewalhelp`.
 3. Complete App Privacy from the reviewed draft in
-   `docs/APP_STORE_METADATA.md`.
+   `docs/internal/APP_STORE_METADATA.md`.
 4. Add the public privacy and support URLs.
 5. Create a dedicated production demo account for App Review and put its
    credentials only in App Store Connect review notes.
@@ -241,4 +241,4 @@ npm run release:remote-check
 ```
 
 Finally, install the production-profile build on physical iPhone and iPad
-hardware and complete the test matrix in `docs/APP_STORE_RELEASE.md`.
+hardware and complete the test matrix in `docs/internal/APP_STORE_RELEASE.md`.

@@ -10,6 +10,7 @@ import {
 	navigatorFactsShape,
 	recommend,
 } from './shared/navigator'
+import { assertFeatureEnabled } from './lib/releaseGate'
 
 // M1-T2: the safe navigator's Claude call. It extracts ONLY the four
 // NavigatorFacts fields via structured output, validates them at the boundary
@@ -93,6 +94,7 @@ export const getRecommendation = action({
 		),
 	},
 	handler: async (ctx, args): Promise<RecommendResult> => {
+		assertFeatureEnabled('assistant')
 		const message = args.message.trim()
 		if (message.length === 0) {
 			throw new Error('Message cannot be empty')

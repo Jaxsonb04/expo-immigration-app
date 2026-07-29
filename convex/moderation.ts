@@ -19,6 +19,7 @@ import {
 	reportTargetTypes,
 	targetIdFromKey,
 } from './shared/community'
+import { assertFeatureEnabled } from './lib/releaseGate'
 
 // M4-T3 moderation API. Every read/write here is moderator-only (an email
 // allowlist in the MODERATOR_EMAILS deployment env var — convex/lib/
@@ -100,6 +101,7 @@ export const listReports = query({
 	args: { paginationOpts: paginationOptsValidator },
 	returns: paginatedValidator(reportItemValidator),
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('community')
 		await requireModerator(ctx)
 		const opts = { ...args.paginationOpts, numItems: clampPageSize(args.paginationOpts.numItems) }
 		const result = await ctx.db
@@ -154,6 +156,7 @@ export const setModerationStatus = mutation({
 		status: literals('hidden', 'visible'),
 	},
 	handler: async (ctx, args): Promise<null> => {
+		assertFeatureEnabled('community')
 		await requireModerator(ctx)
 		const target = await loadModerationTarget(ctx, args.targetType, args.targetKey)
 		if (target === null) throw new Error('Content not found')
@@ -193,6 +196,7 @@ export const setModerationStatus = mutation({
 export const resolveReport = mutation({
 	args: { reportId: v.id('forumReports'), resolution: literals(...reportResolutions) },
 	handler: async (ctx, args): Promise<null> => {
+		assertFeatureEnabled('community')
 		await requireModerator(ctx)
 		const report = await ctx.db.get('forumReports', args.reportId)
 		if (report === null) throw new Error('Report not found')

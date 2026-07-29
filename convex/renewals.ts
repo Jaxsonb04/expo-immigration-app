@@ -3,6 +3,7 @@ import { literals } from 'convex-helpers/validators'
 import { mutation, query } from './_generated/server'
 import { requireOwnerId } from './lib/auth'
 import { isValidIsoDate } from './shared/renewals'
+import { assertFeatureEnabled } from './lib/releaseGate'
 
 // M6-T6 Upcoming renewals: one merged, bounded read for the Forms dashboard.
 // Sources (MASTER_PLAN decision 6): completed in-app filings, current vault
@@ -14,6 +15,7 @@ const MAX_MANUAL_ENTRIES = 20
 export const listRenewalItems = query({
 	args: {},
 	handler: async (ctx) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 
 		const [documents, entries, filed] = await Promise.all([
@@ -75,6 +77,7 @@ export const addRenewalEntry = mutation({
 		filedAt: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		if (args.expiryDate === undefined && args.filedAt === undefined) {
 			throw new Error('Enter an expiry date or a filing date')
@@ -104,6 +107,7 @@ export const addRenewalEntry = mutation({
 export const deleteRenewalEntry = mutation({
 	args: { entryId: v.id('renewalEntries') },
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const entry = await ctx.db.get('renewalEntries', args.entryId)
 		if (entry === null || entry.ownerId !== ownerId) {

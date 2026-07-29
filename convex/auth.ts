@@ -28,6 +28,39 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
 		// Must match the app scheme in app.json (used for deep-link auth callbacks).
 		trustedOrigins: ['immigrationrenewalhelp://', 'https://auth.immifile.app'],
 		database: authComponent.adapter(ctx),
+		// Nothing throttled account creation before this. An anonymous identity is
+		// free to mint and passes `requireOwnerId`, so an unthrottled endpoint is
+		// an unbounded supply of authenticated callers — the amplifier behind every
+		// per-owner quota in this codebase. Database-backed because the Convex
+		// component ships a `rateLimit` table for exactly this (its schema is
+		// generated with `rateLimit: { storage: 'database' }`); the in-memory
+		// default would reset with every isolate.
+		//
+		// NOTE: buckets are keyed by client IP, and requests reach Convex through
+		// the auth.immifile.app proxy. `ipAddressHeaders` is set explicitly so the
+		// forwarded address is used rather than the proxy's own. Limits below are
+		// deliberately generous — enough to stop bulk minting, loose enough that a
+		// misconfigured forward degrades to "one shared bucket" without locking
+		// real users out. Verify against a real device after the first deploy and
+		// tighten from there.
+		advanced: {
+			ipAddress: {
+				ipAddressHeaders: ['x-forwarded-for', 'cf-connecting-ip'],
+			},
+		},
+		rateLimit: {
+			enabled: true,
+			storage: 'database',
+			window: 60,
+			max: 120,
+			customRules: {
+				'/sign-in/email': { window: 300, max: 30 },
+				'/sign-up/email': { window: 3600, max: 20 },
+				'/sign-in/anonymous': { window: 3600, max: 30 },
+				'/delete-user': { window: 3600, max: 10 },
+				'/request-password-reset': { window: 3600, max: 10 },
+			},
+		},
 		emailAndPassword: {
 			enabled: true,
 			requireEmailVerification: false,

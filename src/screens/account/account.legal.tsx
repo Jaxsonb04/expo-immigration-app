@@ -48,7 +48,7 @@ const PRIVACY_SECTIONS: readonly PolicySection[] = [
 	},
 	{
 		title: 'Service providers',
-		body: 'Convex hosts the application backend, database, and authentication components. Your device opens official USCIS and Department of Justice links in the system browser. The AI assistant, filing workflow, document uploads, and public community are not available in this release.',
+		body: 'Convex hosts the application backend, database, and authentication components. Vercel hosts the sign-in endpoint every authentication request passes through, and so processes connection metadata such as IP address and user agent. Porkbun forwards the support address and Google provides the destination mailbox. Your device opens official USCIS and Department of Justice links in the system browser. The AI assistant, filing workflow, document uploads, and public community are not available in this release.',
 	},
 	{
 		title: 'Retention and deletion',
@@ -57,6 +57,10 @@ const PRIVACY_SECTIONS: readonly PolicySection[] = [
 	{
 		title: 'Security and choices',
 		body: 'Authentication credentials are transmitted over encrypted connections, and the app stores its session in device secure storage. You may browse official resources without creating a permanent account. Saving a case requires an account so the receipt number is not placed in a short-lived temporary workspace.',
+	},
+	{
+		title: 'Account access in this release',
+		body: 'This release has no self-service password reset and does not verify email addresses. Keep your password safe: there is no automated way back into an account without it, and because Immifile cannot confirm ownership of an unverified address, support cannot reset a password or delete an account on request. Delete your account from Account, Settings, Delete account while you are signed in.',
 	},
 	{
 		title: 'Questions',
@@ -98,7 +102,7 @@ async function openUrl(url: string): Promise<void> {
 export function PrivacyPolicyScreen() {
 	return (
 		<PolicyScreen
-			intro="This policy explains the data practices of the first App Store release of Immifile."
+			intro="Immifile is an independent app, not affiliated with USCIS, DHS, DOJ, or the U.S. government, and it does not provide legal advice. This policy explains the data practices of the first App Store release."
 			sections={PRIVACY_SECTIONS}
 		/>
 	)

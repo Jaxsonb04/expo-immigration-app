@@ -264,7 +264,7 @@ modal deterministically, then `tapOn: "Close"` hits the shared ModalHeader X
 
 **Summary:** a parallel research + adversarial-verify workflow pulled the current
 official I-765 and I-90 facts from uscis.gov only; full cited detail is in
-`docs/uscis-form-research.md` (the source of truth for the M8-T7 audit). Headline
+`docs/internal/uscis-form-research.md` (the source of truth for the M8-T7 audit). Headline
 facts, all CONFIRMED by an independent verifier re-fetching the live pages:
 
 - **I-765** edition **08/21/25**; fee **$520 paper / $470 online**, **$0** separate

@@ -1,0 +1,73 @@
+name: CI
+
+# Nothing gated the repository before this: typecheck, lint, and the test suite
+# only ever ran on a developer's machine. The suite is fast (~2s), so there is
+# no reason for a pull request to reach `main` unverified.
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      # `heroui-native-pro` publishes a ~9KB stub; its real library — including
+      # every type declaration — is fetched by its own postinstall, which
+      # authenticates with HEROUI_AUTH_TOKEN and otherwise exits 0 leaving the
+      # stub in place. `--frozen-lockfile` so a drifting bun.lock fails here
+      # rather than on an EAS builder.
+      - name: Install dependencies
+        env:
+          HEROUI_AUTH_TOKEN: ${{ secrets.HEROUI_AUTH_TOKEN }}
+        run: bun install --frozen-lockfile
+
+      # Report which of the two states we are in rather than letting a stub
+      # surface as dozens of confusing "Cannot find module" type errors.
+      - name: Detect HeroUI Pro availability
+        id: heroui
+        run: |
+          if [ -f node_modules/heroui-native-pro/lib/typescript/src/index.d.ts ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::heroui-native-pro resolved in full — running the typecheck."
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::heroui-native-pro is a licensed stub because the HEROUI_AUTH_TOKEN repository secret is not set. Its type declarations are absent, so the typecheck is SKIPPED and lint runs without import/no-unresolved. Add the secret (the same hp_ key already in EAS) to make CI complete."
+          fi
+
+      - name: Release configuration
+        run: bun run release:config
+
+      - name: Typecheck
+        if: steps.heroui.outputs.available == 'true'
+        run: bun run typecheck
+
+      - name: Lint
+        if: steps.heroui.outputs.available == 'true'
+        run: bun run lint
+
+      # Same rules minus the one that can only fail because of the stub, so a
+      # real lint regression still blocks the PR when the secret is absent.
+      - name: Lint (without the licensed package)
+        if: steps.heroui.outputs.available != 'true'
+        run: bunx eslint . --rule '{"import/no-unresolved":"off"}'
+
+      - name: Tests
+        run: bun run test:once

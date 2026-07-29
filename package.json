@@ -16,7 +16,7 @@
 		"test:once": "vitest run --passWithNoTests",
 		"release:config": "node scripts/validate-release-config.mjs",
 		"release:remote-check": "node scripts/check-production-readiness.mjs",
-		"eas-build-pre-install": "node scripts/validate-release-config.mjs && npx -y hpsetup@latest native --auto"
+		"eas-build-pre-install": "node scripts/validate-release-config.mjs && npx -y hpsetup@4.7.0 native --auto"
 	},
 	"dependencies": {
 		"@anthropic-ai/sdk": "^0.110.0",

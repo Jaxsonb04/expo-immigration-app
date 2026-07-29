@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { convexTest } from 'convex-test'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
-import { api } from './_generated/api'
+import { api, internal } from './_generated/api'
 import type { Id } from './_generated/dataModel'
 import schema from './schema'
 import {
@@ -10,6 +10,19 @@ import {
 	supportedSituations,
 } from './shared/applicationShapes'
 import { EVIDENCE_CONTRACT_VERSION, evidenceRequirementFor } from './shared/evidenceRequirements'
+
+// This suite exercises the feature implementation itself, so it runs with the
+// release gate open. That the gate actually closes these endpoints in the
+// shipped policy is covered separately by convex/releaseGate.test.ts.
+vi.mock('../release-policy.json', () => ({
+	default: {
+		filingPreparation: true,
+		assistant: true,
+		community: true,
+		socialLogin: true,
+		passwordRecovery: true,
+	},
+}))
 
 const modules = import.meta.glob('./**/*.ts')
 
@@ -1098,7 +1111,7 @@ describe('home dashboard + vault', () => {
 	test('seeded owner: counts, attention sources, bounded activity', async () => {
 		const t = newT()
 		const alice = t.withIdentity({ subject: 'alice' })
-		await alice.action(api.dev.seed.seedDemo, {})
+		await alice.action(internal.dev.seed.seedDemo, {})
 
 		const dashboard = await alice.query(api.home.getHomeDashboard, {})
 		// 3 drafts + 1 filed are active; closed is excluded.
@@ -1122,7 +1135,7 @@ describe('home dashboard + vault', () => {
 		const t = newT()
 		const alice = t.withIdentity({ subject: 'alice' })
 		const bob = t.withIdentity({ subject: 'bob' })
-		await alice.action(api.dev.seed.seedDemo, {})
+		await alice.action(internal.dev.seed.seedDemo, {})
 
 		const vault = await alice.query(api.home.getVault, {})
 		expect(vault.documents).toHaveLength(5)

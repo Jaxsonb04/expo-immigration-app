@@ -25,6 +25,7 @@ import { interviewStepKeys, preReviewStepKeys, requiredSlotKeys } from './shared
 import { isStepComplete, stepOwnedKeys } from './shared/interviewValidation'
 import { computeReadiness } from './shared/readiness'
 import { EVIDENCE_CONTRACT_VERSION } from './shared/evidenceRequirements'
+import { assertFeatureEnabled } from './lib/releaseGate'
 
 const draftShapeFor = { i765: i765DraftAnswersShape, i90: i90DraftAnswersShape } as const
 
@@ -78,6 +79,7 @@ export const createApplication = mutation({
 		i90CardStatus: v.optional(literals(...i90CardStatuses)),
 	},
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		if (!isSupportedSituation(args.formType, args.applicationKind)) {
 			throw new Error('This form and situation combination is not supported')
@@ -145,6 +147,7 @@ export const createApplication = mutation({
 export const listApplications = query({
 	args: {},
 	handler: async (ctx) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const applications = await ctx.db
 			.query('applications')
@@ -176,6 +179,7 @@ export const listApplications = query({
 export const getApplication = query({
 	args: { applicationId: v.id('applications') },
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const application = await ctx.db.get('applications', args.applicationId)
 		if (application === null || application.ownerId !== ownerId) return null
@@ -288,6 +292,7 @@ export const getApplication = query({
 export const reconcileApplicationRequirements = mutation({
 	args: { applicationId: v.id('applications') },
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const application = await getOwnedApplication(ctx, ownerId, args.applicationId)
 		if (application.status !== 'draft') return
@@ -314,6 +319,7 @@ export const saveApplicationStep = mutation({
 		stepData: stepDataValidator,
 	},
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const application = await getOwnedApplication(ctx, ownerId, args.applicationId)
 		if (application.status !== 'draft') {
@@ -426,6 +432,7 @@ export const markFiled = mutation({
 		acknowledgeNotReady: v.optional(v.boolean()),
 	},
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const application = await getOwnedApplication(ctx, ownerId, args.applicationId)
 		if (application.status === 'filed') return
@@ -492,6 +499,7 @@ export const markFiled = mutation({
 export const closeApplication = mutation({
 	args: { applicationId: v.id('applications') },
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const application = await getOwnedApplication(ctx, ownerId, args.applicationId)
 		if (application.status === 'closed') return
@@ -514,6 +522,7 @@ export const closeApplication = mutation({
 export const reopenApplication = mutation({
 	args: { applicationId: v.id('applications') },
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const application = await getOwnedApplication(ctx, ownerId, args.applicationId)
 		const now = Date.now()
@@ -558,6 +567,7 @@ export const reopenApplication = mutation({
 export const deleteApplication = mutation({
 	args: { applicationId: v.id('applications') },
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const application = await getOwnedApplication(ctx, ownerId, args.applicationId)
 		if (application.status === 'filed') {

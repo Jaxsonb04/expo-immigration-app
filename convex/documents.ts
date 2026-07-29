@@ -8,6 +8,11 @@ import { documentTypes } from './shared/applicationShapes'
 import { compatibleDocumentTypes, isDocumentCompatible } from './shared/documentCompatibility'
 import { EVIDENCE_CONTRACT_VERSION, evidenceRequirementFor } from './shared/evidenceRequirements'
 import { requiredSlotKeys } from './shared/interviewSteps'
+import { assertFeatureEnabled } from './lib/releaseGate'
+import { optionalText } from './shared/community'
+
+/** A vault label is a short human name, not a place to park a payload. */
+const DOCUMENT_LABEL_MAX = 120
 
 // M2-T3 document saver. Real uploads, versioning, requirement attachment, and
 // expiry metadata for the append-only Vault (schema `documents` +
@@ -103,6 +108,7 @@ const MAX_REPOINTED_SLOTS = 200
 export const generateUploadUrl = mutation({
 	args: {},
 	handler: async (ctx) => {
+		assertFeatureEnabled('filingPreparation')
 		await requireOwnerId(ctx)
 		return await ctx.storage.generateUploadUrl()
 	},
@@ -122,6 +128,7 @@ export const saveDocument = mutation({
 		expiryDate: v.optional(v.string()),
 	},
 	handler: async (ctx, args): Promise<Id<'documents'>> => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		await getOwnedApplicant(ctx, ownerId, args.applicantId)
 		validateExpiry(args.expiryDate)
@@ -130,7 +137,7 @@ export const saveDocument = mutation({
 			ownerId,
 			applicantId: args.applicantId,
 			type: args.type,
-			label: args.label,
+			label: optionalText(args.label, DOCUMENT_LABEL_MAX, 'Document label'),
 			storageId: args.storageId,
 			expiryDate: args.expiryDate,
 			updatedAt: Date.now(),
@@ -151,6 +158,7 @@ export const saveDocument = mutation({
 export const attachDocument = mutation({
 	args: { slotId: v.id('applicationDocuments'), documentId: v.id('documents') },
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const slot = await getOwnedSlot(ctx, ownerId, args.slotId)
 		const document = await getOwnedDocument(ctx, ownerId, args.documentId)
@@ -194,6 +202,7 @@ export const attachDocument = mutation({
 export const confirmRequirement = mutation({
 	args: { slotId: v.id('applicationDocuments') },
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const slot = await getOwnedSlot(ctx, ownerId, args.slotId)
 		const application = await getOwnedApplication(ctx, ownerId, slot.applicationId)
@@ -246,6 +255,7 @@ export const confirmRequirement = mutation({
 export const detachDocument = mutation({
 	args: { slotId: v.id('applicationDocuments') },
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const slot = await getOwnedSlot(ctx, ownerId, args.slotId)
 		const application = await getOwnedApplication(ctx, ownerId, slot.applicationId)
@@ -279,6 +289,7 @@ export const uploadNewVersion = mutation({
 		expiryDate: v.optional(v.string()),
 	},
 	handler: async (ctx, args): Promise<Id<'documents'>> => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const previous = await getOwnedDocument(ctx, ownerId, args.supersedesId)
 		if (previous.supersededById !== undefined) {
@@ -291,7 +302,7 @@ export const uploadNewVersion = mutation({
 			ownerId,
 			applicantId: previous.applicantId,
 			type: previous.type,
-			label: args.label ?? previous.label,
+			label: optionalText(args.label, DOCUMENT_LABEL_MAX, 'Document label') ?? previous.label,
 			storageId: args.storageId,
 			// Carry the expiry forward by default — replacing a file (a re-scan,
 			// a clearer photo) isn't a statement that the expiry changed too.
@@ -363,6 +374,7 @@ async function attachedApplications(
 export const getDocumentDetail = query({
 	args: { documentId: v.id('documents') },
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const doc = await ctx.db.get('documents', args.documentId)
 		if (doc === null || doc.ownerId !== ownerId) return null
@@ -393,6 +405,7 @@ export const getDocumentDetail = query({
 export const updateDocumentExpiry = mutation({
 	args: { documentId: v.id('documents'), expiryDate: v.optional(v.string()) },
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const doc = await getOwnedDocument(ctx, ownerId, args.documentId)
 		validateExpiry(args.expiryDate)
@@ -414,6 +427,7 @@ export const updateDocumentExpiry = mutation({
 export const deleteDocument = mutation({
 	args: { documentId: v.id('documents') },
 	handler: async (ctx, args) => {
+		assertFeatureEnabled('filingPreparation')
 		const ownerId = await requireOwnerId(ctx)
 		const doc = await getOwnedDocument(ctx, ownerId, args.documentId)
 		const attachedTo = await attachedApplications(ctx, doc._id)

@@ -1,5 +1,5 @@
 import { v } from 'convex/values'
-import { action, env, internalAction, internalMutation, mutation } from '../_generated/server'
+import { env, internalAction, internalMutation } from '../_generated/server'
 import type { ActionCtx } from '../_generated/server'
 import { internal } from '../_generated/api'
 import { requireOwnerId } from '../lib/auth'
@@ -52,12 +52,17 @@ async function storeDemoBlobs(ctx: ActionCtx) {
 }
 
 /**
- * Seed the calling owner's workspace with the family demo. Wipes the owner's
+ * Seed the calling owner's workspace with the family demo.
+ *
+ * Internal: a destructive, data-writing endpoint must not be deployed to the
+ * public internet where a single `DEV_SEED_ENABLED` flip on the wrong
+ * deployment would open it to every authenticated caller. Operators use
+ * `seedOwner` / `resetOwnerById` from the CLI instead. Wipes the owner's
  * existing data first, so re-running always yields exactly one demo dataset.
  * An action (not a mutation) because placeholder files go through
  * `ctx.storage.store`.
  */
-export const seedDemo = action({
+export const seedDemo = internalAction({
 	args: {},
 	handler: async (ctx) => {
 		assertSeedEnabled()
@@ -92,8 +97,21 @@ export const seedOwner = internalAction({
 	},
 })
 
-/** Wipe the calling owner back to zero rows, for empty-state review. */
-export const resetOwner = mutation({
+/**
+ * CLI/dashboard reset for operators, mirroring `seedOwner`:
+ *   npx convex run dev/seed:resetOwnerById '{"ownerId": "<tokenIdentifier>"}'
+ */
+export const resetOwnerById = internalMutation({
+	args: { ownerId: v.string() },
+	handler: async (ctx, { ownerId }) => {
+		assertSeedEnabled()
+		await deleteOwnerData(ctx, ownerId)
+		return null
+	},
+})
+
+/** Wipe the calling owner back to zero rows, for empty-state review. Internal — see `seedDemo`. */
+export const resetOwner = internalMutation({
 	args: {},
 	handler: async (ctx) => {
 		assertSeedEnabled()

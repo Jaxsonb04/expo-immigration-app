@@ -24,7 +24,7 @@ import { isStepComplete } from './interviewValidation'
 //  - document: a requirement slot is still `needed`.
 //  - coverage: the app itself cannot yet produce a complete edition of this
 //              form — items USCIS requires are not collected or not mapped
-//              (docs/M2-T1-form-field-audit.md). These block clean export for
+//              (docs/internal/M2-T1-form-field-audit.md). These block clean export for
 //              EVERY application of the form until the field contract is
 //              completed, so the app never hands out a PDF that looks
 //              fileable but is silently missing required items.

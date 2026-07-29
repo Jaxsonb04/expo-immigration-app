@@ -1,5 +1,6 @@
 import { internalMutation, query } from './_generated/server'
 import { requireOwnerId } from './lib/auth'
+import { assertFeatureEnabled } from './lib/releaseGate'
 
 // Per-owner daily message quota for the Claude assistant (MASTER_PLAN
 // "Interfaces": Convex stores only per-owner daily usage counters with a
@@ -73,6 +74,7 @@ export const refundDailyMessage = internalMutation({
 export const dailyUsage = query({
 	args: {},
 	handler: async (ctx): Promise<AssistantUsage> => {
+		assertFeatureEnabled('assistant')
 		const ownerId = await requireOwnerId(ctx)
 		const day = utcDay(Date.now())
 		const existing = await ctx.db

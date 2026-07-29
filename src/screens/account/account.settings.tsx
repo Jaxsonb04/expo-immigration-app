@@ -5,7 +5,7 @@ import { authClient } from '@/lib/auth-client'
 import { RELEASE_FEATURES } from '@/lib/release-policy'
 import { useMyBlocks, useUnblockAuthor } from '@/screens/community/community.data'
 import { api } from '@convex/_generated/api'
-import { useAction, useMutation } from 'convex/react'
+import { useAction } from 'convex/react'
 import { Button, Input, Label, Separator, TextField, Typography } from 'heroui-native'
 import { useEffect, useState } from 'react'
 import { Alert, View } from 'react-native'
@@ -231,47 +231,6 @@ function DeleteAccountSection() {
 	)
 }
 
-/** Walkthrough-phase dev controls (decision 12); server-gated by DEV_SEED_ENABLED. */
-function DevSection() {
-	const seedDemo = useAction(api.dev.seed.seedDemo)
-	const resetOwner = useMutation(api.dev.seed.resetOwner)
-	const [busy, setBusy] = useState(false)
-
-	async function run(label: string, fn: () => Promise<unknown>) {
-		setBusy(true)
-		try {
-			await fn()
-		} catch (error) {
-			Alert.alert(label, error instanceof Error ? error.message : 'Failed')
-		} finally {
-			setBusy(false)
-		}
-	}
-
-	return (
-		<View className="gap-control">
-			<Typography.Heading className="text-lg font-semibold">Developer</Typography.Heading>
-			<Typography.Paragraph color="muted" className="text-sm">
-				Walkthrough demo data — replaces everything in this workspace.
-			</Typography.Paragraph>
-			<Button
-				variant="secondary"
-				isDisabled={busy}
-				onPress={() => run('Seed demo data', () => seedDemo({}))}
-			>
-				<Button.Label>Seed demo data</Button.Label>
-			</Button>
-			<Button
-				variant="ghost"
-				isDisabled={busy}
-				onPress={() => run('Reset data', () => resetOwner({}))}
-			>
-				<Button.Label>Reset to empty</Button.Label>
-			</Button>
-		</View>
-	)
-}
-
 /**
  * The Settings sub-screen (M7-T3): the account plumbing that used to crowd
  * the Profile page — sign-in/sign-out, community blocks, deletion, and dev
@@ -283,12 +242,6 @@ export function AccountSettingsScreen() {
 			<SignInSection />
 			{RELEASE_FEATURES.community ? <BlockedAuthorsSection /> : null}
 			<DeleteAccountSection />
-			{__DEV__ && (
-				<>
-					<Separator />
-					<DevSection />
-				</>
-			)}
 		</BodyScrollView>
 	)
 }

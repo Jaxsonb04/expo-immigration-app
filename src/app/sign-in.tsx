@@ -143,6 +143,15 @@ export default function SignInScreen() {
 						{isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
 					</Button.Label>
 				</Button>
+				{isSignUp && !PASSWORD_RECOVERY_ENABLED ? (
+					<View className="rounded-2xl border border-warning/30 bg-warning/10 px-card py-control">
+						<Text className="font-medium text-sm leading-relaxed text-foreground">
+							This version has no password reset yet. Save your password somewhere safe — without
+							it there is no way back into this account.
+						</Text>
+					</View>
+				) : null}
+
 				{!isSignUp && PASSWORD_RECOVERY_ENABLED ? (
 					<Button
 						variant="ghost"
