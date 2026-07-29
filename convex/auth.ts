@@ -28,39 +28,26 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
 		// Must match the app scheme in app.json (used for deep-link auth callbacks).
 		trustedOrigins: ['immigrationrenewalhelp://', 'https://auth.immifile.app'],
 		database: authComponent.adapter(ctx),
-		// Nothing throttled account creation before this. An anonymous identity is
-		// free to mint and passes `requireOwnerId`, so an unthrottled endpoint is
-		// an unbounded supply of authenticated callers — the amplifier behind every
-		// per-owner quota in this codebase. Database-backed because the Convex
-		// component ships a `rateLimit` table for exactly this (its schema is
-		// generated with `rateLimit: { storage: 'database' }`); the in-memory
-		// default would reset with every isolate.
+		// NOTE: rate limiting is NOT active, and cannot be configured here.
 		//
-		// NOTE: buckets are keyed by client IP, and requests reach Convex through
-		// the auth.immifile.app proxy. `ipAddressHeaders` is set explicitly so the
-		// forwarded address is used rather than the proxy's own. Limits below are
-		// deliberately generous — enough to stop bulk minting, loose enough that a
-		// misconfigured forward degrades to "one shared bucket" without locking
-		// real users out. Verify against a real device after the first deploy and
-		// tighten from there.
-		advanced: {
-			ipAddress: {
-				ipAddressHeaders: ['x-forwarded-for', 'cf-connecting-ip'],
-			},
-		},
-		rateLimit: {
-			enabled: true,
-			storage: 'database',
-			window: 60,
-			max: 120,
-			customRules: {
-				'/sign-in/email': { window: 300, max: 30 },
-				'/sign-up/email': { window: 3600, max: 20 },
-				'/sign-in/anonymous': { window: 3600, max: 30 },
-				'/delete-user': { window: 3600, max: 10 },
-				'/request-password-reset': { window: 3600, max: 10 },
-			},
-		},
+		// Better Auth's limiter lives in `onRequestRateLimit`, whose first line is
+		// `if (!ctx.rateLimit.enabled) return`. This app builds through
+		// `better-auth/minimal` (the entry point @convex-dev/better-auth types
+		// against), and minimal's `initMinimal` never populates `ctx.rateLimit` —
+		// so a `rateLimit: { ... }` block here is accepted, type-checks, and does
+		// exactly nothing. Verified empirically against production: 35 failed
+		// sign-ins in one burst returned 35x401 and no 429, with none of the
+		// limiter's own warnings in the deployment logs.
+		//
+		// The storage side is ready whenever the library side is — the Convex
+		// component ships a `rateLimit` table and indexes it by `key`
+		// (@convex-dev/better-auth/dist/client/create-schema.js).
+		//
+		// Consequence to keep in mind: sign-in, sign-up, and anonymous sign-in are
+		// unthrottled, so anonymous identities are an unbounded free resource. Every
+		// per-owner quota in this codebase is only as strong as that. Closing this
+		// needs an edge/WAF rule in front of auth.immifile.app, or a Better Auth
+		// version whose minimal build initializes the limiter.
 		emailAndPassword: {
 			enabled: true,
 			requireEmailVerification: false,
