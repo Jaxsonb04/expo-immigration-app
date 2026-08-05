@@ -1,3 +1,4 @@
+import { resolveTabIntroVisibility } from '@/components/core/tab-intro-state'
 import { StyledLucideIcon } from '@/components/styled-icon'
 import { api } from '@convex/_generated/api'
 import { useMutation, useQuery } from 'convex/react'
@@ -49,8 +50,8 @@ type TabIntroProps = {
 	/** Set when the native stack header is opaque and already places this
 	 * surface below its large-title chrome. */
 	contentStartsBelowHeader?: boolean
-	/** The tab's real content. Kept unmounted while a first-run intro covers the
-	 * surface (see `showContent`) so nothing can peek out from under it. */
+	/** The tab's real content. It remains available while the preference loads,
+	 * then unmounts only when a confirmed first-run intro covers the surface. */
 	children: ReactNode
 }
 
@@ -76,17 +77,12 @@ function FeatureRow({ icon, title }: TabIntroFeature) {
  * (convex/preferences.ts) — it survives reinstalls, carries over when an
  * anonymous session converts, and is erased by the deletion cascade.
  *
- * Presentation: while an intro is showing it IS the tab's content — a plain flex
- * child rendered from the tab's first frame, with no separate overlay window and
- * no absolute positioning. Every tab pre-renders, so this is on screen the
- * instant the tab is shown; nothing of the real tab can flash before it. (The
- * two rejected alternatives — hiding the tab bar, or covering it with a
- * `FullWindowOverlay` — both lag the native tab switch by a frame, so the tab
- * chrome glimpsed through first; hiding it also replayed the iOS 26 Liquid Glass
- * selection animation on dismiss. The trade-off here is that the tab bar stays
- * visible during the intro.) The tab's real content is kept unmounted until the
- * intro is gone; during the dismiss fade the intro becomes an absolute cover so
- * the fade reveals the content mounting beneath it.
+ * Presentation: the live tab stays mounted while its preference resolves so a
+ * slow or offline request cannot produce an empty screen. Once a first-run
+ * preference resolves false, the intro becomes the tab's content as a plain flex
+ * child and the live content unmounts. During dismissal the intro becomes an
+ * absolute cover so its fade reveals the content mounting beneath it. The tab
+ * bar stays visible throughout to avoid replaying its native selection animation.
  */
 export function TabIntro({
 	prefKey,
@@ -115,12 +111,15 @@ export function TabIntro({
 	const [acknowledged, setAcknowledged] = useState(false)
 	const [dismissing, setDismissing] = useState(false)
 
-	// The intro covers the surface for a not-yet-dismissed owner and stays put
-	// through its own fade (`|| dismissing`) so a fast preference round-trip can't
-	// pop it out mid-fade — until the fade completes and sets `acknowledged`.
-	const showIntro = (dismissed === false || dismissing) && !acknowledged
-	// Mount the real content only once we're past the fresh intro.
-	const showContent = dismissed === true || dismissing || acknowledged
+	// Keep the live tab mounted while Convex resolves the preference so a slow or
+	// offline request can never leave the whole screen blank. If the preference
+	// resolves false, the first-use intro still replaces it; during dismissal both
+	// remain mounted so the fade reveals the live content beneath.
+	const { showIntro, showContent } = resolveTabIntroVisibility({
+		dismissed,
+		dismissing,
+		acknowledged,
+	})
 
 	// Only the dismiss transition animates; while shown the intro is fully opaque
 	// and static. Declarative tween, not an imperative shared-value write (the

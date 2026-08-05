@@ -89,7 +89,12 @@ npx expo export --platform ios
 `.github/workflows/ci.yml` runs the first four on every pull request and on
 `main`, so a regression should surface before release day rather than during it.
 
-Then test a production-profile build on physical iPhone and iPad hardware. Exercise first launch, email sign-up, add/update/delete case, every official resource link, account deletion, stale-session write rejection, temporary-account cleanup after eligibility, offline/error states, Dynamic Type, VoiceOver labels, and disabled-route deep links.
+Then test a production-profile build on a physical iPhone. This first release is
+iPhone-only (`ios.supportsTablet: false`), so iPad screenshots and iPad-specific
+QA are not required. Exercise first launch, email sign-up, add/update/delete case,
+every official resource link, account deletion, stale-session write rejection,
+temporary-account cleanup after eligibility, offline/error states, Dynamic Type,
+VoiceOver labels, and disabled-route deep links.
 
 Open the published privacy and support URLs in a signed-out browser. Confirm that neither requires a developer account, both match the in-app disclosures, and the support page contains the monitored private contact that will be available throughout review.
 

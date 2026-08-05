@@ -6,7 +6,7 @@ permalink: /privacy/
 
 # Immifile Privacy Policy
 
-Effective July 25, 2026
+Effective August 5, 2026
 
 Immifile is an independent app. It is not affiliated with, endorsed by, or connected to USCIS, DHS, DOJ, or the U.S. government, and it does not provide legal advice.
 
@@ -16,7 +16,7 @@ This policy describes the first App Store release of Immifile. That release prov
 
 Immifile automatically creates a temporary account when a person continues past the welcome screen. A person may create a permanent account by providing a name, email address, and password. Authentication infrastructure may also process security metadata such as session identifiers, IP address, and user agent.
 
-When a person saves a case, Immifile stores the USCIS receipt number and any status or note the person enters. The app also stores small preferences and operational records needed to provide and secure the service.
+When a person saves a case, Immifile stores the USCIS receipt number and any status or note the person enters. The app also stores small preferences, such as whether an introductory screen was dismissed, and operational records needed to provide and secure the service.
 
 ## How we use data
 
@@ -25,6 +25,8 @@ We use data to authenticate users, display their saved cases, maintain the timel
 ## Service providers
 
 Convex provides the hosted application backend, database, and authentication components. Vercel hosts `auth.immifile.app`, the endpoint every sign-in, sign-out, and session request passes through, and therefore processes connection metadata such as IP address and user agent. Porkbun forwards messages sent to the Immifile support address, and Google provides the monitored destination mailbox. Official USCIS and Department of Justice links open in the device browser.
+
+Immifile requires every service provider that accesses user data to provide the same or equal protection described in this policy and required by the App Store Review Guidelines.
 
 ## Retention and deletion
 

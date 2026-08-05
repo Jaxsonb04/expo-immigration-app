@@ -12,9 +12,6 @@ export type LinkableApplication = FunctionReturnType<
 	typeof api.cases.listLinkableApplications
 >[number]
 
-/** Official USCIS case-status lookup — users enter their receipt number there. */
-export const USCIS_CASE_STATUS_URL = 'https://egov.uscis.gov/'
-
 export function useCases(): CaseSummary[] | undefined {
 	return useQuery(api.cases.listCases, {})
 }

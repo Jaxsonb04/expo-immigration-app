@@ -6,6 +6,7 @@ import {
 	getSessionSnapshot,
 	subscribeToSession,
 } from '@/lib/session-sync'
+import { createSessionReconcileScheduler } from '@/lib/session-reconciliation'
 
 /**
  * Root-level safety net for the "authenticated on the server, stranded
@@ -25,26 +26,24 @@ import {
  * loop forever, while a fresh sign-in cookie always earns a new attempt.
  */
 export function useSessionReconciler(): void {
-	const reconciledCookie = useRef<string | null>(null)
+	const mountedRef = useRef(false)
 
 	useEffect(() => {
-		const reconcile = () => {
-			const { hasSession, isPending } = getSessionSnapshot()
-			if (isPending) return
-
-			const cookie = getPersistedSessionCookie()
-			const reconciliationKey = cookie || (hasSession ? 'session-without-cookie' : '')
-			if (!reconciliationKey) {
-				// Genuinely signed out; nothing to recover.
-				reconciledCookie.current = null
-				return
-			}
-			if (reconciliationKey === reconciledCookie.current) return
-			reconciledCookie.current = reconciliationKey
-			void ensureSessionResolved()
+		mountedRef.current = true
+		const reconcile = createSessionReconcileScheduler({
+			getSnapshot: getSessionSnapshot,
+			getCookie: getPersistedSessionCookie,
+			resolveSession: ensureSessionResolved,
+		})
+		const notify = () => {
+			if (mountedRef.current) void reconcile()
 		}
 
-		reconcile()
-		return subscribeToSession(reconcile)
+		notify()
+		const unsubscribe = subscribeToSession(notify)
+		return () => {
+			mountedRef.current = false
+			unsubscribe()
+		}
 	}, [])
 }

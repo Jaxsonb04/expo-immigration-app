@@ -69,6 +69,31 @@ describe('ensureSessionResolved', () => {
 		expect(sessionStore.refetch).toHaveBeenCalledOnce()
 	})
 
+	test('coalesces concurrent refreshes while preserving each caller session check', async () => {
+		let releaseRefetch!: () => void
+		const refetchGate = new Promise<void>((resolve) => {
+			releaseRefetch = resolve
+		})
+		sessionStore.refetch.mockImplementation(async () => {
+			await refetchGate
+			sessionStore.value = {
+				data: {
+					session: { id: 'fresh-session' },
+					user: { id: 'fresh-user' },
+				},
+				isPending: false,
+			}
+		})
+
+		const strictResult = ensureSessionResolved('fresh-user')
+		const genericResult = ensureSessionResolved()
+		expect(sessionStore.refetch).toHaveBeenCalledOnce()
+
+		releaseRefetch()
+		await expect(Promise.all([strictResult, genericResult])).resolves.toEqual([true, true])
+		expect(sessionStore.refetch).toHaveBeenCalledOnce()
+	})
+
 	test('retries an aborted refetch before accepting the expected user', async () => {
 		vi.useFakeTimers()
 		sessionStore.value = {

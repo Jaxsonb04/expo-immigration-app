@@ -91,6 +91,7 @@ Select **Yes, data is collected**. Verify these answers against the final produc
 | Contact Info → Email Address      | App Functionality; account support                                                                                 | Yes            | No       |
 | Identifiers → User ID             | App Functionality; Fraud Prevention or Security                                                                    | Yes            | No       |
 | User Content → Other User Content | App Functionality; receipt numbers and user-entered status notes                                                   | Yes            | No       |
+| Usage Data → Product Interaction  | App Functionality; remembers whether the user dismissed introductory screens                                       | Yes            | No       |
 | Other Data                        | App Functionality; Fraud Prevention or Security; limited authentication metadata such as IP address and user agent | Yes            | No       |
 
 Do not select advertising, third-party advertising, developer advertising, analytics, or cross-app tracking. Re-evaluate the answers if the final support or transactional-email service collects additional information.
@@ -100,19 +101,18 @@ Do not select advertising, third-party advertising, developer advertising, analy
 Use only synthetic information. Recommended sequence:
 
 1. Cases overview with a clearly synthetic receipt number and manual timeline.
-2. Official Resources page showing the government-source disclaimer.
-3. Case detail showing manual notes and the link to USCIS Case Status Online.
+2. Case detail showing the manual timeline and the link to USCIS Case Status Online.
+3. Official Resources page showing the government-source disclaimer.
 4. Account page showing privacy, support, settings, and deletion access.
 
 Do not show or mention filing, document upload, AI, community, or social login.
 
-Draft 6.9-inch captures from a clean Release simulator are available in
+Final 6.9-inch captures from a clean Release simulator are available in
 [`app-store-assets/screenshots`](./app-store-assets/screenshots/):
 
-- `01-welcome-6.9-inch.png`
-- `02-cases-6.9-inch.png`
-- `03-resources-6.9-inch.png`
-- `04-account-6.9-inch.png`
+- `01-cases-overview-6.9-inch.jpg`
+- `02-case-detail-6.9-inch.jpg`
+- `03-resources-6.9-inch.jpg`
+- `04-account-6.9-inch.jpg`
 
-The final production demo account and synthetic case are still required before capturing a
-case-detail screenshot.
+The separate production demo account and synthetic case are still required for App Review.

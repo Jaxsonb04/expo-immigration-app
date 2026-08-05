@@ -72,7 +72,8 @@ export function NewCaseScreen() {
 				receiptNumber: normalized,
 				applicationId: releaseApplicationLink(linkedId),
 			})
-			router.back()
+			if (router.canGoBack()) router.back()
+			else router.replace('/(tabs)/cases')
 		} catch (error) {
 			Alert.alert('Could not add case', humanErrorMessage(error, 'Please try again.'))
 		} finally {

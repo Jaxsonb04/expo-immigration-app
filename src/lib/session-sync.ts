@@ -47,6 +47,23 @@ export function subscribeToSession(listener: () => void): () => void {
 
 const SESSION_RESOLVE_ATTEMPTS = 12
 const SESSION_RESOLVE_INTERVAL_MS = 200
+let inFlightSessionRefetch: Promise<boolean> | null = null
+
+async function refetchSessionAtom(atom: SessionAtom): Promise<boolean> {
+	if (inFlightSessionRefetch !== null) return inFlightSessionRefetch
+
+	const refresh = atom
+		.get()
+		.refetch({ query: { disableCookieCache: true } })
+		.then(() => true)
+		.catch(() => false)
+	inFlightSessionRefetch = refresh
+	try {
+		return await refresh
+	} finally {
+		if (inFlightSessionRefetch === refresh) inFlightSessionRefetch = null
+	}
+}
 
 /**
  * Force better-auth's reactive session atom to reflect a session that has
@@ -79,13 +96,7 @@ export async function ensureSessionResolved(expectedUserId?: string): Promise<bo
 	}
 
 	for (let attempt = 0; attempt < SESSION_RESOLVE_ATTEMPTS; attempt += 1) {
-		let refreshed = false
-		try {
-			await atom.get().refetch({ query: { disableCookieCache: true } })
-			refreshed = true
-		} catch {
-			// A refetch aborted by an overlapping one throws; the next attempt retries.
-		}
+		const refreshed = await refetchSessionAtom(atom)
 		if (refreshed && matchesExpectedSession()) return true
 		if (attempt < SESSION_RESOLVE_ATTEMPTS - 1) {
 			await new Promise((resolve) => setTimeout(resolve, SESSION_RESOLVE_INTERVAL_MS))

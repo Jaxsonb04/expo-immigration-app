@@ -15,7 +15,7 @@ import {
 } from './shared/applicationShapes'
 import { EVIDENCE_CONTRACT_VERSION } from './shared/evidenceRequirements'
 import { requiredSlotKeys } from './shared/interviewSteps'
-import { MAX_CASE_STATUS_HISTORY, normalizeCaseNote } from './shared/cases'
+import { MAX_CASE_STATUS_HISTORY, MAX_TRACKED_CASES, normalizeCaseNote } from './shared/cases'
 import { assertFeatureEnabled } from './lib/releaseGate'
 
 // M3-T1 case tracking (ADR-0008). Manual, owner-scoped receipt-number tracking
@@ -41,7 +41,7 @@ export const listCases = query({
 		return await ctx.db
 			.query('cases')
 			.withIndex('by_ownerId_and_receiptNumber', (q) => q.eq('ownerId', ownerId))
-			.take(100)
+			.take(MAX_TRACKED_CASES)
 	},
 })
 
@@ -131,6 +131,16 @@ export const createCase = mutation({
 			)
 			.first()
 		if (existing !== null) throw new Error('You’re already tracking that receipt number')
+
+		const trackedCases = await ctx.db
+			.query('cases')
+			.withIndex('by_ownerId_and_receiptNumber', (q) => q.eq('ownerId', ownerId))
+			.take(MAX_TRACKED_CASES)
+		if (trackedCases.length >= MAX_TRACKED_CASES) {
+			throw new Error(
+				`You can track up to ${MAX_TRACKED_CASES} cases. Delete one before adding another.`,
+			)
+		}
 
 		const now = Date.now()
 		if (args.applicationId !== undefined) {

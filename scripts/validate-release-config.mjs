@@ -28,9 +28,41 @@ assert(Boolean(app.ios?.bundleIdentifier), 'ios.bundleIdentifier is required')
 // iPad screenshot set mandatory in App Store Connect and puts a portrait-only
 // layout in front of a reviewer in iPad landscape, so it is a deliberate
 // decision with QA attached — not a flag to flip back quietly.
-assert(app.ios?.supportsTablet === false, 'ios.supportsTablet must stay false until iPad is QAd and 13-inch screenshots exist')
+assert(
+	app.ios?.supportsTablet === false,
+	'ios.supportsTablet must stay false until iPad is QAd and 13-inch screenshots exist',
+)
 assert(app.ios?.config?.usesNonExemptEncryption === false, 'declare standard/exempt encryption use')
 assert(app.extra?.router?.sitemap === false, 'Expo Router sitemap must be disabled')
+const collectedDataTypes = app.ios?.privacyManifests?.NSPrivacyCollectedDataTypes ?? []
+const expectedCollectedDataTypes = [
+	'NSPrivacyCollectedDataTypeName',
+	'NSPrivacyCollectedDataTypeEmailAddress',
+	'NSPrivacyCollectedDataTypeUserID',
+	'NSPrivacyCollectedDataTypeOtherUserContent',
+	'NSPrivacyCollectedDataTypeProductInteraction',
+	'NSPrivacyCollectedDataTypeOtherDataTypes',
+]
+for (const dataType of expectedCollectedDataTypes) {
+	const declaration = collectedDataTypes.find(
+		(candidate) => candidate.NSPrivacyCollectedDataType === dataType,
+	)
+	assert(Boolean(declaration), `${dataType} must be declared in the iOS privacy manifest`)
+	assert(
+		declaration?.NSPrivacyCollectedDataTypeLinked === true,
+		`${dataType} must be linked to the user`,
+	)
+	assert(
+		declaration?.NSPrivacyCollectedDataTypeTracking === false,
+		`${dataType} must not be used for tracking`,
+	)
+	assert(
+		declaration?.NSPrivacyCollectedDataTypePurposes?.includes(
+			'NSPrivacyCollectedDataTypePurposeAppFunctionality',
+		),
+		`${dataType} must declare the app-functionality purpose`,
+	)
+}
 assert(!app.ios?.infoPlist?.NSCameraUsageDescription, 'camera permission must not ship')
 assert(!app.ios?.infoPlist?.NSMicrophoneUsageDescription, 'microphone permission must not ship')
 assert(

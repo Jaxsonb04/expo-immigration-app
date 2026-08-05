@@ -2,6 +2,7 @@ import { useAccountSession } from '@/components/account'
 import { BodyScrollView } from '@/components/core'
 import { resolveAccountDeletionMode } from '@/lib/account-deletion'
 import { authClient } from '@/lib/auth-client'
+import { humanErrorMessage } from '@/lib/error-message'
 import { RELEASE_FEATURES } from '@/lib/release-policy'
 import { useMyBlocks, useUnblockAuthor } from '@/screens/community/community.data'
 import { api } from '@convex/_generated/api'
@@ -140,7 +141,7 @@ function DeleteAccountSection() {
 		} catch (error) {
 			Alert.alert(
 				'Delete account',
-				error instanceof Error ? error.message : 'Something went wrong. Please try again.',
+				humanErrorMessage(error, 'Something went wrong. Please try again.'),
 			)
 		} finally {
 			setBusy(false)

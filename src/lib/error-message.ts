@@ -23,8 +23,13 @@ export function humanErrorMessage(
 		// brackets and the "Server Error" label a Convex failure may carry.
 		message = message.replace(/^(?:\s*\[[^\]]*\])*\s*(?:Server Error\s*)?/, '')
 	}
+	// Convex development envelopes can include the full multiline server stack
+	// followed by "Called by client". Only the leading human sentence belongs in
+	// an alert.
+	message = message.split(/\n\s*(?:at\b|Called by client\b)/, 1)[0]
 	// Drop the trailing stack-location Convex appends to uncaught errors.
 	message = message.replace(/\s+at handler \([^)]*\)\s*$/, '').trim()
 
+	if (/^(?:not authenticated|unauthenticated)$/i.test(message)) return fallback
 	return message === '' ? fallback : message
 }

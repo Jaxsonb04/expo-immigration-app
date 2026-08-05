@@ -1,9 +1,11 @@
 import { BodyScrollView, ScreenError, ScreenLoading } from '@/components/core'
 import { StyledLucideIcon } from '@/components/styled-icon'
 import { caseStatusLabels } from '@/lib/application-labels'
+import { humanErrorMessage } from '@/lib/error-message'
 import type { Id } from '@convex/_generated/dataModel'
 import { caseStatuses, type CaseStatus } from '@convex/shared/applicationShapes'
 import { CASE_NOTE_MAX } from '@convex/shared/cases'
+import * as Clipboard from 'expo-clipboard'
 import { router } from 'expo-router'
 import {
 	Alert,
@@ -18,7 +20,6 @@ import {
 import { useState } from 'react'
 import { Alert as RNAlert, Linking, Pressable, View } from 'react-native'
 import {
-	USCIS_CASE_STATUS_URL,
 	formatCaseDate,
 	statusTone,
 	useAddStatusUpdate,
@@ -26,6 +27,7 @@ import {
 	useDeleteCase,
 	type CaseDetail,
 } from './cases.data'
+import { copyReceiptAndOpenUscis } from './uscis-case-status'
 
 const DOT_COLOR = { attention: 'bg-warning', positive: 'bg-success', neutral: 'bg-muted' } as const
 
@@ -71,7 +73,7 @@ function AddUpdate({ caseId }: { caseId: Id<'cases'> }) {
 			setStatus(null)
 			setNote('')
 		} catch (error) {
-			RNAlert.alert('Could not add update', error instanceof Error ? error.message : 'Try again.')
+			RNAlert.alert('Could not add update', humanErrorMessage(error, 'Try again.'))
 		} finally {
 			setBusy(false)
 		}
@@ -132,6 +134,7 @@ export function CaseDetailScreen({ caseId }: { caseId: Id<'cases'> }) {
 	if (detail === null) return <ScreenError title="Case not found" />
 
 	const isRfe = detail.status === 'requestForEvidence'
+	const receiptNumber = detail.receiptNumber
 	const timeline = [...detail.statusHistory].sort((a, b) => b.occurredAt - a.occurredAt)
 
 	function confirmDelete() {
@@ -149,7 +152,7 @@ export function CaseDetailScreen({ caseId }: { caseId: Id<'cases'> }) {
 							.catch((error) => {
 								RNAlert.alert(
 									'Could not remove case',
-									error instanceof Error ? error.message : 'Please try again.',
+									humanErrorMessage(error, 'Please try again.'),
 								)
 							})
 					},
@@ -158,11 +161,25 @@ export function CaseDetailScreen({ caseId }: { caseId: Id<'cases'> }) {
 		)
 	}
 
+	async function openOfficialStatus() {
+		try {
+			await copyReceiptAndOpenUscis(receiptNumber, {
+				clipboard: Clipboard,
+				linking: Linking,
+			})
+		} catch (error) {
+			RNAlert.alert(
+				'Could not open USCIS',
+				humanErrorMessage(error, 'Copy the receipt number and try again.'),
+			)
+		}
+	}
+
 	return (
 		<BodyScrollView contentContainerClassName="gap-gutter py-card">
 			<View className="gap-tight">
-				<Typography.Heading className="text-2xl font-bold tabular-nums">
-					{detail.receiptNumber}
+				<Typography.Heading selectable className="text-2xl font-bold tabular-nums">
+					{receiptNumber}
 				</Typography.Heading>
 				<View className="flex-row">
 					<Chip
@@ -193,10 +210,7 @@ export function CaseDetailScreen({ caseId }: { caseId: Id<'cases'> }) {
 				</Alert>
 			) : null}
 
-			<Pressable
-				accessibilityRole="link"
-				onPress={() => void Linking.openURL(USCIS_CASE_STATUS_URL)}
-			>
+			<Pressable accessibilityRole="link" onPress={() => void openOfficialStatus()}>
 				<Surface
 					variant="secondary"
 					className="flex-row items-center gap-control rounded-2xl p-card"
@@ -204,10 +218,10 @@ export function CaseDetailScreen({ caseId }: { caseId: Id<'cases'> }) {
 					<StyledLucideIcon name="external-link" size={20} className="text-accent" />
 					<View className="flex-1">
 						<Typography.Paragraph className="font-medium">
-							Check the official status on USCIS
+							Copy receipt &amp; open USCIS
 						</Typography.Paragraph>
 						<Typography.Paragraph color="muted" className="text-sm">
-							Enter this receipt number at egov.uscis.gov for the latest update.
+							Paste the copied number on egov.uscis.gov to see the latest official status.
 						</Typography.Paragraph>
 					</View>
 				</Surface>

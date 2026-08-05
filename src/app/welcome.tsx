@@ -8,7 +8,15 @@ import { useConvexAuth } from 'convex/react'
 import { useRouter } from 'expo-router'
 import { Button } from 'heroui-native'
 import { useEffect, useRef, useState } from 'react'
-import { Alert, ScrollView, Text, useWindowDimensions, View } from 'react-native'
+import {
+	Alert,
+	Linking,
+	Pressable,
+	ScrollView,
+	Text,
+	useWindowDimensions,
+	View,
+} from 'react-native'
 import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated'
 
 /**
@@ -16,6 +24,9 @@ import Animated, { FadeInDown, ReduceMotion } from 'react-native-reanimated'
  * Auth session for browsing the stable release surfaces. Persistent case writes
  * remain account-gated; returning users can open the dedicated sign-in screen.
  */
+
+const PRIVACY_POLICY_URL =
+	process.env.EXPO_PUBLIC_PRIVACY_URL ?? 'https://jaxsonb04.github.io/expo-immigration-app/privacy/'
 
 const rise = (order: number) =>
 	FadeInDown.duration(320)
@@ -72,6 +83,17 @@ export default function WelcomeScreen() {
 		}
 	}
 
+	async function openPrivacyPolicy(): Promise<void> {
+		try {
+			await Linking.openURL(PRIVACY_POLICY_URL)
+		} catch {
+			Alert.alert(
+				'Could not open the privacy policy',
+				'Please try again when you have a connection.',
+			)
+		}
+	}
+
 	return (
 		<ScrollView
 			className="flex-1 bg-background"
@@ -116,6 +138,15 @@ export default function WelcomeScreen() {
 				>
 					<Button.Label maxFontSizeMultiplier={1.5}>Sign in</Button.Label>
 				</Button>
+				<Pressable
+					accessibilityRole="link"
+					accessibilityLabel="Open Immifile privacy policy"
+					className="self-center px-control py-tight"
+					hitSlop={8}
+					onPress={() => void openPrivacyPolicy()}
+				>
+					<Text className="font-medium text-sm text-accent underline">Privacy policy</Text>
+				</Pressable>
 			</Animated.View>
 		</ScrollView>
 	)

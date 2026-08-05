@@ -8,7 +8,7 @@ type PolicySection = {
 	body: string
 }
 
-const EFFECTIVE_DATE = 'July 25, 2026'
+const EFFECTIVE_DATE = 'August 5, 2026'
 const SUPPORT_INFO_URL =
 	process.env.EXPO_PUBLIC_SUPPORT_URL ??
 	'https://github.com/Jaxsonb04/expo-immigration-app/blob/main/docs/SUPPORT.md'
@@ -40,7 +40,7 @@ function PolicyScreen({ intro, sections }: { intro: string; sections: readonly P
 const PRIVACY_SECTIONS: readonly PolicySection[] = [
 	{
 		title: 'Data used by this release',
-		body: 'Immifile creates a temporary account when you continue. If you create a permanent account, we store the name and email you provide plus authentication records. When you save a case, we store its USCIS receipt number and the status notes you enter. We also store small account preferences and security records needed to operate the service.',
+		body: 'Immifile creates a temporary account when you continue. If you create a permanent account, we store the name and email you provide plus authentication records. When you save a case, we store its USCIS receipt number and the status notes you enter. We also store small account preferences, such as whether you dismissed an introductory screen, and security records needed to operate the service.',
 	},
 	{
 		title: 'How data is used',
@@ -48,7 +48,7 @@ const PRIVACY_SECTIONS: readonly PolicySection[] = [
 	},
 	{
 		title: 'Service providers',
-		body: 'Convex hosts the application backend, database, and authentication components. Vercel hosts the sign-in endpoint every authentication request passes through, and so processes connection metadata such as IP address and user agent. Porkbun forwards the support address and Google provides the destination mailbox. Your device opens official USCIS and Department of Justice links in the system browser. The AI assistant, filing workflow, document uploads, and public community are not available in this release.',
+		body: 'Convex hosts the application backend, database, and authentication components. Vercel hosts the sign-in endpoint every authentication request passes through, and so processes connection metadata such as IP address and user agent. Porkbun forwards the support address and Google provides the destination mailbox. We require each provider that accesses user data to provide the same or equal protection described in this policy and required by the App Store Review Guidelines. Your device opens official USCIS and Department of Justice links in the system browser. The AI assistant, filing workflow, document uploads, and public community are not available in this release.',
 	},
 	{
 		title: 'Retention and deletion',

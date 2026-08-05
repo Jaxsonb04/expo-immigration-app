@@ -17,6 +17,13 @@ describe('humanErrorMessage', () => {
 		expect(humanErrorMessage(error, 'Please try again.')).toBe('Please try again.')
 	})
 
+	test('drops multiline Convex stacks and hides technical authentication failures', () => {
+		const error = new Error(
+			'[CONVEX M(cases:createCase)] [Request ID: abc] Server Error\nUncaught Error: Not authenticated\n    at requireCredentialedOwnerId (../../convex/lib/auth.ts:66:13)\n    at async handler (../convex/cases.ts:122:41)\n\nCalled by client',
+		)
+		expect(humanErrorMessage(error, 'Please try again.')).toBe('Please try again.')
+	})
+
 	test('passes plain client-side errors through untouched', () => {
 		expect(humanErrorMessage(new Error('The upload did not complete. Please try again.'))).toBe(
 			'The upload did not complete. Please try again.',

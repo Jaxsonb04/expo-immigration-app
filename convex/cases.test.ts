@@ -81,6 +81,22 @@ describe('createCase', () => {
 		).resolves.toBeDefined()
 	})
 
+	test('rejects a 101st tracked case so every accepted case remains listable', async () => {
+		const t = newT()
+		const alice = t.withIdentity({ subject: 'alice' })
+
+		for (let index = 0; index < 100; index += 1) {
+			await alice.mutation(api.cases.createCase, {
+				receiptNumber: `EAC${String(index).padStart(10, '0')}`,
+			})
+		}
+
+		await expect(
+			alice.mutation(api.cases.createCase, { receiptNumber: 'WAC9999999999' }),
+		).rejects.toThrow(/up to 100 cases/i)
+		expect(await alice.query(api.cases.listCases, {})).toHaveLength(100)
+	})
+
 	test('links an owned application; rejects a foreign one', async () => {
 		const t = newT()
 		const alice = t.withIdentity({ subject: 'alice' })

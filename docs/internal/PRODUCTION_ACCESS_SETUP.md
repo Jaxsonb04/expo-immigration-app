@@ -16,6 +16,7 @@ printing secret values.
 | Name                       | How to obtain it                                | Store it in                                    | Never store it in                                            |
 | -------------------------- | ----------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------ |
 | `HEROUI_KEY`               | Use the trusted vendor key beginning with `hp_` | EAS `production`, visibility `secret`          | Git, Expo `EXPO_PUBLIC_*`, chat                              |
+| `HEROUI_AUTH_TOKEN`        | Use the same trusted `hp_` key                  | EAS `production`, visibility `secret`          | Git, Expo `EXPO_PUBLIC_*`, chat                              |
 | `BETTER_AUTH_SECRET`       | Generate a new random production-only value     | Convex production environment                  | EAS, Git, chat                                               |
 | `AUTH_EMAIL_WEBHOOK_TOKEN` | Future password-recovery release only           | Convex production and the private webhook host | The mobile app, Git, chat                                    |
 | Email-provider API key     | Future password-recovery release only           | Private webhook host only                      | Convex unless it directly calls the provider, EAS, Git, chat |
@@ -119,10 +120,12 @@ npx eas-cli project:info
 
 Use the Expo account that owns `jaxson04s-team`.
 
-## 5. Store the trusted HeroUI key in EAS
+## 5. Store the trusted HeroUI key under both required names in EAS
 
-The vendor key must begin with `hp_`. Do not put it in `.env.production`,
-`.env.local`, `app.json`, or any `EXPO_PUBLIC_*` variable.
+The vendor key must begin with `hp_`. Two build tools read different variable
+names, so store the same key as both `HEROUI_KEY` and `HEROUI_AUTH_TOKEN`. Do
+not put either value in `.env.production`, `.env.local`, `app.json`, or any
+`EXPO_PUBLIC_*` variable.
 
 After EAS login and project linking, enter it without displaying it:
 
@@ -135,13 +138,19 @@ npx eas-cli env:set production \
   --visibility secret \
   --scope project \
   --non-interactive
+npx eas-cli env:set production \
+  --name HEROUI_AUTH_TOKEN \
+  --value "$HEROUI_KEY" \
+  --visibility secret \
+  --scope project \
+  --non-interactive
 unset HEROUI_KEY
 ```
 
 The release build runs:
 
 ```sh
-npx -y hpsetup@latest native --auto
+npx -y hpsetup@4.7.0 native --auto
 ```
 
 The current `heroui-native-pro` version is already cached locally, so no local
@@ -184,7 +193,8 @@ Important:
   `IMMIFILE_AUTH_EMAIL_CONFIRMED` to `true`.
 - Set `IMMIFILE_PRODUCTION_BACKEND_CONFIRMED=true` only after the production
   Convex deploy and seed lockout are verified.
-- `HEROUI_KEY` must remain a separate EAS `secret`.
+- `HEROUI_KEY` and `HEROUI_AUTH_TOKEN` must remain EAS `secret` values and must
+  contain the same trusted key.
 
 Verify variable names and visibility in the EAS dashboard. Do not use a CLI
 listing command for this project: current EAS CLI output may reveal secret
@@ -240,5 +250,6 @@ Load the public EAS production variables locally without exposing
 npm run release:remote-check
 ```
 
-Finally, install the production-profile build on physical iPhone and iPad
-hardware and complete the test matrix in `docs/internal/APP_STORE_RELEASE.md`.
+Finally, install the production-profile build on a physical iPhone and complete
+the test matrix in `docs/internal/APP_STORE_RELEASE.md`. The first release is
+iPhone-only, so iPad screenshots and iPad-specific QA are not required.

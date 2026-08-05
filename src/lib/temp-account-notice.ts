@@ -8,7 +8,7 @@ const RETENTION_HOURS = TEMP_ACCOUNT_RETENTION_MS / HOUR_MS
  * surfaces. Keep the exact 48-hour boundary explicit: "temporary" alone does
  * not tell someone when their account will disappear.
  */
-export const TEMP_ACCOUNT_START_DISCLOSURE = `You can browse without signing up. This temporary account and its data become eligible for permanent deletion after ${RETENTION_HOURS} hours, then hourly cleanup removes them. Create an account before saving a case.`
+export const TEMP_ACCOUNT_START_DISCLOSURE = `To browse without signing up, Immifile creates a temporary account that remembers your intro choices. This account and its data become eligible for permanent deletion after ${RETENTION_HOURS} hours, then hourly cleanup removes them. Create an account before saving a case.`
 
 /** Calm phrasing of time left before the 48-hour deletion (M6-T4). */
 export function deletionTimeLeftCopy(deleteAt: number, now: number): string {
